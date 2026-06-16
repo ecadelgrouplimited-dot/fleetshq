@@ -954,6 +954,241 @@ const csvValue = (value) => {
   return `"${text.replace(/"/g, '""')}"`;
 };
 
+const reportCatalog = {
+  staff: {
+    name: 'Staff List',
+    pack: 'Home Office',
+    description: 'Employee, role, department, status and contact details.',
+  },
+  sponsored: {
+    name: 'Sponsored Workers',
+    pack: 'Home Office',
+    description: 'CoS, SOC, salary, visa and Right to Work follow-up dates.',
+  },
+  'right-to-work': {
+    name: 'Right to Work',
+    pack: 'Home Office',
+    description: 'RTW documents, visa expiry dates and follow-up actions.',
+  },
+  'document-expiry': {
+    name: 'Document Expiry',
+    pack: 'Home Office',
+    description: 'Expiring passports, contracts, licences and compliance documents.',
+  },
+  fleet: {
+    name: 'Fleet Register',
+    pack: 'DVSA',
+    description: 'Vehicle, driver, MOT, insurance, PMI and status records.',
+  },
+  pmi: {
+    name: 'PMI Planner',
+    pack: 'DVSA',
+    description: 'Maintenance intervals, overdue PMI records and brake test evidence.',
+  },
+  defects: {
+    name: 'Defect Register',
+    pack: 'DVSA',
+    description: 'Defect references, vehicles, severity, status and descriptions.',
+  },
+  vor: {
+    name: 'VOR History',
+    pack: 'DVSA',
+    description: 'Off-road dates, repair garages, return-to-service and sign-off records.',
+  },
+  'daily-checks': {
+    name: 'Daily Checks',
+    pack: 'DVSA',
+    description: 'Walk-around checks, nil defects, mileage and reported defect counts.',
+  },
+  training: {
+    name: 'Training Records',
+    pack: 'People',
+    description: 'Driver induction, CPC, toolbox talk and expiry tracking exports.',
+  },
+};
+
+const buildReportData = async (type) => {
+  if (type === 'staff') {
+    const rows = await prisma.employee.findMany({ orderBy: { fullName: 'asc' } });
+    return {
+      filename: '256-logistics-staff.csv',
+      headers: ['fullName', 'email', 'phone', 'jobTitle', 'department', 'employmentStatus', 'isDriver', 'isSponsored', 'startDate'],
+      exportRows: rows.map((r) => ({ ...r, startDate: formatDate(r.startDate) })),
+      columns: ['Employee', 'Role', 'Department', 'Status', 'Contact', 'Start'],
+      tableRows: rows.map((r) => [r.fullName, r.jobTitle, r.department, r.employmentStatus.replace(/_/g, ' '), `${r.email}\n${r.phone || '-'}`, formatDate(r.startDate)]),
+      summary: [
+        ['Active Staff', rows.length],
+        ['Drivers', rows.filter((r) => r.isDriver).length],
+        ['Sponsored', rows.filter((r) => r.isSponsored).length],
+        ['Departments', new Set(rows.map((r) => r.department)).size],
+      ],
+    };
+  }
+  if (type === 'fleet') {
+    const rows = await prisma.vehicle.findMany({ include: { assignedDriver: { select: { fullName: true } } }, orderBy: { registration: 'asc' } });
+    return {
+      filename: '256-logistics-fleet.csv',
+      headers: ['registration', 'make', 'model', 'year', 'status', 'assignedDriver', 'motExpiryDate', 'insuranceExpiryDate', 'nextPmiDate'],
+      exportRows: rows.map((r) => ({ ...r, assignedDriver: r.assignedDriver?.fullName || '', motExpiryDate: formatDate(r.motExpiryDate), insuranceExpiryDate: formatDate(r.insuranceExpiryDate), nextPmiDate: formatDate(r.nextPmiDate) })),
+      columns: ['Vehicle', 'Assigned Driver', 'Status', 'MOT', 'Insurance', 'PMI'],
+      tableRows: rows.map((r) => [`${r.registration}\n${r.make} ${r.model}`, r.assignedDriver?.fullName || '-', r.status.replace(/_/g, ' '), formatDate(r.motExpiryDate), formatDate(r.insuranceExpiryDate), formatDate(r.nextPmiDate)]),
+      summary: [
+        ['Fleet Records', rows.length],
+        ['Active', rows.filter((r) => r.status === 'active').length],
+        ['VOR', rows.filter((r) => r.status === 'vor').length],
+        ['PMI Overdue', rows.filter((r) => daysUntil(r.nextPmiDate) !== null && daysUntil(r.nextPmiDate) < 0).length],
+      ],
+    };
+  }
+  if (type === 'defects') {
+    const rows = await prisma.defectCase.findMany({ include: { vehicle: { select: { registration: true } }, reportedBy: { select: { fullName: true } } }, orderBy: { reportedAt: 'desc' } });
+    return {
+      filename: '256-logistics-defects.csv',
+      headers: ['referenceNumber', 'vehicle', 'reportedBy', 'severity', 'status', 'defectCategory', 'reportedAt', 'description'],
+      exportRows: rows.map((r) => ({ ...r, vehicle: r.vehicle.registration, reportedBy: r.reportedBy.fullName, reportedAt: formatDate(r.reportedAt) })),
+      columns: ['Reference', 'Vehicle', 'Reported By', 'Severity', 'Status', 'Category', 'Reported'],
+      tableRows: rows.map((r) => [r.referenceNumber, r.vehicle.registration, r.reportedBy.fullName, r.severity, r.status.replace(/_/g, ' '), r.defectCategory, formatDate(r.reportedAt)]),
+      summary: [
+        ['Open Defects', rows.filter((r) => r.status !== 'signed_off').length],
+        ['Dangerous', rows.filter((r) => r.severity === 'dangerous' && r.status !== 'signed_off').length],
+        ['Serious', rows.filter((r) => r.severity === 'serious' && r.status !== 'signed_off').length],
+        ['Signed Off', rows.filter((r) => r.status === 'signed_off').length],
+      ],
+    };
+  }
+  if (type === 'sponsored') {
+    const rows = await prisma.sponsoredWorker.findMany({ include: { employee: { select: { fullName: true, email: true, employmentStatus: true } } }, orderBy: { employee: { fullName: 'asc' } } });
+    return {
+      filename: '256-logistics-sponsored-workers.csv',
+      headers: ['employee', 'email', 'cosNumber', 'socCode', 'sponsoredJobTitle', 'salaryOnCos', 'actualSalary', 'visaExpiryDate', 'rightToWorkFollowupDate', 'employmentStatus'],
+      exportRows: rows.map((r) => ({ ...r, employee: r.employee.fullName, email: r.employee.email, visaExpiryDate: formatDate(r.visaExpiryDate), rightToWorkFollowupDate: formatDate(r.rightToWorkFollowupDate), employmentStatus: r.employee.employmentStatus })),
+      columns: ['Employee', 'CoS', 'SOC', 'Role', 'Visa Expiry', 'RTW Follow-up', 'Status'],
+      tableRows: rows.map((r) => [r.employee.fullName, r.cosNumber, r.socCode, r.sponsoredJobTitle, formatDate(r.visaExpiryDate), formatDate(r.rightToWorkFollowupDate), r.employee.employmentStatus.replace(/_/g, ' ')]),
+      summary: [
+        ['Sponsored Workers', rows.length],
+        ['Visa <= 30 Days', rows.filter((r) => daysUntil(r.visaExpiryDate) !== null && daysUntil(r.visaExpiryDate) <= 30).length],
+        ['RTW Due <= 30 Days', rows.filter((r) => daysUntil(r.rightToWorkFollowupDate) !== null && daysUntil(r.rightToWorkFollowupDate) <= 30).length],
+        ['Active', rows.filter((r) => r.employee.employmentStatus === 'active').length],
+      ],
+    };
+  }
+  if (type === 'right-to-work') {
+    const rows = await prisma.employee.findMany({ include: { documents: true, sponsoredWorker: true }, orderBy: { fullName: 'asc' } });
+    const reportRows = rows.map((r) => {
+      const rtw = r.documents.find((d) => d.documentType === 'right_to_work');
+      return {
+        fullName: r.fullName,
+        email: r.email,
+        employmentStatus: r.employmentStatus,
+        rightToWorkDocument: rtw?.fileName || 'Missing',
+        rightToWorkExpiry: formatDate(rtw?.expiryDate),
+        visaExpiryDate: formatDate(r.sponsoredWorker?.visaExpiryDate),
+        followUpDate: formatDate(r.sponsoredWorker?.rightToWorkFollowupDate),
+      };
+    });
+    return {
+      filename: '256-logistics-right-to-work.csv',
+      headers: ['fullName', 'email', 'employmentStatus', 'rightToWorkDocument', 'rightToWorkExpiry', 'visaExpiryDate', 'followUpDate'],
+      exportRows: reportRows,
+      columns: ['Employee', 'Status', 'RTW Document', 'RTW Expiry', 'Visa Expiry', 'Follow-up'],
+      tableRows: reportRows.map((r) => [r.fullName, r.employmentStatus.replace(/_/g, ' '), r.rightToWorkDocument, r.rightToWorkExpiry || '-', r.visaExpiryDate || '-', r.followUpDate || '-']),
+      summary: [
+        ['Employees Reviewed', reportRows.length],
+        ['Missing RTW', reportRows.filter((r) => r.rightToWorkDocument === 'Missing').length],
+        ['Follow-up Scheduled', reportRows.filter((r) => r.followUpDate && r.followUpDate !== '-').length],
+        ['Visa Records', reportRows.filter((r) => r.visaExpiryDate && r.visaExpiryDate !== '-').length],
+      ],
+    };
+  }
+  if (type === 'document-expiry') {
+    const rows = await prisma.employeeDocument.findMany({ include: { employee: { select: { fullName: true, email: true } } }, orderBy: { expiryDate: 'asc' } });
+    const reportRows = rows.map((r) => ({ employee: r.employee.fullName, email: r.employee.email, documentType: r.documentType, fileName: r.fileName, expiryDate: formatDate(r.expiryDate), daysRemaining: daysUntil(r.expiryDate) }));
+    return {
+      filename: '256-logistics-document-expiry.csv',
+      headers: ['employee', 'email', 'documentType', 'fileName', 'expiryDate', 'daysRemaining'],
+      exportRows: reportRows,
+      columns: ['Employee', 'Document Type', 'File', 'Expiry Date', 'Days Remaining'],
+      tableRows: reportRows.map((r) => [r.employee, r.documentType.replace(/_/g, ' '), r.fileName, r.expiryDate || '-', r.daysRemaining ?? '-']),
+      summary: [
+        ['Tracked Documents', reportRows.length],
+        ['Expired', reportRows.filter((r) => r.daysRemaining !== null && r.daysRemaining < 0).length],
+        ['Due <= 30 Days', reportRows.filter((r) => r.daysRemaining !== null && r.daysRemaining >= 0 && r.daysRemaining <= 30).length],
+        ['No Expiry', reportRows.filter((r) => !r.expiryDate).length],
+      ],
+    };
+  }
+  if (type === 'pmi') {
+    const rows = await prisma.vehicle.findMany({ include: { documents: true }, orderBy: { nextPmiDate: 'asc' } });
+    const reportRows = rows.map((r) => ({ registration: r.registration, status: r.status, lastPmiDate: formatDate(r.lastPmiDate), nextPmiDate: formatDate(r.nextPmiDate), pmiDaysRemaining: daysUntil(r.nextPmiDate), pmiSheets: r.documents.filter((d) => d.documentType === 'pmi_sheet').length, brakeTests: r.documents.filter((d) => d.documentType === 'brake_test').length }));
+    return {
+      filename: '256-logistics-pmi-planner.csv',
+      headers: ['registration', 'status', 'lastPmiDate', 'nextPmiDate', 'pmiDaysRemaining', 'pmiSheets', 'brakeTests'],
+      exportRows: reportRows,
+      columns: ['Vehicle', 'Status', 'Last PMI', 'Next PMI', 'Days Remaining', 'Evidence'],
+      tableRows: reportRows.map((r) => [r.registration, r.status.replace(/_/g, ' '), r.lastPmiDate || '-', r.nextPmiDate || '-', r.pmiDaysRemaining ?? '-', `${r.pmiSheets} PMI sheets / ${r.brakeTests} brake tests`]),
+      summary: [
+        ['Vehicles Planned', reportRows.length],
+        ['PMI Overdue', reportRows.filter((r) => r.pmiDaysRemaining !== null && r.pmiDaysRemaining < 0).length],
+        ['Due <= 14 Days', reportRows.filter((r) => r.pmiDaysRemaining !== null && r.pmiDaysRemaining >= 0 && r.pmiDaysRemaining <= 14).length],
+        ['Evidence Gaps', reportRows.filter((r) => r.pmiSheets === 0 || r.brakeTests === 0).length],
+      ],
+    };
+  }
+  if (type === 'vor') {
+    const rows = await prisma.vorRecord.findMany({ include: { vehicle: { select: { registration: true } }, authorisedBy: { select: { firstName: true, lastName: true } } }, orderBy: { takenOffRoadDate: 'desc' } });
+    const reportRows = rows.map((r) => ({ vehicle: r.vehicle.registration, takenOffRoadDate: formatDate(r.takenOffRoadDate), actualReturnDate: formatDate(r.actualReturnDate), reason: r.reason, repairGarage: r.repairGarage || '', authorisedBy: `${r.authorisedBy.firstName} ${r.authorisedBy.lastName}`, managerSignoffAt: formatDate(r.managerSignoffAt) }));
+    return {
+      filename: '256-logistics-vor-history.csv',
+      headers: ['vehicle', 'takenOffRoadDate', 'actualReturnDate', 'reason', 'repairGarage', 'authorisedBy', 'managerSignoffAt'],
+      exportRows: reportRows,
+      columns: ['Vehicle', 'Taken Off Road', 'Returned', 'Reason', 'Repair Garage', 'Authorised By'],
+      tableRows: reportRows.map((r) => [r.vehicle, r.takenOffRoadDate, r.actualReturnDate || 'Still off road', r.reason, r.repairGarage || '-', r.authorisedBy]),
+      summary: [
+        ['VOR Records', reportRows.length],
+        ['Active VOR', reportRows.filter((r) => !r.actualReturnDate).length],
+        ['Returned', reportRows.filter((r) => r.actualReturnDate).length],
+        ['With Garage', reportRows.filter((r) => r.repairGarage).length],
+      ],
+    };
+  }
+  if (type === 'daily-checks') {
+    const rows = await prisma.walkAroundCheck.findMany({ include: { vehicle: { select: { registration: true } }, driver: { select: { fullName: true } }, items: true }, orderBy: { checkDate: 'desc' }, take: 500 });
+    const reportRows = rows.map((r) => ({ checkDate: formatDate(r.checkDate), vehicle: r.vehicle.registration, driver: r.driver.fullName, mileage: r.mileage, nilDefect: r.nilDefect, defectItems: r.items.filter((i) => i.status === 'defect_found').length, submittedAt: r.submittedAt.toISOString() }));
+    return {
+      filename: '256-logistics-daily-checks.csv',
+      headers: ['checkDate', 'vehicle', 'driver', 'mileage', 'nilDefect', 'defectItems', 'submittedAt'],
+      exportRows: reportRows,
+      columns: ['Date', 'Vehicle', 'Driver', 'Mileage', 'Result', 'Defects'],
+      tableRows: reportRows.map((r) => [r.checkDate, r.vehicle, r.driver, `${r.mileage.toLocaleString()} mi`, r.nilDefect ? 'Nil defect' : r.defectItems > 0 ? 'Defects reported' : 'Pass', r.defectItems]),
+      summary: [
+        ['Checks Loaded', reportRows.length],
+        ['Nil Defect', reportRows.filter((r) => r.nilDefect).length],
+        ['With Defects', reportRows.filter((r) => r.defectItems > 0).length],
+        ['Distinct Drivers', new Set(reportRows.map((r) => r.driver)).size],
+      ],
+    };
+  }
+  if (type === 'training') {
+    const rows = await prisma.trainingRecord.findMany({ include: { employee: { select: { fullName: true, email: true } } }, orderBy: [{ employee: { fullName: 'asc' } }, { trainingType: 'asc' }] });
+    const reportRows = rows.map((r) => ({ employee: r.employee.fullName, email: r.employee.email, trainingType: r.trainingType, status: r.status, completedDate: formatDate(r.completedDate), expiryDate: formatDate(r.expiryDate), trainerName: r.trainerName || '' }));
+    return {
+      filename: '256-logistics-training-records.csv',
+      headers: ['employee', 'email', 'trainingType', 'status', 'completedDate', 'expiryDate', 'trainerName'],
+      exportRows: reportRows,
+      columns: ['Employee', 'Training Type', 'Status', 'Completed', 'Expiry', 'Trainer'],
+      tableRows: reportRows.map((r) => [r.employee, TRAINING_LABELS[r.trainingType] || r.trainingType.replace(/_/g, ' '), r.status.replace(/_/g, ' '), r.completedDate || '-', r.expiryDate || '-', r.trainerName || '-']),
+      summary: [
+        ['Training Records', reportRows.length],
+        ['Completed', reportRows.filter((r) => r.status === 'completed').length],
+        ['Expired', reportRows.filter((r) => r.status === 'expired').length],
+        ['In Progress', reportRows.filter((r) => r.status === 'in_progress').length],
+      ],
+    };
+  }
+
+  return null;
+};
+
 const sendCsv = (res, filename, headers, rows) => {
   const csv = [headers.map(csvValue).join(',')]
     .concat(rows.map(row => headers.map(header => csvValue(row[header])).join(',')))
@@ -973,70 +1208,41 @@ router.get('/reports/export/:type', webAuth, async (req, res) => {
         code: 403,
       });
     }
-    if (type === 'staff') {
-      const rows = await prisma.employee.findMany({ orderBy: { fullName: 'asc' } });
-      return sendCsv(res, '256-logistics-staff.csv',
-        ['fullName', 'email', 'phone', 'jobTitle', 'department', 'employmentStatus', 'isDriver', 'isSponsored', 'startDate'],
-        rows.map(r => ({ ...r, startDate: formatDate(r.startDate) })));
-    }
-    if (type === 'fleet') {
-      const rows = await prisma.vehicle.findMany({ include: { assignedDriver: { select: { fullName: true } } }, orderBy: { registration: 'asc' } });
-      return sendCsv(res, '256-logistics-fleet.csv',
-        ['registration', 'make', 'model', 'year', 'status', 'assignedDriver', 'motExpiryDate', 'insuranceExpiryDate', 'nextPmiDate'],
-        rows.map(r => ({ ...r, assignedDriver: r.assignedDriver?.fullName || '', motExpiryDate: formatDate(r.motExpiryDate), insuranceExpiryDate: formatDate(r.insuranceExpiryDate), nextPmiDate: formatDate(r.nextPmiDate) })));
-    }
-    if (type === 'defects') {
-      const rows = await prisma.defectCase.findMany({ include: { vehicle: { select: { registration: true } }, reportedBy: { select: { fullName: true } } }, orderBy: { reportedAt: 'desc' } });
-      return sendCsv(res, '256-logistics-defects.csv',
-        ['referenceNumber', 'vehicle', 'reportedBy', 'severity', 'status', 'defectCategory', 'reportedAt', 'description'],
-        rows.map(r => ({ ...r, vehicle: r.vehicle.registration, reportedBy: r.reportedBy.fullName, reportedAt: formatDate(r.reportedAt) })));
-    }
-    if (type === 'sponsored') {
-      const rows = await prisma.sponsoredWorker.findMany({ include: { employee: { select: { fullName: true, email: true, employmentStatus: true } } }, orderBy: { employee: { fullName: 'asc' } } });
-      return sendCsv(res, '256-logistics-sponsored-workers.csv',
-        ['employee', 'email', 'cosNumber', 'socCode', 'sponsoredJobTitle', 'salaryOnCos', 'actualSalary', 'visaExpiryDate', 'rightToWorkFollowupDate', 'employmentStatus'],
-        rows.map(r => ({ ...r, employee: r.employee.fullName, email: r.employee.email, visaExpiryDate: formatDate(r.visaExpiryDate), rightToWorkFollowupDate: formatDate(r.rightToWorkFollowupDate), employmentStatus: r.employee.employmentStatus })));
-    }
-    if (type === 'right-to-work') {
-      const rows = await prisma.employee.findMany({ include: { documents: true, sponsoredWorker: true }, orderBy: { fullName: 'asc' } });
-      return sendCsv(res, '256-logistics-right-to-work.csv',
-        ['fullName', 'email', 'employmentStatus', 'rightToWorkDocument', 'rightToWorkExpiry', 'visaExpiryDate', 'followUpDate'],
-        rows.map(r => {
-          const rtw = r.documents.find(d => d.documentType === 'right_to_work');
-          return { fullName: r.fullName, email: r.email, employmentStatus: r.employmentStatus, rightToWorkDocument: rtw?.fileName || 'Missing', rightToWorkExpiry: formatDate(rtw?.expiryDate), visaExpiryDate: formatDate(r.sponsoredWorker?.visaExpiryDate), followUpDate: formatDate(r.sponsoredWorker?.rightToWorkFollowupDate) };
-        }));
-    }
-    if (type === 'document-expiry') {
-      const rows = await prisma.employeeDocument.findMany({ include: { employee: { select: { fullName: true, email: true } } }, orderBy: { expiryDate: 'asc' } });
-      return sendCsv(res, '256-logistics-document-expiry.csv',
-        ['employee', 'email', 'documentType', 'fileName', 'expiryDate', 'daysRemaining'],
-        rows.map(r => ({ employee: r.employee.fullName, email: r.employee.email, documentType: r.documentType, fileName: r.fileName, expiryDate: formatDate(r.expiryDate), daysRemaining: daysUntil(r.expiryDate) })));
-    }
-    if (type === 'pmi') {
-      const rows = await prisma.vehicle.findMany({ include: { documents: true }, orderBy: { nextPmiDate: 'asc' } });
-      return sendCsv(res, '256-logistics-pmi-planner.csv',
-        ['registration', 'status', 'lastPmiDate', 'nextPmiDate', 'pmiDaysRemaining', 'pmiSheets', 'brakeTests'],
-        rows.map(r => ({ registration: r.registration, status: r.status, lastPmiDate: formatDate(r.lastPmiDate), nextPmiDate: formatDate(r.nextPmiDate), pmiDaysRemaining: daysUntil(r.nextPmiDate), pmiSheets: r.documents.filter(d => d.documentType === 'pmi_sheet').length, brakeTests: r.documents.filter(d => d.documentType === 'brake_test').length })));
-    }
-    if (type === 'vor') {
-      const rows = await prisma.vorRecord.findMany({ include: { vehicle: { select: { registration: true } }, authorisedBy: { select: { firstName: true, lastName: true } } }, orderBy: { takenOffRoadDate: 'desc' } });
-      return sendCsv(res, '256-logistics-vor-history.csv',
-        ['vehicle', 'takenOffRoadDate', 'actualReturnDate', 'reason', 'repairGarage', 'authorisedBy', 'managerSignoffAt'],
-        rows.map(r => ({ vehicle: r.vehicle.registration, takenOffRoadDate: formatDate(r.takenOffRoadDate), actualReturnDate: formatDate(r.actualReturnDate), reason: r.reason, repairGarage: r.repairGarage || '', authorisedBy: `${r.authorisedBy.firstName} ${r.authorisedBy.lastName}`, managerSignoffAt: formatDate(r.managerSignoffAt) })));
-    }
-    if (type === 'daily-checks') {
-      const rows = await prisma.walkAroundCheck.findMany({ include: { vehicle: { select: { registration: true } }, driver: { select: { fullName: true } }, items: true }, orderBy: { checkDate: 'desc' }, take: 500 });
-      return sendCsv(res, '256-logistics-daily-checks.csv',
-        ['checkDate', 'vehicle', 'driver', 'mileage', 'nilDefect', 'defectItems', 'submittedAt'],
-        rows.map(r => ({ checkDate: formatDate(r.checkDate), vehicle: r.vehicle.registration, driver: r.driver.fullName, mileage: r.mileage, nilDefect: r.nilDefect, defectItems: r.items.filter(i => i.status === 'defect_found').length, submittedAt: r.submittedAt.toISOString() })));
-    }
-    if (type === 'training') {
-      const rows = await prisma.trainingRecord.findMany({ include: { employee: { select: { fullName: true, email: true } } }, orderBy: [{ employee: { fullName: 'asc' } }, { trainingType: 'asc' }] });
-      return sendCsv(res, '256-logistics-training-records.csv',
-        ['employee', 'email', 'trainingType', 'status', 'completedDate', 'expiryDate', 'trainerName'],
-        rows.map(r => ({ employee: r.employee.fullName, email: r.employee.email, trainingType: r.trainingType, status: r.status, completedDate: formatDate(r.completedDate), expiryDate: formatDate(r.expiryDate), trainerName: r.trainerName || '' })));
-    }
+    const report = await buildReportData(type);
+    if (report) return sendCsv(res, report.filename, report.headers, report.exportRows);
     return res.status(404).render('error', { title: 'Not Found', message: 'Report export not found.', code: 404 });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/reports/:type', webAuth, async (req, res) => {
+  try {
+    const { type } = req.params;
+    if (!reportCatalog[type] || !exportRoles[type] || !hasRole(req.user, exportRoles[type])) {
+      return res.status(403).render('error', {
+        title: 'Access denied',
+        message: 'Your account does not have permission to view this report.',
+        code: 403,
+      });
+    }
+    const report = await buildReportData(type);
+    if (!report) {
+      return res.status(404).render('error', {
+        title: 'Not found',
+        message: 'The requested report could not be found.',
+        code: 404,
+      });
+    }
+    res.render('reports/show', {
+      title: reportCatalog[type].name,
+      report: {
+        ...reportCatalog[type],
+        type,
+        ...report,
+        generatedAt: new Date(),
+        rowCount: report.tableRows.length,
+        exportHref: `/reports/export/${type}`,
+      },
+    });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

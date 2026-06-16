@@ -1,0 +1,76 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/reports" class="btn btn-ghost btn-sm">Back to reports</a>
+  <div class="flex gap-2">
+    <span class="badge ${report.pack === 'DVSA' ? 'badge-amber' : report.pack === 'People' ? 'badge-blue' : 'badge-purple'}">${report.pack}</span>
+    <a href="${report.exportHref}" class="btn btn-primary btn-sm">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
+      Export CSV
+    </a>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body report-hero">
+    <div>
+      <div class="text-sm text-muted" style="font-weight:700">${report.pack} report</div>
+      <h3 style="font-size:28px;margin-top:6px">${report.name}</h3>
+      <p class="report-description">${report.description}</p>
+    </div>
+    <div class="report-meta">
+      <div class="report-meta-item"><span>Rows</span><strong>${report.rowCount}</strong></div>
+      <div class="report-meta-item"><span>Generated</span><strong>${formatDate(report.generatedAt)}</strong></div>
+      <div class="report-meta-item"><span>Format</span><strong>Read-only live view</strong></div>
+    </div>
+  </div>
+</div>
+
+<div class="stat-grid mb-4">
+  ${report.summary.map(([label, value]) => `
+    <div class="stat-card blue report-stat">
+      <div>
+        <div class="stat-value">${value}</div>
+        <div class="stat-label">${label}</div>
+      </div>
+    </div>
+  `).join('')}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3>${report.name} Detail</h3>
+    <span class="badge badge-slate">Read only</span>
+  </div>
+  <div class="table-wrap">
+    <table class="report-table">
+      <thead>
+        <tr>
+          ${report.columns.map((column) => `<th>${column}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${report.tableRows.length === 0 ? `<tr><td colspan="${report.columns.length}" style="text-align:center;padding:32px;color:#64748b">No rows available for this report</td></tr>` : report.tableRows.map((row) => `
+          <tr>
+            ${row.map((cell) => `<td>${String(cell).replace(/\n/g, '<br>')}</td>`).join('')}
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .report-hero { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
+  .report-description { margin-top:10px; max-width:720px; color:var(--text-muted); line-height:1.6; }
+  .report-meta { display:grid; grid-template-columns:1fr; gap:10px; min-width:240px; }
+  .report-meta-item { border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#f8fafc; display:flex; justify-content:space-between; gap:12px; }
+  .report-meta-item span { color:var(--text-muted); font-size:12px; font-weight:700; }
+  .report-meta-item strong { font-size:13px; font-weight:800; color:var(--text); text-align:right; }
+  .report-stat { min-height:120px; }
+  .report-table td { vertical-align:top; line-height:1.55; }
+  @media (max-width: 900px) {
+    .report-hero { flex-direction:column; }
+    .report-meta { width:100%; min-width:0; }
+  }
+</style>
+` }) %>

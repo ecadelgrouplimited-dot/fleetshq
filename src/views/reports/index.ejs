@@ -20,32 +20,35 @@
 
 <div class="card mb-4">
   <div class="card-header">
-    <h3>Export Packs</h3>
-    <span class="badge badge-blue">CSV ready</span>
+    <h3>Report Library</h3>
+    <span class="badge badge-blue">Live + CSV</span>
   </div>
   <div class="card-body report-grid">
     ${[
-      ['Staff List', 'Employee, role, department, status and contact details.', '/reports/export/staff', 'Home Office'],
-      ['Sponsored Workers', 'CoS, SOC, salary, visa and Right to Work follow-up dates.', '/reports/export/sponsored', 'Home Office'],
-      ['Right to Work', 'RTW documents, visa expiry dates and follow-up actions.', '/reports/export/right-to-work', 'Home Office'],
-      ['Document Expiry', 'Expiring passports, contracts, licences and compliance documents.', '/reports/export/document-expiry', 'Home Office'],
-      ['Fleet Register', 'Vehicle, driver, MOT, insurance, PMI and status records.', '/reports/export/fleet', 'DVSA'],
-      ['PMI Planner', 'Maintenance intervals, overdue PMI records and brake test evidence.', '/reports/export/pmi', 'DVSA'],
-      ['Defect Register', 'Defect references, vehicles, severity, status and descriptions.', '/reports/export/defects', 'DVSA'],
-      ['VOR History', 'Off-road dates, repair garages, return-to-service and sign-off records.', '/reports/export/vor', 'DVSA'],
-      ['Daily Checks', 'Walk-around checks, nil defects, mileage and reported defect counts.', '/reports/export/daily-checks', 'DVSA'],
-      ['Training Records', 'Driver induction, CPC, toolbox talk and expiry tracking exports.', '/reports/export/training', 'People']
-    ].map(([name, desc, href, pack]) => `
+      ['Staff List', 'Employee, role, department, status and contact details.', '/reports/staff', '/reports/export/staff', 'Home Office'],
+      ['Sponsored Workers', 'CoS, SOC, salary, visa and Right to Work follow-up dates.', '/reports/sponsored', '/reports/export/sponsored', 'Home Office'],
+      ['Right to Work', 'RTW documents, visa expiry dates and follow-up actions.', '/reports/right-to-work', '/reports/export/right-to-work', 'Home Office'],
+      ['Document Expiry', 'Expiring passports, contracts, licences and compliance documents.', '/reports/document-expiry', '/reports/export/document-expiry', 'Home Office'],
+      ['Fleet Register', 'Vehicle, driver, MOT, insurance, PMI and status records.', '/reports/fleet', '/reports/export/fleet', 'DVSA'],
+      ['PMI Planner', 'Maintenance intervals, overdue PMI records and brake test evidence.', '/reports/pmi', '/reports/export/pmi', 'DVSA'],
+      ['Defect Register', 'Defect references, vehicles, severity, status and descriptions.', '/reports/defects', '/reports/export/defects', 'DVSA'],
+      ['VOR History', 'Off-road dates, repair garages, return-to-service and sign-off records.', '/reports/vor', '/reports/export/vor', 'DVSA'],
+      ['Daily Checks', 'Walk-around checks, nil defects, mileage and reported defect counts.', '/reports/daily-checks', '/reports/export/daily-checks', 'DVSA'],
+      ['Training Records', 'Driver induction, CPC, toolbox talk and expiry tracking exports.', '/reports/training', '/reports/export/training', 'People']
+    ].map(([name, desc, viewHref, exportHref, pack]) => `
       <div class="report-tile">
         <div>
           <span class="badge ${pack === 'DVSA' ? 'badge-amber' : pack === 'People' ? 'badge-blue' : 'badge-purple'}">${pack}</span>
           <h4>${name}</h4>
           <p>${desc}</p>
         </div>
-        <a class="btn btn-primary btn-sm" href="${href}">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
-          Export
-        </a>
+        <div class="report-tile-actions">
+          <a class="btn btn-outline btn-sm" href="${viewHref}">Open report</a>
+          <a class="btn btn-primary btn-sm" href="${exportHref}">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
+            Export
+          </a>
+        </div>
       </div>
     `).join('')}
   </div>
@@ -82,10 +85,11 @@
   .report-tile { border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:138px; }
   .report-tile h4 { font-size:15px;font-weight:800;margin:12px 0 6px;color:var(--text); }
   .report-tile p { color:var(--text-muted);font-size:12.5px;line-height:1.5;max-width:420px; }
+  .report-tile-actions { display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
   .action-row { display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px 14px; }
   .action-row:hover { border-color:var(--primary);background:#eff6ff; }
   .action-row span { font-weight:600; }
   .action-row strong { font-size:18px;color:var(--primary); }
-  @media (max-width:900px){ .report-grid { grid-template-columns:1fr; } }
+  @media (max-width:900px){ .report-grid { grid-template-columns:1fr; } .report-tile-actions { align-items:stretch; width:100%; } .report-tile { flex-direction:column; } }
 </style>
 ` }) %>

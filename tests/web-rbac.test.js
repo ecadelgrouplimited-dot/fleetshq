@@ -53,6 +53,27 @@ describe('web RBAC', () => {
     await agent.get('/migration').expect(200);
   });
 
+  it('serves report detail pages with the same permissions as exports', async () => {
+    const directorAgent = request.agent(app);
+    await directorAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    await directorAgent.get('/reports/staff').expect(200);
+    await directorAgent.get('/reports/fleet').expect(200);
+
+    const driverAgent = request.agent(app);
+    await driverAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'driver1@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    await driverAgent.get('/reports/staff').expect(403);
+  });
+
   it('serves shared document viewer routes for permitted users', async () => {
     const agent = request.agent(app);
     await agent
