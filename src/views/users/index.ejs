@@ -43,9 +43,14 @@
               <span class="badge ${u.isActive ? 'badge-green' : 'badge-red'}">${u.isActive ? 'Active' : 'Inactive'}</span>
             </td>
             <td>
-              ${u.isActive
-                ? `<button onclick="toggleUser('${u.id}', false)" class="btn btn-ghost btn-sm">Deactivate</button>`
-                : `<button onclick="toggleUser('${u.id}', true)" class="btn btn-success btn-sm">Reactivate</button>`}
+              <div class="flex gap-2" style="flex-wrap:wrap">
+                <button onclick="openEditUser('${u.id}', '${u.firstName.replace(/'/g, "\\'")}', '${u.lastName.replace(/'/g, "\\'")}', '${(u.phone || '').replace(/'/g, "\\'")}', ${u.isActive ? 'true' : 'false'})" class="btn btn-ghost btn-sm">Edit</button>
+                <button onclick="openResetPassword('${u.id}', '${`${u.firstName} ${u.lastName}`.replace(/'/g, "\\'")}')" class="btn btn-outline btn-sm">Reset PW</button>
+                ${u.isActive
+                  ? `<button onclick="toggleUser('${u.id}', false)" class="btn btn-ghost btn-sm">Deactivate</button>`
+                  : `<button onclick="toggleUser('${u.id}', true)" class="btn btn-success btn-sm">Reactivate</button>`}
+                <button onclick="confirmDeleteUser('${u.id}', '${`${u.firstName} ${u.lastName}`.replace(/'/g, "\\'")}')" class="btn btn-danger-soft btn-sm">Delete</button>
+              </div>
             </td>
           </tr>
         `).join('')}
@@ -107,7 +112,73 @@
   </div>
 </div>
 
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Edit User</h3>
+      <button onclick="closeModal('editUserModal')" class="btn btn-ghost btn-sm">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editUserId">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">First Name</label>
+          <input class="form-control" id="editFirstName">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last Name</label>
+          <input class="form-control" id="editLastName">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-control" id="editPhone" placeholder="Optional phone number">
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="editIsActive" style="width:16px;height:16px">
+          <span style="font-size:13px;font-weight:600">Active account</span>
+        </label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('editUserModal')" class="btn btn-ghost">Cancel</button>
+      <button onclick="saveUserEdit()" class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetPasswordModal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Reset Password</h3>
+      <button onclick="closeModal('resetPasswordModal')" class="btn btn-ghost btn-sm">âœ•</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="resetUserId">
+      <div class="form-group">
+        <label class="form-label">User</label>
+        <div id="resetUserName" class="form-control" style="display:flex;align-items:center;background:#f8fafc"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Temporary Password</label>
+        <input class="form-control" id="resetPasswordValue" type="password" placeholder="Minimum 8 characters">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeModal('resetPasswordModal')" class="btn btn-ghost">Cancel</button>
+      <button onclick="submitPasswordReset()" class="btn btn-primary">Reset Password</button>
+    </div>
+  </div>
+</div>
+
 <script>
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
 async function createUser() {
   const body = {
     firstName: document.getElementById('uFirstName').value,
@@ -125,13 +196,78 @@ async function createUser() {
   document.getElementById('addUserModal').style.display = 'none';
 }
 
+function openEditUser(id, firstName, lastName, phone, isActive) {
+  document.getElementById('editUserId').value = id;
+  document.getElementById('editFirstName').value = firstName;
+  document.getElementById('editLastName').value = lastName;
+  document.getElementById('editPhone').value = phone || '';
+  document.getElementById('editIsActive').checked = Boolean(isActive);
+  document.getElementById('editUserModal').style.display = 'flex';
+}
+
+async function saveUserEdit() {
+  const id = document.getElementById('editUserId').value;
+  const body = {
+    firstName: document.getElementById('editFirstName').value,
+    lastName: document.getElementById('editLastName').value,
+    phone: document.getElementById('editPhone').value,
+    isActive: document.getElementById('editIsActive').checked,
+  };
+  const res = await fetch('/api/v1/users/' + id, {
+    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (res.ok) { showToast('User updated successfully', 'success'); setTimeout(() => location.reload(), 1000); }
+  else { const e = await res.json(); showToast(e.error?.message || 'Update failed', 'error'); }
+  closeModal('editUserModal');
+}
+
+function openResetPassword(id, name) {
+  document.getElementById('resetUserId').value = id;
+  document.getElementById('resetUserName').textContent = name;
+  document.getElementById('resetPasswordValue').value = '';
+  document.getElementById('resetPasswordModal').style.display = 'flex';
+}
+
+async function submitPasswordReset() {
+  const id = document.getElementById('resetUserId').value;
+  const newPassword = document.getElementById('resetPasswordValue').value;
+  const res = await fetch('/api/v1/users/' + id + '/reset-password', {
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword }),
+  });
+  if (res.ok) { showToast('Password reset successfully', 'success'); }
+  else { const e = await res.json(); showToast(e.error?.message || 'Reset failed', 'error'); }
+  closeModal('resetPasswordModal');
+}
+
 async function toggleUser(id, active) {
   const res = await fetch('/api/v1/users/' + id, {
     method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isActive: active }),
   });
   if (res.ok) { showToast(active ? 'User reactivated' : 'User deactivated', 'success'); setTimeout(() => location.reload(), 1000); }
-  else showToast('Action failed', 'error');
+  else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Action failed', 'error');
+  }
+}
+
+async function confirmDeleteUser(id, name) {
+  if (!window.confirm('Delete the user account for ' + name + '? This only works when the user has no audit-owned records.')) return;
+  const res = await fetch('/api/v1/users/' + id, {
+    method: 'DELETE', credentials: 'same-origin',
+  });
+  if (res.ok) { showToast('User deleted successfully', 'success'); setTimeout(() => location.reload(), 1000); }
+  else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Delete failed', 'error');
+  }
 }
 </script>
+
+<style>
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
+</style>
 ` }) %>

@@ -28,6 +28,13 @@ describe('web session API access', () => {
       })
       .expect(201);
 
-    await prisma.user.delete({ where: { email } });
+    const created = await prisma.user.findUnique({ where: { email } });
+
+    await agent
+      .delete(`/api/v1/users/${created.id}`)
+      .expect(200);
+
+    const deleted = await prisma.user.findUnique({ where: { email } });
+    expect(deleted).toBeNull();
   });
 });

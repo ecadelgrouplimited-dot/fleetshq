@@ -65,3 +65,54 @@ exports.resetPassword = async (req, res, next) => {
     return ok(res, { message: 'Password reset successfully' });
   } catch (e) { next(e); }
 };
+
+exports.remove = async (req, res, next) => {
+  try {
+    const target = await prisma.user.findUnique({
+      where: { id: req.params.id },
+      include: {
+        _count: {
+          select: {
+            auditLogs: true,
+            uploadedEmpDocs: true,
+            uploadedVehDocs: true,
+            defectReviews: true,
+            defectSignoffs: true,
+            vorAuthorisations: true,
+            vorSignoffs: true,
+            toolboxIssued: true,
+            toolboxSignoffs: true,
+            sponsoredChanges: true,
+          },
+        },
+      },
+    });
+    if (!target) throw new NotFoundError('User');
+    if (target.id === req.user.id) throw new ValidationError('You cannot delete your own account');
+
+    if (target.role === 'director') {
+      const directorCount = await prisma.user.count({ where: { role: 'director', isActive: true } });
+      if (directorCount <= 1) throw new ValidationError('You cannot delete the last active director');
+    }
+
+    const blockingRelations = [
+      ['audit logs', target._count.auditLogs],
+      ['uploaded employee documents', target._count.uploadedEmpDocs],
+      ['uploaded vehicle documents', target._count.uploadedVehDocs],
+      ['defect reviews', target._count.defectReviews],
+      ['defect sign-offs', target._count.defectSignoffs],
+      ['VOR authorisations', target._count.vorAuthorisations],
+      ['VOR sign-offs', target._count.vorSignoffs],
+      ['toolbox talks issued', target._count.toolboxIssued],
+      ['toolbox sign-offs', target._count.toolboxSignoffs],
+      ['sponsored worker changes', target._count.sponsoredChanges],
+    ].filter(([, count]) => count > 0);
+
+    if (blockingRelations.length > 0) {
+      throw new ValidationError(`This user cannot be deleted because they still own ${blockingRelations.map(([label]) => label).join(', ')}. Deactivate the account instead.`);
+    }
+
+    await prisma.user.delete({ where: { id: req.params.id } });
+    return ok(res, { message: 'User deleted successfully' });
+  } catch (e) { next(e); }
+};

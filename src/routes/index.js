@@ -107,6 +107,7 @@ router.get('/users',              authenticate, authorize('users:manage'), users
 router.post('/users',             authenticate, authorize('users:manage'), usersCtrl.create);
 router.put('/users/:id',          authenticate, authorize('users:manage'), usersCtrl.update);
 router.post('/users/:id/reset-password', authenticate, authorize('users:manage'), usersCtrl.resetPassword);
+router.delete('/users/:id',       authenticate, authorize('users:manage'), usersCtrl.remove);
 
 // ── Migration Center ───────────────────────────────────────────────
 router.post('/migration/import', authenticate, authorize('users:manage'), migrationCtrl.importCsv);
