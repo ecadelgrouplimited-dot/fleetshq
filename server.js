@@ -15,6 +15,10 @@ const { scheduleJobs } = require('./src/jobs/dailyAlerts.job');
 
 const app = express();
 
+// Behind nginx reverse proxy — trust the first proxy hop so req.ip / rate-limit
+// keys / secure-cookie detection use the real client IP (X-Forwarded-For).
+app.set('trust proxy', 1);
+
 // Security headers (relaxed for demo — allows CDN scripts)
 app.use(helmet({
   contentSecurityPolicy: false,

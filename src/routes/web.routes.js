@@ -7,6 +7,7 @@ const { verify } = require('../config/jwt');
 const { UPLOAD_DIR } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
+const loginLimiter = require('../middleware/loginLimiter');
 
 router.use(cookieParser());
 
@@ -319,9 +320,10 @@ router.get('/login', (req, res) => {
   res.render('auth/login', { title: 'Login', error: null });
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const bcrypt = require('bcryptjs');
   const { sign } = require('../config/jwt');
+  const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
   const { email, password } = req.body;
   try {
     const user = await prisma.user.findUnique({
@@ -329,13 +331,23 @@ router.post('/login', async (req, res) => {
       include: { employee: { select: { id: true } } },
     });
     if (!user || !user.isActive) return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
 
+    const lockedFor = lockMinutesRemaining(user);
+    if (lockedFor > 0) {
+      return res.render('auth/login', { title: 'Login', error: `Account temporarily locked. Try again in ${lockedFor} minute${lockedFor !== 1 ? 's' : ''}.` });
+    }
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      await registerFailure(user);
+      return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
+    }
+
+    await registerSuccess(user);
     const token = sign({ id: user.id, role: user.role, email: user.email,
       name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null });
 
-    res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
     res.redirect('/');
   } catch (e) {
     res.render('auth/login', { title: 'Login', error: 'Login failed. Please try again.' });

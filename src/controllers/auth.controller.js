@@ -3,6 +3,7 @@ const prisma = require('../config/database');
 const { sign } = require('../config/jwt');
 const { ok } = require('../utils/responseHelper');
 const { AuthError, ValidationError } = require('../utils/errors');
+const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
 
 exports.login = async (req, res, next) => {
   try {
@@ -16,9 +17,16 @@ exports.login = async (req, res, next) => {
 
     if (!user || !user.isActive) throw new AuthError('Invalid email or password');
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) throw new AuthError('Invalid email or password');
+    const lockedFor = lockMinutesRemaining(user);
+    if (lockedFor > 0) throw new AuthError(`Account temporarily locked. Try again in ${lockedFor} minute${lockedFor !== 1 ? 's' : ''}.`);
 
+    const match = await bcrypt.compare(password, user.passwordHash);
+    if (!match) {
+      await registerFailure(user);
+      throw new AuthError('Invalid email or password');
+    }
+
+    await registerSuccess(user);
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     const token = sign({
