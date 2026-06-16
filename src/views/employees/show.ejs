@@ -8,6 +8,11 @@
     ${emp.isSponsored ? '<span class="badge badge-purple" style="font-size:13px;padding:6px 12px">Sponsored Worker</span>' : ''}
     ${emp.isDriver ? '<span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Driver</span>' : ''}
     <a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>
+    ${['director','hr_manager'].includes(user.role) ? `
+      <select class="form-control" style="width:150px;height:32px;padding:4px 10px" onchange="updateEmployeeStatus(this.value)">
+        ${[['active','Active'],['on_leave','On Leave'],['suspended','Suspended'],['terminated','Terminated']].map(([v,l]) => `<option value="${v}" ${emp.employmentStatus === v ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>
+    ` : ''}
   </div>
 </div>
 
@@ -195,9 +200,20 @@ document.getElementById('uploadForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);
   const res = await fetch(e.target.action, { method:'POST', body: fd,
-    headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/token=([^;]+)/)||[])[1] }});
+    credentials: 'same-origin' });
   if (res.ok) { showToast('Document uploaded successfully','success'); document.getElementById('uploadModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
   else { showToast('Upload failed','error'); }
 });
+
+async function updateEmployeeStatus(status) {
+  const res = await fetch('/api/v1/employees/${emp.id}/status', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  if (res.ok) { showToast('Employee status updated', 'success'); setTimeout(()=>location.reload(), 700); }
+  else { showToast('Status update failed', 'error'); }
+}
 </script>
 ` }) %>

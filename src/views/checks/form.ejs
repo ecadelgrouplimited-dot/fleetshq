@@ -151,7 +151,6 @@ async function submitCheck() {
     showToast('Please provide your signature','error'); return;
   }
 
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
   const payload = {
     vehicleId,
     checkDate: document.getElementById('checkDate').value,
@@ -164,7 +163,7 @@ async function submitCheck() {
   };
 
   const res = await fetch('/api/v1/checks', { method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify(payload) });
+    credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
 
   if (res.ok) { showToast('Daily check submitted successfully','success'); setTimeout(()=>window.location.href='/checks',1200); }
   else { const err = await res.json(); showToast(err.error?.message || 'Submission failed','error'); }

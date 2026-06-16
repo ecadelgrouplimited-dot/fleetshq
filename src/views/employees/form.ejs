@@ -115,13 +115,12 @@
 async function submitEmployee() {
   const form = document.getElementById('empForm');
   const fd = new FormData(form);
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
   const body = Object.fromEntries(fd.entries());
   body.isDriver = form.querySelector('[name=isDriver]')?.checked || false;
   body.isSponsored = form.querySelector('[name=isSponsored]')?.checked || false;
 
   const res = await fetch('/api/v1/employees', {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body),
   });
   if (res.ok) {

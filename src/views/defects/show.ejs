@@ -88,9 +88,8 @@ ${defect.photos?.length > 0 ? `
 
 <script>
 async function signOff() {
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
   const res = await fetch('/api/v1/defects/${defect.id}/signoff', {
-    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ signoffNotes: 'Signed off via dashboard' })
   });
   if (res.ok) { showToast('Defect case closed successfully','success'); setTimeout(()=>location.reload(),1200); }

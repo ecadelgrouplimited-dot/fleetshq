@@ -86,6 +86,16 @@
           ${managers.map(m => `<option value="${m.id}" ${emp.lineManagerId === m.id ? 'selected' : ''}>${m.fullName} (${m.jobTitle})</option>`).join('')}
         </select>
       </div>
+      <div class="form-grid">
+        <label class="check-toggle">
+          <input type="checkbox" name="isDriver" value="true" ${emp.isDriver ? 'checked' : ''}>
+          <span>Driver record</span>
+        </label>
+        <label class="check-toggle">
+          <input type="checkbox" name="isSponsored" value="true" ${emp.isSponsored ? 'checked' : ''}>
+          <span>Sponsored worker</span>
+        </label>
+      </div>
     </div>
   </div>
 </div>
@@ -101,9 +111,10 @@ async function saveEmployee() {
   const form = document.getElementById('editForm');
   const fd = new FormData(form);
   const body = Object.fromEntries(fd.entries());
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  body.isDriver = fd.has('isDriver');
+  body.isSponsored = fd.has('isSponsored');
   const res = await fetch('/api/v1/employees/${emp.id}', {
-    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (res.ok) {
@@ -115,4 +126,8 @@ async function saveEmployee() {
   }
 }
 </script>
+<style>
+  .check-toggle { display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-weight:700;color:var(--text-2); }
+  .check-toggle input { width:16px;height:16px; }
+</style>
 ` }) %>

@@ -1,9 +1,12 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
-  <span class="badge ${vehicle.status === 'active' ? 'badge-green' : vehicle.status === 'vor' ? 'badge-red' : 'badge-slate'}" style="font-size:14px;padding:6px 14px">
-    ${vehicle.status.toUpperCase()}
-  </span>
+  <div class="flex gap-2">
+    <a href="/fleet/${vehicle.id}/edit" class="btn btn-outline btn-sm">Edit Vehicle</a>
+    <select class="form-control" style="width:170px;height:34px;padding:5px 10px" onchange="updateVehicleStatus(this.value)">
+      ${[['active','Active'],['vor','VOR'],['awaiting_repair','Awaiting Repair'],['hired','Hired'],['sold','Sold']].map(([v,l]) => `<option value="${v}" ${vehicle.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+    </select>
+  </div>
 </div>
 
 <div class="grid-2 mb-4">
@@ -159,11 +162,21 @@ ${vehicle.defects?.length > 0 ? `
 async function uploadVehDoc() {
   const form = document.getElementById('vehDocForm');
   const fd = new FormData(form);
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
   const res = await fetch('/api/v1/vehicles/${vehicle.id}/documents', { method:'POST', body: fd,
-    headers:{'Authorization':'Bearer '+token} });
+    credentials:'same-origin' });
   if (res.ok) { showToast('Document uploaded','success'); document.getElementById('docModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
   else { showToast('Upload failed','error'); }
+}
+
+async function updateVehicleStatus(status) {
+  const res = await fetch('/api/v1/vehicles/${vehicle.id}/status', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  if (res.ok) { showToast('Vehicle status updated', 'success'); setTimeout(()=>location.reload(), 700); }
+  else { showToast('Status update failed', 'error'); }
 }
 </script>
 ` }) %>

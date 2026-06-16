@@ -125,6 +125,7 @@ exports.update = async (req, res, next) => {
         contractedHours: data.contractedHours ? parseFloat(data.contractedHours) : undefined,
         salary: data.salary ? parseFloat(data.salary) : undefined,
         workLocation: data.workLocation,
+        employmentStatus: data.employmentStatus,
         lineManagerId: data.lineManagerId || null,
         isDriver: data.isDriver !== undefined ? Boolean(data.isDriver) : undefined,
         isSponsored: data.isSponsored !== undefined ? Boolean(data.isSponsored) : undefined,

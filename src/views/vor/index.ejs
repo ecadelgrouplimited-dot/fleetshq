@@ -101,10 +101,9 @@ ${active.length > 0 ? `
 let activeVorId = null;
 function returnVehicle(id) { activeVorId = id; document.getElementById('returnModal').style.display='flex'; }
 async function confirmReturn() {
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
   const notes = document.getElementById('signoffNotes').value;
   const res = await fetch('/api/v1/vor/'+activeVorId+'/return', {
-    method:'PATCH', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    method:'PATCH', credentials:'same-origin', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ signoffNotes: notes })
   });
   if (res.ok) { showToast('Vehicle returned to service','success'); setTimeout(()=>location.reload(),1200); }

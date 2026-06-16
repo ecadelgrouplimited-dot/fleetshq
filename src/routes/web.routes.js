@@ -94,10 +94,12 @@ router.get('/', webAuth, async (req, res) => {
 // ── Employees ──────────────────────────────────────────
 router.get('/employees', webAuth, async (req, res) => {
   try {
-    const { search, status = 'active', department } = req.query;
+    const { search, status = 'active', department, type = '' } = req.query;
     const where = {};
     if (status) where.employmentStatus = status;
     if (department) where.department = { contains: department, mode: 'insensitive' };
+    if (type === 'drivers') where.isDriver = true;
+    if (type === 'sponsored') where.isSponsored = true;
     if (search) where.OR = [
       { fullName: { contains: search, mode: 'insensitive' } },
       { jobTitle: { contains: search, mode: 'insensitive' } },
@@ -116,13 +118,14 @@ router.get('/employees', webAuth, async (req, res) => {
     ]);
 
     const required = ['contract', 'passport', 'right_to_work'];
-    const enriched = employees.map(e => ({
+    let enriched = employees.map(e => ({
       ...e,
       missingDocs: required.filter(r => !e.documents.find(d => d.documentType === r)).length,
     }));
+    if (type === 'missing_docs') enriched = enriched.filter(e => e.missingDocs > 0);
 
     res.render('employees/index', { title: 'People & Compliance', employees: enriched,
-      departments: departments.map(d => d.department), filters: { search, status, department } });
+      departments: departments.map(d => d.department), filters: { search, status, department, type } });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -220,8 +223,13 @@ router.get('/training', webAuth, async (req, res) => {
 // ── Fleet & Roadworthiness ─────────────────────────────
 router.get('/fleet', webAuth, async (req, res) => {
   try {
+    const { status = '', due = '' } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    else where.status = { not: 'sold' };
+
     const vehicles = await prisma.vehicle.findMany({
-      where: { status: { not: 'sold' } },
+      where,
       include: {
         assignedDriver: { select: { fullName: true } },
         defects: { where: { status: { not: 'signed_off' } }, select: { id: true, severity: true } },
@@ -230,7 +238,7 @@ router.get('/fleet', webAuth, async (req, res) => {
       orderBy: { registration: 'asc' },
     });
 
-    const enriched = vehicles.map(v => ({
+    let enriched = vehicles.map(v => ({
       ...v,
       motDays: daysUntil(v.motExpiryDate),
       insuranceDays: daysUntil(v.insuranceExpiryDate),
@@ -238,7 +246,13 @@ router.get('/fleet', webAuth, async (req, res) => {
       lastCheckDate: v.checks[0]?.checkDate || null,
     }));
 
-    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: enriched, formatDate });
+    if (due === 'pmi_overdue') enriched = enriched.filter(v => v.pmiDays !== null && v.pmiDays < 0);
+    if (due === 'pmi_due_14') enriched = enriched.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14);
+    if (due === 'mot_due_30') enriched = enriched.filter(v => v.motDays !== null && v.motDays >= 0 && v.motDays <= 30);
+    if (due === 'open_defects') enriched = enriched.filter(v => v.defects.length > 0);
+    if (due === 'unassigned') enriched = enriched.filter(v => !v.assignedDriver);
+
+    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: enriched, filters: { status, due }, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -249,7 +263,22 @@ router.get('/fleet/new', webAuth, async (req, res) => {
       where: { isDriver: true, employmentStatus: 'active' },
       select: { id: true, fullName: true }, orderBy: { fullName: 'asc' },
     });
-    res.render('vehicles/form', { title: 'Add Vehicle', drivers, formatDate });
+    res.render('vehicles/form', { title: 'Add Vehicle', vehicle: null, drivers, formatDate });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/fleet/:id/edit', webAuth, async (req, res) => {
+  try {
+    const [vehicle, drivers] = await Promise.all([
+      prisma.vehicle.findUnique({ where: { id: req.params.id } }),
+      prisma.employee.findMany({
+        where: { isDriver: true, employmentStatus: 'active' },
+        select: { id: true, fullName: true },
+        orderBy: { fullName: 'asc' },
+      }),
+    ]);
+    if (!vehicle) return res.redirect('/fleet');
+    res.render('vehicles/form', { title: `Edit ${vehicle.registration}`, vehicle, drivers, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

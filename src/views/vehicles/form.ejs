@@ -1,6 +1,7 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
-  <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
+  <a href="/fleet" class="btn btn-ghost btn-sm">Back to Fleet</a>
+  ${vehicle ? `<a href="/fleet/${vehicle.id}" class="btn btn-outline btn-sm">View Vehicle</a>` : ''}
 </div>
 
 <form id="vehicleForm">
@@ -10,35 +11,41 @@
     <div class="card-body">
       <div class="form-group">
         <label class="form-label">Registration Number <span class="required">*</span></label>
-        <input class="form-control" name="registration" required placeholder="e.g. FN16 EVK" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-control" name="registration" required placeholder="e.g. FN16 EVK" value="${vehicle?.registration || ''}" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
       </div>
       <div class="form-group">
         <label class="form-label">VIN / Chassis Number <span class="required">*</span></label>
-        <input class="form-control" name="vinNumber" required placeholder="17-character VIN" style="font-family:monospace">
+        <input class="form-control" name="vinNumber" required placeholder="17-character VIN" value="${vehicle?.vinNumber || ''}" style="font-family:monospace">
       </div>
       <div class="form-grid-3">
         <div class="form-group">
           <label class="form-label">Make <span class="required">*</span></label>
-          <input class="form-control" name="make" required placeholder="e.g. Volvo">
+          <input class="form-control" name="make" required placeholder="e.g. Volvo" value="${vehicle?.make || ''}">
         </div>
         <div class="form-group">
           <label class="form-label">Model <span class="required">*</span></label>
-          <input class="form-control" name="model" required placeholder="e.g. FH">
+          <input class="form-control" name="model" required placeholder="e.g. FH" value="${vehicle?.model || ''}">
         </div>
         <div class="form-group">
           <label class="form-label">Year <span class="required">*</span></label>
-          <input class="form-control" type="number" name="year" required placeholder="2020" min="2000" max="2030">
+          <input class="form-control" type="number" name="year" required placeholder="2020" min="2000" max="2035" value="${vehicle?.year || ''}">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Operator Licence Disc Number</label>
-        <input class="form-control" name="operatorLicenceDisc" placeholder="e.g. OL-2024-8825">
+        <input class="form-control" name="operatorLicenceDisc" placeholder="e.g. OL-2024-8825" value="${vehicle?.operatorLicenceDisc || ''}">
       </div>
       <div class="form-group">
         <label class="form-label">Assigned Driver</label>
         <select class="form-control" name="assignedDriverId">
-          <option value="">— No driver assigned —</option>
-          ${drivers.map(d => `<option value="${d.id}">${d.fullName}</option>`).join('')}
+          <option value="">No driver assigned</option>
+          ${drivers.map(d => `<option value="${d.id}" ${vehicle?.assignedDriverId === d.id ? 'selected' : ''}>${d.fullName}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vehicle Status</label>
+        <select class="form-control" name="status">
+          ${[['active','Active'],['vor','Vehicle Off Road'],['awaiting_repair','Awaiting Repair'],['hired','Hired'],['sold','Sold']].map(([v,l]) => `<option value="${v}" ${(vehicle?.status || 'active') === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -49,67 +56,63 @@
     <div class="card-body">
       <div class="form-group">
         <label class="form-label">MOT Expiry Date <span class="required">*</span></label>
-        <input class="form-control" type="date" name="motExpiryDate" required>
+        <input class="form-control" type="date" name="motExpiryDate" required value="${vehicle?.motExpiryDate ? vehicle.motExpiryDate.toISOString().split('T')[0] : ''}">
       </div>
       <div class="form-group">
         <label class="form-label">Insurance Expiry Date <span class="required">*</span></label>
-        <input class="form-control" type="date" name="insuranceExpiryDate" required>
+        <input class="form-control" type="date" name="insuranceExpiryDate" required value="${vehicle?.insuranceExpiryDate ? vehicle.insuranceExpiryDate.toISOString().split('T')[0] : ''}">
       </div>
       <div class="form-group">
         <label class="form-label">Road Tax Expiry Date</label>
-        <input class="form-control" type="date" name="roadTaxExpiryDate">
+        <input class="form-control" type="date" name="roadTaxExpiryDate" value="${vehicle?.roadTaxExpiryDate ? vehicle.roadTaxExpiryDate.toISOString().split('T')[0] : ''}">
       </div>
       <div class="form-group">
         <label class="form-label">Tachograph Calibration Expiry</label>
-        <input class="form-control" type="date" name="tachoCalibrExpiry">
+        <input class="form-control" type="date" name="tachoCalibrExpiry" value="${vehicle?.tachoCalibrExpiry ? vehicle.tachoCalibrExpiry.toISOString().split('T')[0] : ''}">
       </div>
       <div class="form-grid">
         <div class="form-group">
-          <label class="form-label">PMI Interval (weeks)</label>
+          <label class="form-label">PMI Interval</label>
           <select class="form-control" name="pmiIntervalWeeks">
-            <option value="4">Every 4 weeks (high mileage)</option>
-            <option value="6" selected>Every 6 weeks (standard)</option>
-            <option value="8">Every 8 weeks (low usage)</option>
-            <option value="12">Every 12 weeks</option>
+            ${[[4,'Every 4 weeks'],[6,'Every 6 weeks'],[8,'Every 8 weeks'],[12,'Every 12 weeks']].map(([v,l]) => `<option value="${v}" ${(vehicle?.pmiIntervalWeeks || 6) === v ? 'selected' : ''}>${l}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Last PMI Date</label>
-          <input class="form-control" type="date" name="lastPmiDate">
+          <input class="form-control" type="date" name="lastPmiDate" value="${vehicle?.lastPmiDate ? vehicle.lastPmiDate.toISOString().split('T')[0] : ''}">
         </div>
       </div>
       <div class="form-group">
         <label class="form-label">Current Mileage</label>
-        <input class="form-control" type="number" name="currentMileage" placeholder="e.g. 245000">
+        <input class="form-control" type="number" name="currentMileage" placeholder="e.g. 245000" value="${vehicle?.currentMileage || ''}">
       </div>
     </div>
   </div>
 </div>
 
 <div class="flex justify-between">
-  <a href="/fleet" class="btn btn-ghost">Cancel</a>
-  <button type="button" onclick="addVehicle()" class="btn btn-primary" style="padding:10px 32px">Add Vehicle to Fleet</button>
+  <a href="${vehicle ? `/fleet/${vehicle.id}` : '/fleet'}" class="btn btn-ghost">Cancel</a>
+  <button type="button" onclick="saveVehicle()" class="btn btn-primary" style="padding:10px 32px">${vehicle ? 'Save Changes' : 'Add Vehicle to Fleet'}</button>
 </div>
 </form>
 
 <script>
-async function addVehicle() {
+async function saveVehicle() {
   const form = document.getElementById('vehicleForm');
-  const fd = new FormData(form);
-  const body = Object.fromEntries(fd.entries());
-  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
-  const res = await fetch('/api/v1/vehicles', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+  const body = Object.fromEntries(new FormData(form).entries());
+  const res = await fetch('${vehicle ? `/api/v1/vehicles/${vehicle.id}` : '/api/v1/vehicles'}', {
+    method: '${vehicle ? 'PUT' : 'POST'}',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (res.ok) {
     const data = await res.json();
-    showToast('Vehicle added to fleet', 'success');
-    setTimeout(() => window.location.href = '/fleet/' + data.data.id, 1200);
+    showToast('${vehicle ? 'Vehicle record updated' : 'Vehicle added to fleet'}', 'success');
+    setTimeout(() => window.location.href = '/fleet/' + data.data.id, 900);
   } else {
     const err = await res.json();
-    showToast(err.error?.message || 'Failed to add vehicle', 'error');
+    showToast(err.error?.message || 'Failed to save vehicle', 'error');
   }
 }
 </script>
