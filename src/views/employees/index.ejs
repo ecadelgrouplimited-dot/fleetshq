@@ -114,6 +114,7 @@
               <div class="flex gap-2">
                 <a href="/employees/${e.id}" class="btn btn-ghost btn-sm">View</a>
                 <a href="/employees/${e.id}/edit" class="btn btn-outline btn-sm">Edit</a>
+                <button type="button" onclick="deleteEmployee('${e.id}', '${e.fullName.replace(/'/g, "\\'")}')" class="btn btn-danger-soft btn-sm">Delete</button>
               </div>
             </td>
           </tr>
@@ -130,4 +131,26 @@
     </table>
   </div>
 </div>
+
+<script>
+async function deleteEmployee(id, name) {
+  if (!window.confirm('Delete employee record for ' + name + '? This only works when there are no linked compliance records.')) return;
+  const res = await fetch('/api/v1/employees/' + id, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.ok) {
+    showToast('Employee deleted successfully', 'success');
+    setTimeout(() => location.reload(), 900);
+  } else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Delete failed', 'error');
+  }
+}
+</script>
+
+<style>
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
+</style>
 ` }) %>

@@ -8,6 +8,7 @@
     ${emp.isSponsored ? '<span class="badge badge-purple" style="font-size:13px;padding:6px 12px">Sponsored Worker</span>' : ''}
     ${emp.isDriver ? '<span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Driver</span>' : ''}
     ${['director','hr_manager'].includes(user.role) ? `<a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>` : ''}
+    ${['director','hr_manager'].includes(user.role) ? `<button type="button" onclick="deleteEmployeeRecord()" class="btn btn-danger-soft btn-sm">Delete</button>` : ''}
     ${['director','hr_manager'].includes(user.role) ? `
       <select class="form-control" style="width:150px;height:32px;padding:4px 10px" onchange="updateEmployeeStatus(this.value)">
         ${[['active','Active'],['on_leave','On Leave'],['suspended','Suspended'],['terminated','Terminated']].map(([v,l]) => `<option value="${v}" ${emp.employmentStatus === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -220,5 +221,22 @@ async function updateEmployeeStatus(status) {
   if (res.ok) { showToast('Employee status updated', 'success'); setTimeout(()=>location.reload(), 700); }
   else { showToast('Status update failed', 'error'); }
 }
+
+async function deleteEmployeeRecord() {
+  if (!window.confirm('Delete employee record for ${emp.fullName}? This only works when there are no linked compliance records.')) return;
+  const res = await fetch('/api/v1/employees/${emp.id}', {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.ok) { showToast('Employee deleted successfully', 'success'); setTimeout(()=>window.location.href='/employees', 900); }
+  else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Delete failed', 'error');
+  }
+}
 </script>
+<style>
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
+</style>
 ` }) %>

@@ -187,3 +187,48 @@ exports.listDocuments = async (req, res, next) => {
     return ok(res, docs);
   } catch (e) { next(e); }
 };
+
+exports.remove = async (req, res, next) => {
+  try {
+    const employee = await prisma.employee.findUnique({
+      where: { id: req.params.id },
+      include: {
+        userAccount: { select: { id: true, email: true } },
+        sponsoredWorker: { select: { id: true } },
+        drivingVehicle: { select: { id: true, registration: true } },
+        _count: {
+          select: {
+            documents: true,
+            trainingRecords: true,
+            acknowledgements: true,
+            toolboxAssignments: true,
+            subordinates: true,
+            checksSubmitted: true,
+            defectsReported: true,
+          },
+        },
+      },
+    });
+    if (!employee) throw new NotFoundError('Employee');
+
+    const blockers = [
+      employee.userAccount ? 'a linked user account' : null,
+      employee.sponsoredWorker ? 'sponsored worker records' : null,
+      employee.drivingVehicle ? 'an assigned vehicle' : null,
+      employee._count.documents ? 'employment documents' : null,
+      employee._count.trainingRecords ? 'training records' : null,
+      employee._count.acknowledgements ? 'policy acknowledgements' : null,
+      employee._count.toolboxAssignments ? 'toolbox talk assignments' : null,
+      employee._count.subordinates ? 'direct reports' : null,
+      employee._count.checksSubmitted ? 'submitted walk-around checks' : null,
+      employee._count.defectsReported ? 'reported defects' : null,
+    ].filter(Boolean);
+
+    if (blockers.length > 0) {
+      throw new ValidationError(`This employee cannot be deleted because they still have ${blockers.join(', ')}. Remove those links first or mark the employee as terminated instead.`);
+    }
+
+    await prisma.employee.delete({ where: { id: req.params.id } });
+    return ok(res, { message: 'Employee deleted successfully' });
+  } catch (e) { next(e); }
+};

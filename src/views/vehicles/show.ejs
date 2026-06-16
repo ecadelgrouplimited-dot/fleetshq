@@ -3,6 +3,7 @@
   <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
   <div class="flex gap-2">
     <a href="/fleet/${vehicle.id}/edit" class="btn btn-outline btn-sm">Edit Vehicle</a>
+    <button type="button" onclick="deleteVehicleRecord()" class="btn btn-danger-soft btn-sm">Delete</button>
     <select class="form-control" style="width:170px;height:34px;padding:5px 10px" onchange="updateVehicleStatus(this.value)">
       ${[['active','Active'],['vor','VOR'],['awaiting_repair','Awaiting Repair'],['hired','Hired'],['sold','Sold']].map(([v,l]) => `<option value="${v}" ${vehicle.status === v ? 'selected' : ''}>${l}</option>`).join('')}
     </select>
@@ -178,5 +179,22 @@ async function updateVehicleStatus(status) {
   if (res.ok) { showToast('Vehicle status updated', 'success'); setTimeout(()=>location.reload(), 700); }
   else { showToast('Status update failed', 'error'); }
 }
+
+async function deleteVehicleRecord() {
+  if (!window.confirm('Delete vehicle ${vehicle.registration}? This only works when there are no linked documents, checks, defects or VOR records.')) return;
+  const res = await fetch('/api/v1/vehicles/${vehicle.id}', {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.ok) { showToast('Vehicle deleted successfully', 'success'); setTimeout(()=>window.location.href='/fleet', 900); }
+  else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Delete failed', 'error');
+  }
+}
 </script>
+<style>
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
+</style>
 ` }) %>

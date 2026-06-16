@@ -32,6 +32,7 @@ router.post('/employees', authenticate, authorize('employees:create'), auditLog(
 router.get('/employees/:id', authenticate, authorize('employees:list'), empCtrl.show);
 router.put('/employees/:id', authenticate, authorize('employees:update'), auditLog('employee'), empCtrl.update);
 router.patch('/employees/:id/status', authenticate, authorize('employees:terminate'), auditLog('employee'), empCtrl.updateStatus);
+router.delete('/employees/:id', authenticate, authorize('employees:delete'), auditLog('employee'), empCtrl.remove);
 
 // Employee docs
 const empUpload = (req, res, next) => {
@@ -66,6 +67,7 @@ router.get('/vehicles/pmi-planner', authenticate, vehicleCtrl.pmiPlanner);
 router.get('/vehicles/:id', authenticate, vehicleCtrl.show);
 router.put('/vehicles/:id', authenticate, authorize('vehicles:update'), auditLog('vehicle'), vehicleCtrl.update);
 router.patch('/vehicles/:id/status', authenticate, authorize('vehicles:status'), auditLog('vehicle'), vehicleCtrl.updateStatus);
+router.delete('/vehicles/:id', authenticate, authorize('vehicles:delete'), auditLog('vehicle'), vehicleCtrl.remove);
 
 // Vehicle docs
 const vehUpload = (req, res, next) => {

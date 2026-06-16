@@ -169,3 +169,36 @@ exports.uploadDocument = async (req, res, next) => {
     return created(res, doc);
   } catch (e) { next(e); }
 };
+
+exports.remove = async (req, res, next) => {
+  try {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: req.params.id },
+      include: {
+        _count: {
+          select: {
+            documents: true,
+            defects: true,
+            checks: true,
+            vorRecords: true,
+          },
+        },
+      },
+    });
+    if (!vehicle) throw new NotFoundError('Vehicle');
+
+    const blockers = [
+      vehicle._count.documents ? 'maintenance documents' : null,
+      vehicle._count.defects ? 'defect cases' : null,
+      vehicle._count.checks ? 'daily checks' : null,
+      vehicle._count.vorRecords ? 'VOR records' : null,
+    ].filter(Boolean);
+
+    if (blockers.length > 0) {
+      throw new ValidationError(`This vehicle cannot be deleted because it still has ${blockers.join(', ')}. Archive it by changing status instead.`);
+    }
+
+    await prisma.vehicle.delete({ where: { id: req.params.id } });
+    return ok(res, { message: 'Vehicle deleted successfully' });
+  } catch (e) { next(e); }
+};

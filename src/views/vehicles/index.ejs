@@ -106,6 +106,7 @@
             <div class="flex gap-2">
               <a href="/fleet/${v.id}" class="btn btn-ghost btn-sm">View</a>
               <a href="/fleet/${v.id}/edit" class="btn btn-outline btn-sm">Edit</a>
+              <button type="button" onclick="deleteVehicle('${v.id}', '${v.registration}')" class="btn btn-danger-soft btn-sm">Delete</button>
             </div>
           </td>
         </tr>`).join('')}
@@ -129,5 +130,24 @@
   .vss-red   { color: #ef4444; }
   .vss-amber { color: #f59e0b; }
   .text-light { color: #cbd5e1; }
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
 </style>
+
+<script>
+async function deleteVehicle(id, registration) {
+  if (!window.confirm('Delete vehicle ' + registration + '? This only works when there are no linked documents, checks, defects or VOR records.')) return;
+  const res = await fetch('/api/v1/vehicles/' + id, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  });
+  if (res.ok) {
+    showToast('Vehicle deleted successfully', 'success');
+    setTimeout(() => location.reload(), 900);
+  } else {
+    const e = await res.json();
+    showToast(e.error?.message || 'Delete failed', 'error');
+  }
+}
+</script>
 ` }) %>
