@@ -119,6 +119,26 @@ describe('web RBAC', () => {
     await driverAgent.get('/reports/staff').expect(403);
   });
 
+  it('serves audit evidence folder workspaces with role limits', async () => {
+    const directorAgent = request.agent(app);
+    await directorAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    await directorAgent.get('/audit-evidence/home-office-sponsor-licence-audit').expect(200);
+
+    const driverAgent = request.agent(app);
+    await driverAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'driver1@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    await driverAgent.get('/audit-evidence/home-office-sponsor-licence-audit').expect(403);
+  });
+
   it('serves shared document viewer routes for permitted users', async () => {
     const agent = request.agent(app);
     await agent

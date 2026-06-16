@@ -1,69 +1,254 @@
 <%- include('../layouts/main', { body: `
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <span class="text-sm text-muted"><span id="visibleSponsoredCount">${workers.length}</span> of ${workers.length} sponsored worker${workers.length !== 1 ? 's' : ''}</span>
-  </div>
-  <div style="width:320px;max-width:100%">
-    <input class="form-control" data-live-search="#sponsoredTableBody" data-live-count="#visibleSponsoredCount" data-live-empty="#noSponsoredFound" placeholder="Search name, CoS, job, status...">
-  </div>
-</div>
+${(() => {
+  const rows = workers.map(w => {
+    const visaDays = daysUntil(w.visaExpiryDate);
+    const rtwDays = w.rightToWorkFollowupDate ? daysUntil(w.rightToWorkFollowupDate) : null;
+    const salaryMatch = Number(w.salaryOnCos) === Number(w.actualSalary);
+    const unreported = (w.changes || []).length;
+    const flags = [];
+    if (visaDays !== null && visaDays <= 30) flags.push('visa');
+    if (rtwDays !== null && rtwDays <= 14) flags.push('rtw');
+    if (!salaryMatch) flags.push('salary');
+    if (unreported > 0) flags.push('changes');
+    const atRisk = flags.length > 0;
+    return { w, visaDays, rtwDays, salaryMatch, unreported, flags, atRisk };
+  });
 
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>CoS Number</th>
-          <th>Job Title</th>
-          <th>Visa Expiry</th>
-          <th>RTW Follow-Up</th>
-          <th>Salary Match</th>
-          <th>Unreported Changes</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="sponsoredTableBody">
-        ${workers.length === 0 ? `<tr><td colspan="8" style="text-align:center;padding:32px;color:#64748b">No sponsored workers found</td></tr>` :
-        workers.map(w => {
-          const visaDays = daysUntil(w.visaExpiryDate);
-          const rtwDays = daysUntil(w.rightToWorkFollowupDate);
-          const salaryMatch = Number(w.salaryOnCos) === Number(w.actualSalary);
-          return `<tr data-search-row data-search-text="${`${w.employee.fullName} ${w.employee.department} ${w.employee.jobTitle} ${w.cosNumber} ${w.socCode} ${w.sponsoredJobTitle} ${w.employee.employmentStatus} ${salaryMatch ? 'salary match' : 'salary mismatch'}`.toLowerCase()}">
-            <td>
-              <a href="/employees/${w.employee.id}" style="font-weight:600">${w.employee.fullName}</a>
-              <div style="font-size:11px;color:#64748b">${w.employee.department}</div>
-            </td>
-            <td style="font-family:monospace;font-size:13px">${w.cosNumber}</td>
-            <td>${w.sponsoredJobTitle}</td>
-            <td>
-              <div style="font-weight:600;color:${visaDays < 0 ? '#dc2626' : visaDays <= 30 ? '#d97706' : '#374151'}">${formatDate(w.visaExpiryDate)}</div>
-              ${visaDays < 0 ? '<span class="badge badge-red">EXPIRED</span>' : visaDays <= 30 ? `<span class="badge badge-amber">${visaDays}d remaining</span>` : ''}
-            </td>
-            <td>
-              ${w.rightToWorkFollowupDate ? `
-                <div style="font-weight:600;color:${rtwDays < 0 ? '#dc2626' : rtwDays <= 14 ? '#d97706' : '#374151'}">${formatDate(w.rightToWorkFollowupDate)}</div>
-                ${rtwDays <= 14 ? `<span class="badge badge-${rtwDays < 0 ? 'red' : 'amber'}">${rtwDays < 0 ? 'OVERDUE' : rtwDays + 'd'}</span>` : ''}
-              ` : '<span style="color:#94a3b8">Not set</span>'}
-            </td>
-            <td>
-              ${salaryMatch
-                ? '<span class="badge badge-green">Match</span>'
-                : `<span class="badge badge-red">Mismatch</span><div style="font-size:11px;color:#dc2626">CoS: £${Number(w.salaryOnCos).toLocaleString()} · Actual: £${Number(w.actualSalary).toLocaleString()}</div>`}
-            </td>
-            <td>
-              ${w.changes.filter(c=>!c.reportedToHomeOffice).length > 0
-                ? `<span class="badge badge-red">${w.changes.filter(c=>!c.reportedToHomeOffice).length} unreported</span>`
-                : '<span class="badge badge-green">All reported</span>'}
-            </td>
-            <td>
-              <span class="badge ${w.employee.employmentStatus === 'active' ? 'badge-green' : 'badge-slate'}">${w.employee.employmentStatus}</span>
-            </td>
-          </tr>`;
-        }).join('')}
-        <tr id="noSponsoredFound" style="display:none"><td colspan="8" style="text-align:center;padding:32px;color:#64748b">No sponsored workers match your search</td></tr>
-      </tbody>
-    </table>
+  const stats = {
+    total: rows.length,
+    visa: rows.filter(r => r.flags.includes('visa')).length,
+    rtw: rows.filter(r => r.flags.includes('rtw')).length,
+    salary: rows.filter(r => r.flags.includes('salary')).length,
+    changes: rows.filter(r => r.flags.includes('changes')).length,
+    clear: rows.filter(r => !r.atRisk).length,
+  };
+  const compliancePct = stats.total ? Math.round((stats.clear / stats.total) * 100) : 100;
+
+  const initials = (name) => name.split(' ').filter(Boolean).slice(0,2).map(p => p[0]).join('').toUpperCase();
+  const avatarHue = (name) => { let h=0; for (const c of name) h=(h*31+c.charCodeAt(0))%360; return h; };
+
+  return `
+  <div class="page-head">
+    <div class="page-head-main">
+      <div class="page-eyebrow">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        People / Sponsored Workers
+      </div>
+      <h1>Sponsored Workers</h1>
+      <p class="page-sub">Live Home Office sponsorship compliance — visas, right-to-work follow-ups, salary alignment, and unreported changes across your licensed roster.</p>
+    </div>
+    <div class="page-head-actions">
+      <div class="sponsor-readiness">
+        <div class="sponsor-readiness-ring" style="--pct:${compliancePct}">
+          <span>${compliancePct}%</span>
+        </div>
+        <div>
+          <div class="sponsor-readiness-label">Roster ready</div>
+          <div class="sponsor-readiness-sub">${stats.clear}/${stats.total} fully clear</div>
+        </div>
+      </div>
+      <a href="/audit-evidence/sponsored" class="btn btn-primary">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
+        Export pack
+      </a>
+    </div>
   </div>
-</div>
+
+  <div class="stat-grid mb-4">
+    <button type="button" class="stat-card blue sponsor-stat" data-filter="all">
+      <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 7a3 3 0 106 0 3 3 0 00-6 0z"/></svg></div>
+      <div><div class="stat-value">${stats.total}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.clear} fully compliant</div></div>
+    </button>
+    <button type="button" class="stat-card ${stats.visa ? 'red' : 'green'} sponsor-stat" data-filter="visa">
+      <div class="stat-icon ${stats.visa ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+      <div><div class="stat-value">${stats.visa}</div><div class="stat-label">Visa Expiring</div><div class="stat-sub">within 30 days</div></div>
+    </button>
+    <button type="button" class="stat-card ${stats.rtw ? 'amber' : 'green'} sponsor-stat" data-filter="rtw">
+      <div class="stat-icon ${stats.rtw ? 'amber' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <div><div class="stat-value">${stats.rtw}</div><div class="stat-label">RTW Follow-Up Due</div><div class="stat-sub">within 14 days</div></div>
+    </button>
+    <button type="button" class="stat-card ${stats.salary ? 'red' : 'green'} sponsor-stat" data-filter="salary">
+      <div class="stat-icon ${stats.salary ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <div><div class="stat-value">${stats.salary}</div><div class="stat-label">Salary Mismatch</div><div class="stat-sub">CoS vs actual</div></div>
+    </button>
+    <button type="button" class="stat-card ${stats.changes ? 'amber' : 'green'} sponsor-stat" data-filter="changes">
+      <div class="stat-icon ${stats.changes ? 'amber' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></div>
+      <div><div class="stat-value">${stats.changes}</div><div class="stat-label">Unreported Changes</div><div class="stat-sub">need Home Office report</div></div>
+    </button>
+  </div>
+
+  <div class="mac-window" id="sponsorWindow">
+    <div class="mac-titlebar">
+      <div class="mac-traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+      <div class="mac-title">Roster <span class="mac-title-sub">— <span id="sponsorVisible">${rows.length}</span> of ${rows.length} workers</span></div>
+      <div class="mac-titlebar-actions">
+        <label class="search-field">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
+          <input id="sponsorSearch" type="search" placeholder="Search name, CoS, job…" autocomplete="off">
+        </label>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="segmented" id="sponsorSegments">
+        <button class="active" data-filter="all">All <span class="seg-count">${stats.total}</span></button>
+        <button data-filter="risk">Needs attention <span class="seg-count">${stats.total - stats.clear}</span></button>
+        <button data-filter="visa">Visa <span class="seg-count">${stats.visa}</span></button>
+        <button data-filter="rtw">RTW <span class="seg-count">${stats.rtw}</span></button>
+        <button data-filter="salary">Salary <span class="seg-count">${stats.salary}</span></button>
+        <button data-filter="changes">Changes <span class="seg-count">${stats.changes}</span></button>
+      </div>
+      <div class="spacer"></div>
+      <span class="toolbar-label" id="sponsorEmptyHint" style="display:none">No matches</span>
+    </div>
+
+    <div class="table-wrap">
+      <table class="sponsor-table">
+        <thead>
+          <tr>
+            <th>Worker</th>
+            <th>CoS / SOC</th>
+            <th>Visa Expiry</th>
+            <th>RTW Follow-Up</th>
+            <th>Salary Match</th>
+            <th>Changes</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="sponsorBody">
+          ${rows.length === 0 ? `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 7a3 3 0 106 0 3 3 0 00-6 0z"/></svg></div><p>No sponsored workers yet</p><div class="empty-hint">Add a sponsored worker to start tracking compliance.</div></div></td></tr>` :
+          rows.map(({ w, visaDays, rtwDays, salaryMatch, unreported, flags, atRisk }) => `
+            <tr data-search-row
+                data-flags="${flags.join(' ')}"
+                data-search-text="${`${w.employee.fullName} ${w.employee.department} ${w.employee.jobTitle} ${w.cosNumber} ${w.socCode} ${w.sponsoredJobTitle} ${w.employee.employmentStatus}`.toLowerCase()}">
+              <td>
+                <a class="sponsor-worker" href="/employees/${w.employee.id}">
+                  <span class="mac-avatar" style="background:linear-gradient(135deg,hsl(${avatarHue(w.employee.fullName)},70%,58%),hsl(${(avatarHue(w.employee.fullName)+40)%360},68%,48%))">${initials(w.employee.fullName)}</span>
+                  <span class="sponsor-worker-text">
+                    <strong>${w.employee.fullName}</strong>
+                    <span>${w.sponsoredJobTitle || w.employee.jobTitle} · ${w.employee.department}</span>
+                  </span>
+                </a>
+              </td>
+              <td data-label="CoS / SOC">
+                <div class="mono" style="font-size:12.5px;font-weight:700">${w.cosNumber}</div>
+                <div class="cell-muted mono" style="font-size:11px">SOC ${w.socCode}</div>
+              </td>
+              <td data-label="Visa Expiry">
+                <div style="font-weight:600;color:${visaDays < 0 ? 'var(--danger)' : visaDays <= 30 ? 'var(--warning-t)' : 'var(--text-2)'}">${formatDate(w.visaExpiryDate)}</div>
+                ${visaDays < 0 ? '<span class="badge badge-red">Expired</span>' : visaDays <= 30 ? `<span class="badge badge-amber">${visaDays}d left</span>` : `<span class="cell-muted" style="font-size:11px">${visaDays}d</span>`}
+              </td>
+              <td data-label="RTW Follow-Up">
+                ${w.rightToWorkFollowupDate ? `
+                  <div style="font-weight:600;color:${rtwDays < 0 ? 'var(--danger)' : rtwDays <= 14 ? 'var(--warning-t)' : 'var(--text-2)'}">${formatDate(w.rightToWorkFollowupDate)}</div>
+                  ${rtwDays <= 14 ? `<span class="badge badge-${rtwDays < 0 ? 'red' : 'amber'}">${rtwDays < 0 ? 'Overdue' : rtwDays + 'd'}</span>` : `<span class="cell-muted" style="font-size:11px">${rtwDays}d</span>`}
+                ` : '<span class="badge badge-slate">Not set</span>'}
+              </td>
+              <td data-label="Salary Match">
+                ${salaryMatch
+                  ? '<span class="badge badge-green"><span class="badge-dot"></span>Match</span>'
+                  : `<span class="badge badge-red">Mismatch</span><div class="cell-muted" style="font-size:11px;margin-top:3px">CoS £${Number(w.salaryOnCos).toLocaleString()} · Actual £${Number(w.actualSalary).toLocaleString()}</div>`}
+              </td>
+              <td data-label="Changes">
+                ${unreported > 0
+                  ? `<span class="badge badge-red">${unreported} unreported</span>`
+                  : '<span class="badge badge-green"><span class="badge-dot"></span>All reported</span>'}
+              </td>
+              <td data-label="Status">
+                ${atRisk
+                  ? `<span class="badge badge-amber">Action needed</span>`
+                  : `<span class="badge badge-green">Compliant</span>`}
+              </td>
+            </tr>
+          `).join('')}
+          <tr id="sponsorNoMatch" style="display:none"><td colspan="7"><div class="empty-state" style="padding:36px 14px"><p>No workers match these filters</p><div class="empty-hint">Try clearing the search or choosing a different segment.</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <style>
+    .sponsor-readiness { display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--mac-hairline); border-radius:14px; padding:8px 14px 8px 8px; box-shadow:var(--mac-shadow); }
+    .sponsor-readiness-ring { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+      background:conic-gradient(var(--success) calc(var(--pct)*1%), #e9eef6 0); }
+    .sponsor-readiness-ring span { width:34px; height:34px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--text); }
+    .sponsor-readiness-label { font-size:12px; font-weight:700; color:var(--text); }
+    .sponsor-readiness-sub { font-size:11px; color:var(--text-muted); margin-top:1px; }
+    .sponsor-stat { font-family:inherit; text-align:left; }
+    .sponsor-stat.active { outline:2px solid var(--primary); outline-offset:1px; }
+    .sponsor-worker { display:flex; align-items:center; gap:11px; text-decoration:none; }
+    .sponsor-worker-text { display:flex; flex-direction:column; min-width:0; }
+    .sponsor-worker-text strong { font-size:13.5px; font-weight:700; color:var(--text); }
+    .sponsor-worker-text span { font-size:11.5px; color:var(--text-muted); }
+    .sponsor-table tbody tr.row-risk td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+    @media (max-width:1100px) { .sponsor-readiness { display:none; } }
+    @media (max-width:760px) {
+      .sponsor-table thead { display:none; }
+      .sponsor-table, .sponsor-table tbody, .sponsor-table tr, .sponsor-table td { display:block; width:100%; }
+      .sponsor-table tr { border:1px solid var(--mac-hairline); border-radius:12px; margin:10px; padding:8px 6px; }
+      .sponsor-table td { border:none !important; padding:7px 12px; position:static !important; box-shadow:none !important; background:transparent !important; }
+      .sponsor-table td[data-label] { display:flex; justify-content:space-between; align-items:baseline; gap:14px; }
+      .sponsor-table td[data-label]::before {
+        content: attr(data-label); flex:0 0 auto;
+        font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--text-light);
+      }
+      .sponsor-table td[data-label] > * { text-align:right; }
+      .sponsor-table td:first-child { padding:6px 12px 10px; margin-bottom:4px; border-bottom:1px solid var(--mac-hairline) !important; }
+    }
+  </style>
+
+  <script>
+  (function() {
+    const body = document.getElementById('sponsorBody');
+    if (!body) return;
+    const rows = Array.from(body.querySelectorAll('tr[data-search-row]'));
+    const search = document.getElementById('sponsorSearch');
+    const segments = document.getElementById('sponsorSegments');
+    const visible = document.getElementById('sponsorVisible');
+    const noMatch = document.getElementById('sponsorNoMatch');
+    const emptyHint = document.getElementById('sponsorEmptyHint');
+    let filter = 'all';
+
+    rows.forEach(r => { if ((r.getAttribute('data-flags') || '').trim()) r.classList.add('row-risk'); });
+
+    function matchesFilter(r) {
+      if (filter === 'all') return true;
+      const flags = (r.getAttribute('data-flags') || '').split(' ').filter(Boolean);
+      if (filter === 'risk') return flags.length > 0;
+      return flags.includes(filter);
+    }
+    function apply() {
+      const q = (search.value || '').trim().toLowerCase();
+      let count = 0;
+      rows.forEach(r => {
+        const text = r.getAttribute('data-search-text') || '';
+        const show = matchesFilter(r) && (!q || text.indexOf(q) !== -1);
+        r.style.display = show ? '' : 'none';
+        if (show) count++;
+      });
+      if (visible) visible.textContent = String(count);
+      const none = count === 0 && rows.length > 0;
+      if (noMatch) noMatch.style.display = none ? '' : 'none';
+      if (emptyHint) emptyHint.style.display = none ? '' : 'none';
+    }
+    function setFilter(f) {
+      filter = f;
+      Array.from(segments.querySelectorAll('button')).forEach(b => b.classList.toggle('active', b.getAttribute('data-filter') === f));
+      document.querySelectorAll('.sponsor-stat').forEach(s => s.classList.toggle('active', s.getAttribute('data-filter') === f));
+      apply();
+    }
+
+    search.addEventListener('input', apply);
+    segments.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-filter]');
+      if (btn) setFilter(btn.getAttribute('data-filter'));
+    });
+    document.querySelectorAll('.sponsor-stat').forEach(card => {
+      card.addEventListener('click', () => setFilter(card.getAttribute('data-filter')));
+    });
+    apply();
+  })();
+  </script>
+  `;
+})()}
 ` }) %>

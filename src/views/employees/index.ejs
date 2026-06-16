@@ -13,8 +13,8 @@
 <!-- Filters -->
 <div class="card mb-4">
   <div class="card-body" style="padding:14px 20px">
-    <form method="GET" action="/employees" style="display:grid;grid-template-columns:1fr 150px 170px 180px 90px 90px;gap:12px;align-items:end">
-      <div style="flex:1;min-width:200px">
+    <form method="GET" action="/employees" class="filter-form">
+      <div class="filter-search">
         <label class="form-label">Search employees</label>
         <input class="form-control" name="search" data-live-search="#employeesTableBody" data-live-count="#visibleEmployeeCount" data-live-empty="#noEmployeesFound" placeholder="Name, role, department, vehicle…" value="${filters.search || ''}">
       </div>

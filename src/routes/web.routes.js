@@ -542,8 +542,13 @@ router.get('/', webAuth, async (req, res) => {
       });
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
     const [totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles,
-      openDefects, rawAlerts, latestScore, missedChecks, pendingToolbox, recentDefects] = await Promise.all([
+      openDefects, rawAlerts, latestScore, missedChecks, pendingToolbox, recentDefects, weeklyChecks, weeklyDefects, alertAnalytics, openDefectAnalytics] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
       prisma.employee.count({ where: { employmentStatus: 'active', isSponsored: true } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' } } }),
@@ -559,6 +564,24 @@ router.get('/', webAuth, async (req, res) => {
         include: { vehicle: { select: { registration: true } } },
         orderBy: { reportedAt: 'desc' }, take: 5,
       }),
+      prisma.walkAroundCheck.findMany({
+        where: { checkDate: { gte: sevenDaysAgo } },
+        select: { checkDate: true, nilDefect: true },
+        orderBy: { checkDate: 'asc' },
+      }),
+      prisma.defectCase.findMany({
+        where: { reportedAt: { gte: sevenDaysAgo } },
+        select: { reportedAt: true, severity: true, status: true },
+        orderBy: { reportedAt: 'asc' },
+      }),
+      prisma.alert.findMany({
+        where: { isResolved: false },
+        select: { alertType: true, severity: true },
+      }),
+      prisma.defectCase.findMany({
+        where: { status: { not: 'signed_off' } },
+        select: { severity: true, status: true },
+      }),
     ]);
 
     const alerts = await Promise.all(rawAlerts.map((alert) => decorateAlert(alert, req.user)));
@@ -568,13 +591,78 @@ router.get('/', webAuth, async (req, res) => {
       warning: alerts.filter(a => a.severity === 'warning'),
       notice: alerts.filter(a => a.severity === 'notice'),
     };
+    const dashboardTrend = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(sevenDaysAgo);
+      date.setDate(sevenDaysAgo.getDate() + index);
+      const checks = weeklyChecks.filter((item) => new Date(item.checkDate).toDateString() === date.toDateString());
+      const defects = weeklyDefects.filter((item) => new Date(item.reportedAt).toDateString() === date.toDateString());
+      return {
+        label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
+        checks: checks.length,
+        nilDefects: checks.filter((item) => item.nilDefect).length,
+        defects: defects.length,
+      };
+    });
+    const defectSeverity = openDefectAnalytics.reduce((acc, item) => {
+      acc[item.severity] = (acc[item.severity] || 0) + 1;
+      return acc;
+    }, { dangerous: 0, serious: 0, minor: 0 });
+    const defectStatus = openDefectAnalytics.reduce((acc, item) => {
+      acc[item.status] = (acc[item.status] || 0) + 1;
+      return acc;
+    }, {});
+    const alertTypeMap = alertAnalytics.reduce((acc, item) => {
+      acc[item.alertType] = (acc[item.alertType] || 0) + 1;
+      return acc;
+    }, {});
+    const topHotspots = Object.entries(alertTypeMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([type, count]) => ({ label: formatAlertTypeLabel(type), count }));
+    const chartData = {
+      trend: dashboardTrend,
+      alerts: {
+        critical: alertGroups.critical.length,
+        warning: alertGroups.warning.length,
+        notice: alertGroups.notice.length,
+      },
+      defects: {
+        dangerous: defectSeverity.dangerous || 0,
+        serious: defectSeverity.serious || 0,
+        minor: defectSeverity.minor || 0,
+        underReview: defectStatus.under_review || 0,
+        repairBooked: defectStatus.repair_booked || 0,
+        reported: defectStatus.reported || 0,
+      },
+      hotspots: topHotspots,
+    };
+    const healthCards = [
+      {
+        label: 'People Coverage',
+        value: Number(score.peopleScore ?? score.people),
+        detail: `${sponsoredCount} sponsored workers tracked`,
+        href: '/employees',
+      },
+      {
+        label: 'Fleet Exposure',
+        value: Number(score.fleetScore ?? score.fleet),
+        detail: `${vorVehicles} VOR and ${openDefects} open defects`,
+        href: '/fleet',
+      },
+      {
+        label: 'Driver Readiness',
+        value: Number(score.driverScore ?? score.driver),
+        detail: `${missedChecks} missed checks and ${pendingToolbox} unsigned talks`,
+        href: '/checks',
+      },
+    ];
 
     res.render('dashboard/index', {
       title: 'Dashboard',
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
-      alerts, alertGroups, recentDefects,
+      alerts, alertGroups, recentDefects, chartData, healthCards,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
@@ -1079,6 +1167,119 @@ const reportCatalog = {
   },
 };
 
+const reportBadgeTone = (pack) => (pack === 'DVSA' ? 'badge-amber' : pack === 'People' ? 'badge-blue' : 'badge-purple');
+
+const buildAuditEvidenceWorkspace = ({ stats, recentAudit }) => {
+  const folders = [
+    {
+      slug: 'home-office-sponsor-licence-audit',
+      name: 'Home Office Sponsor Licence Audit',
+      owner: 'HR Manager',
+      icon: 'folder-lock',
+      score: Math.max(0, Math.round(100 - ((stats.missingRtw + stats.missingContracts) / Math.max(stats.employees, 1)) * 50)),
+      actions: stats.missingRtw + stats.missingContracts,
+      theme: 'blue',
+      reportTypes: ['staff', 'sponsored', 'right-to-work', 'document-expiry'],
+      checklist: [
+        { label: 'Missing Right to Work evidence', count: stats.missingRtw, href: '/employees?type=missing_docs' },
+        { label: 'Missing employment contracts', count: stats.missingContracts, href: '/employees?type=missing_docs' },
+        { label: 'Sponsored workers requiring review', count: stats.sponsored, href: '/sponsored-workers' },
+      ],
+      entityTypes: ['employee', 'sponsored_worker', 'sponsored_change', 'employee_document'],
+    },
+    {
+      slug: 'dvsa-maintenance-investigation',
+      name: 'DVSA Maintenance Investigation',
+      owner: 'Transport Manager',
+      icon: 'folder-wrench',
+      score: Math.max(0, Math.round(100 - ((stats.openDefects + stats.activeVor + stats.pmiOverdue) / Math.max((stats.openDefects + stats.activeVor + stats.pmiOverdue + 10), 1)) * 100)),
+      actions: stats.openDefects + stats.activeVor + stats.pmiOverdue,
+      theme: 'amber',
+      reportTypes: ['fleet', 'pmi', 'defects', 'vor', 'daily-checks'],
+      checklist: [
+        { label: 'Open defects requiring closure', count: stats.openDefects, href: '/defects' },
+        { label: 'Vehicles currently VOR', count: stats.activeVor, href: '/vor' },
+        { label: 'PMI overdue', count: stats.pmiOverdue, href: '/fleet?due=pmi_overdue' },
+      ],
+      entityTypes: ['vehicle', 'defect', 'vor_record', 'walk_around_check'],
+    },
+    {
+      slug: 'traffic-commissioner-evidence-file',
+      name: 'Traffic Commissioner Evidence File',
+      owner: 'Director',
+      icon: 'folder-briefcase',
+      score: Math.max(0, 100 - (stats.criticalAlerts * 5)),
+      actions: stats.criticalAlerts,
+      theme: 'red',
+      reportTypes: ['fleet', 'defects', 'training'],
+      checklist: [
+        { label: 'Critical alerts needing evidence', count: stats.criticalAlerts, href: '/' },
+        { label: 'Open defects still active', count: stats.openDefects, href: '/defects' },
+      ],
+      entityTypes: ['defect', 'vehicle', 'training_record', 'audit_log'],
+    },
+    {
+      slug: 'driver-disciplinary-file',
+      name: 'Driver Disciplinary File',
+      owner: 'Operations Manager',
+      icon: 'folder-user',
+      score: Math.max(0, 100 - (stats.unsignedToolbox * 10)),
+      actions: stats.unsignedToolbox,
+      theme: 'purple',
+      reportTypes: ['training', 'daily-checks'],
+      checklist: [
+        { label: 'Manager sign-offs pending', count: stats.unsignedToolbox, href: '/training' },
+        { label: 'Missed checks needing review', count: stats.missedChecks, href: '/checks' },
+      ],
+      entityTypes: ['training_record', 'walk_around_check', 'toolbox_talk'],
+    },
+    {
+      slug: 'insurance-claim-evidence',
+      name: 'Insurance Claim Evidence',
+      owner: 'Transport Manager',
+      icon: 'folder-shield',
+      score: stats.activeVor || stats.openDefects ? 82 : 100,
+      actions: stats.activeVor + stats.openDefects,
+      theme: 'green',
+      reportTypes: ['defects', 'vor'],
+      checklist: [
+        { label: 'Open defects tied to claims', count: stats.openDefects, href: '/defects' },
+        { label: 'Vehicles off road', count: stats.activeVor, href: '/vor' },
+      ],
+      entityTypes: ['defect', 'vor_record', 'vehicle'],
+    },
+    {
+      slug: 'employment-dispute',
+      name: 'Employment Dispute',
+      owner: 'HR Manager',
+      icon: 'folder-docs',
+      score: stats.missingContracts ? 78 : 100,
+      actions: stats.missingContracts,
+      theme: 'slate',
+      reportTypes: ['staff', 'document-expiry'],
+      checklist: [
+        { label: 'Missing employment contracts', count: stats.missingContracts, href: '/employees?type=missing_docs' },
+        { label: 'Staff records to review', count: stats.employees, href: '/employees' },
+      ],
+      entityTypes: ['employee', 'employee_document', 'audit_log'],
+    },
+  ].map((folder) => ({
+    ...folder,
+    exports: folder.reportTypes.map((type) => ({
+      type,
+      href: `/reports/export/${type}`,
+      viewHref: `/reports/${type}`,
+      name: reportCatalog[type].name,
+      description: reportCatalog[type].description,
+      pack: reportCatalog[type].pack,
+      tone: reportBadgeTone(reportCatalog[type].pack),
+    })),
+    recentAudit: recentAudit.filter((log) => folder.entityTypes.includes(log.entityType)).slice(0, 10),
+  }));
+
+  return folders;
+};
+
 const buildReportData = async (type) => {
   if (type === 'staff') {
     const rows = await prisma.employee.findMany({ orderBy: { fullName: 'asc' } });
@@ -1340,7 +1541,7 @@ router.get('/reports', webAuth, requireRoles(...reportsRoles), async (req, res) 
 // ── User Management ─────────────────────────────────────
 router.get('/audit-evidence', webAuth, requireRoles(...evidenceRoles), async (req, res) => {
   try {
-    const [employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, recentAudit] = await Promise.all([
+    const [employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, missedChecks, recentAudit] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
       prisma.sponsoredWorker.count(),
       prisma.employee.count({ where: { documents: { none: { documentType: 'right_to_work' } } } }),
@@ -1350,19 +1551,53 @@ router.get('/audit-evidence', webAuth, requireRoles(...evidenceRoles), async (re
       prisma.vehicle.count({ where: { nextPmiDate: { lt: new Date() }, status: { not: 'sold' } } }),
       prisma.alert.count({ where: { severity: 'critical', isResolved: false } }),
       prisma.toolboxTalk.count({ where: { managerSignedOff: false } }),
+      prisma.alert.count({ where: { alertType: 'missed_check', isResolved: false } }),
       prisma.auditLog.findMany({ include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: { createdAt: 'desc' }, take: 20 }),
     ]);
 
-    const folders = [
-      { name: 'Home Office Sponsor Licence Audit', owner: 'HR Manager', score: Math.max(0, Math.round(100 - ((missingRtw + missingContracts) / Math.max(employees, 1)) * 50)), actions: missingRtw + missingContracts, exports: ['/reports/export/staff', '/reports/export/sponsored', '/reports/export/right-to-work', '/reports/export/document-expiry'] },
-      { name: 'DVSA Maintenance Investigation', owner: 'Transport Manager', score: Math.max(0, Math.round(100 - ((openDefects + activeVor + pmiOverdue) / Math.max((openDefects + activeVor + pmiOverdue + 10), 1)) * 100)), actions: openDefects + activeVor + pmiOverdue, exports: ['/reports/export/fleet', '/reports/export/pmi', '/reports/export/defects', '/reports/export/vor', '/reports/export/daily-checks'] },
-      { name: 'Traffic Commissioner Evidence File', owner: 'Director', score: Math.max(0, 100 - (criticalAlerts * 5)), actions: criticalAlerts, exports: ['/reports/export/fleet', '/reports/export/defects', '/reports/export/training'] },
-      { name: 'Driver Disciplinary File', owner: 'Operations Manager', score: Math.max(0, 100 - (unsignedToolbox * 10)), actions: unsignedToolbox, exports: ['/reports/export/training', '/reports/export/daily-checks'] },
-      { name: 'Insurance Claim Evidence', owner: 'Transport Manager', score: activeVor || openDefects ? 82 : 100, actions: activeVor + openDefects, exports: ['/reports/export/defects', '/reports/export/vor'] },
-      { name: 'Employment Dispute', owner: 'HR Manager', score: missingContracts ? 78 : 100, actions: missingContracts, exports: ['/reports/export/staff', '/reports/export/document-expiry'] },
-    ];
+    const stats = { employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, missedChecks };
+    const folders = buildAuditEvidenceWorkspace({ stats, recentAudit });
 
-    res.render('audit-evidence/index', { title: 'Audit Evidence Centre', folders, recentAudit, stats: { employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox }, formatDate });
+    res.render('audit-evidence/index', { title: 'Audit Evidence Centre', folders, recentAudit, stats, formatDate });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/audit-evidence/:slug', webAuth, requireRoles(...evidenceRoles), async (req, res) => {
+  try {
+    const [employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, missedChecks, recentAudit] = await Promise.all([
+      prisma.employee.count({ where: { employmentStatus: 'active' } }),
+      prisma.sponsoredWorker.count(),
+      prisma.employee.count({ where: { documents: { none: { documentType: 'right_to_work' } } } }),
+      prisma.employee.count({ where: { documents: { none: { documentType: 'contract' } } } }),
+      prisma.defectCase.count({ where: { status: { not: 'signed_off' } } }),
+      prisma.vorRecord.count({ where: { actualReturnDate: null } }),
+      prisma.vehicle.count({ where: { nextPmiDate: { lt: new Date() }, status: { not: 'sold' } } }),
+      prisma.alert.count({ where: { severity: 'critical', isResolved: false } }),
+      prisma.toolboxTalk.count({ where: { managerSignedOff: false } }),
+      prisma.alert.count({ where: { alertType: 'missed_check', isResolved: false } }),
+      prisma.auditLog.findMany({ include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: { createdAt: 'desc' }, take: 40 }),
+    ]);
+
+    const stats = { employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, missedChecks };
+    const folders = buildAuditEvidenceWorkspace({ stats, recentAudit });
+    const folder = folders.find((item) => item.slug === req.params.slug);
+
+    if (!folder) {
+      return res.status(404).render('error', {
+        title: 'Evidence Folder Not Found',
+        message: 'The requested audit evidence workspace could not be found.',
+        code: 404,
+      });
+    }
+
+    res.render('audit-evidence/show', {
+      title: folder.name,
+      folder,
+      folders,
+      stats,
+      recentAudit,
+      formatDate,
+    });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

@@ -120,6 +120,43 @@ function confirmAction(message, fn, options) {
   });
 }
 
+// ── Mobile nav drawer ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  var sidebar = document.getElementById('appSidebar');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('sidebarOverlay');
+  if (sidebar && toggle && overlay) {
+    var open = function() {
+      sidebar.classList.add('open');
+      overlay.hidden = false;
+      // next frame so the opacity transition runs
+      requestAnimationFrame(function() { overlay.classList.add('show'); });
+      document.body.classList.add('nav-open');
+      toggle.setAttribute('aria-expanded', 'true');
+    };
+    var close = function() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('show');
+      document.body.classList.remove('nav-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      setTimeout(function() { overlay.hidden = true; }, 260);
+    };
+    var isOpen = function() { return sidebar.classList.contains('open'); };
+
+    toggle.addEventListener('click', function() { isOpen() ? close() : open(); });
+    overlay.addEventListener('click', close);
+    // Close after tapping a destination
+    sidebar.querySelectorAll('nav a, .signout').forEach(function(a) {
+      a.addEventListener('click', close);
+    });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape' && isOpen()) close(); });
+    // Reset when leaving mobile width
+    window.addEventListener('resize', function() {
+      if (window.innerWidth > 900 && isOpen()) close();
+    });
+  }
+});
+
 // ── Active nav highlight ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var path = window.location.pathname;
@@ -130,12 +167,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
+  var safeQuery = function(selector) {
+    return selector ? document.querySelector(selector) : null;
+  };
+
   document.querySelectorAll('[data-live-search]').forEach(function(input) {
-    var target = document.querySelector(input.getAttribute('data-live-search'));
-    var countTarget = document.querySelector(input.getAttribute('data-live-count') || '');
+    var target = safeQuery(input.getAttribute('data-live-search'));
+    var countTarget = safeQuery(input.getAttribute('data-live-count'));
     if (!target) return;
     var rows = Array.from(target.querySelectorAll('[data-search-row]'));
-    var empty = document.querySelector(input.getAttribute('data-live-empty') || '');
+    var empty = safeQuery(input.getAttribute('data-live-empty'));
     var update = function() {
       var q = input.value.trim().toLowerCase();
       var visible = 0;
@@ -150,5 +191,53 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     input.addEventListener('input', update);
     update();
+  });
+
+  document.querySelectorAll('[data-loading-link]').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (link.classList.contains('is-loading')) return;
+      var label = link.querySelector('[data-loading-label]');
+      link.classList.add('is-loading');
+      link.setAttribute('aria-busy', 'true');
+      if (label && !label.getAttribute('data-original-label')) {
+        label.setAttribute('data-original-label', label.textContent);
+        label.textContent = link.getAttribute('data-loading-text') || 'Working...';
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-export-selector]').forEach(function(host) {
+    var trigger = host.querySelector('[data-export-trigger]');
+    var filename = host.querySelector('[data-export-filename]');
+    var detailTitle = host.querySelector('[data-export-title]');
+    var detailDescription = host.querySelector('[data-export-description]');
+    var detailPack = host.querySelector('[data-export-pack]');
+    var options = Array.from(host.querySelectorAll('[data-export-option]'));
+    if (!trigger || !options.length) return;
+
+    var activate = function(option) {
+      options.forEach(function(item) {
+        item.classList.toggle('active', item === option);
+        item.setAttribute('aria-pressed', item === option ? 'true' : 'false');
+      });
+
+      trigger.setAttribute('href', option.getAttribute('data-export-href'));
+      trigger.setAttribute('data-loading-text', option.getAttribute('data-loading-text') || 'Preparing export...');
+      if (filename) filename.textContent = option.getAttribute('data-export-file') || '';
+      if (detailTitle) detailTitle.textContent = option.getAttribute('data-export-title') || '';
+      if (detailDescription) detailDescription.textContent = option.getAttribute('data-export-description') || '';
+      if (detailPack) detailPack.textContent = option.getAttribute('data-export-pack') || '';
+
+      var triggerLabel = trigger.querySelector('[data-loading-label]');
+      if (triggerLabel) {
+        triggerLabel.textContent = option.getAttribute('data-export-button') || 'Export';
+      }
+    };
+
+    options.forEach(function(option) {
+      option.addEventListener('click', function() { activate(option); });
+    });
+
+    activate(options[0]);
   });
 });

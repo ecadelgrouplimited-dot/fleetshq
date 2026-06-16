@@ -12,7 +12,8 @@
 <body>
 
 <!-- ── Sidebar ─────────────────────────────────────────── -->
-<aside class="sidebar">
+<div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
+<aside class="sidebar" id="appSidebar">
   <% const isDirector = user.role === 'director'; %>
   <% const isTransport = user.role === 'transport_manager'; %>
   <% const isHr = user.role === 'hr_manager'; %>
@@ -23,6 +24,10 @@
   <% const canSeeFleet = isDirector || isTransport || isOps; %>
   <% const canSeeCompliance = isDirector || isTransport || isHr || isOps; %>
   <% const canSeeAuditEvidence = isDirector || isTransport || isHr; %>
+
+  <div class="sidebar-traffic" aria-hidden="true">
+    <i class="r"></i><i class="y"></i><i class="g"></i>
+  </div>
 
   <div class="sidebar-brand">
     <div class="sidebar-brand-inner">
@@ -196,8 +201,17 @@
 <!-- ── Main ─────────────────────────────────────────────── -->
 <div class="main">
   <div class="topbar">
-    <div class="topbar-left"><h2><%= title %></h2></div>
+    <div class="topbar-left">
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-controls="appSidebar" aria-expanded="false">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <h2><%= title %></h2>
+    </div>
     <div class="topbar-right">
+      <label class="topbar-search">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
+        <input id="navSpotlight" type="search" placeholder="Search menu… (/)" autocomplete="off" aria-label="Search navigation">
+      </label>
       <div class="topbar-time" id="currentTime"></div>
     </div>
   </div>
@@ -230,6 +244,40 @@
       a.classList.add('active');
     }
   });
+
+  // Spotlight-style nav filter
+  (function() {
+    const input = document.getElementById('navSpotlight');
+    if (!input) return;
+    const links = Array.from(document.querySelectorAll('.sidebar nav a'));
+    const sections = Array.from(document.querySelectorAll('.sidebar .sidebar-section'));
+    const apply = () => {
+      const q = input.value.trim().toLowerCase();
+      links.forEach(a => {
+        const match = !q || a.textContent.toLowerCase().includes(q);
+        a.style.display = match ? '' : 'none';
+      });
+      // hide section headers that have no visible links
+      sections.forEach(sec => {
+        const any = Array.from(sec.querySelectorAll('nav a')).some(a => a.style.display !== 'none');
+        sec.style.display = any ? '' : 'none';
+      });
+    };
+    input.addEventListener('input', apply);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { input.value = ''; apply(); input.blur(); }
+      if (e.key === 'Enter') {
+        const first = links.find(a => a.style.display !== 'none');
+        if (first) window.location.href = first.getAttribute('href');
+      }
+    });
+    // "/" focuses search, like macOS apps
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && document.activeElement !== input && !/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+        e.preventDefault(); input.focus();
+      }
+    });
+  })();
 </script>
 </body>
 </html>

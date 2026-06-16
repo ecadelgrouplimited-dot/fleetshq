@@ -1,85 +1,171 @@
 <%- include('../layouts/main', { body: `
-<div class="stat-grid mb-4">
-  <div class="stat-card purple"><div class="stat-icon purple"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M5 7h14M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg></div><div><div class="stat-value">${stats.criticalAlerts}</div><div class="stat-label">Critical Alerts</div><div class="stat-sub">Need evidence or sign-off</div></div></div>
-  <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857"/></svg></div><div><div class="stat-value">${stats.sponsored}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.missingRtw} RTW gaps</div></div></div>
-  <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3"/></svg></div><div><div class="stat-value">${stats.activeVor}</div><div class="stat-label">Active VOR</div><div class="stat-sub">${stats.pmiOverdue} PMI overdue</div></div></div>
-  <div class="stat-card red"><div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></div><div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">Open Defects</div><div class="stat-sub">${stats.unsignedToolbox} sign-offs pending</div></div></div>
-</div>
-
-<div class="card mb-4">
-  <div class="card-header">
-    <h3>Evidence Folders</h3>
-    <input class="form-control" style="max-width:320px" data-live-search="#evidenceFolders" data-live-empty="#noEvidenceFolders" placeholder="Search folders, owners, exports...">
-  </div>
-  <div class="card-body evidence-grid" id="evidenceFolders">
-    ${folders.map(folder => `
-      <div class="evidence-folder" data-search-row data-search-text="${`${folder.name} ${folder.owner} ${folder.exports.join(' ')}`.toLowerCase()}">
-        <div class="folder-head">
-          <div>
-            <h4>${folder.name}</h4>
-            <p>${folder.owner}</p>
-          </div>
-          <span class="badge ${folder.score >= 90 ? 'badge-green' : folder.score >= 75 ? 'badge-amber' : 'badge-red'}">${folder.score}% ready</span>
-        </div>
-        <div class="progress-bar" style="height:8px;margin:14px 0">
-          <div class="progress-bar-fill ${folder.score >= 90 ? 'green' : folder.score >= 75 ? 'amber' : 'red'}" style="width:${folder.score}%"></div>
-        </div>
-        <div class="folder-meta">${folder.actions} action${folder.actions === 1 ? '' : 's'} outstanding</div>
-        <div class="folder-actions">
-          ${folder.exports.map((href, i) => `<a href="${href}" class="btn btn-ghost btn-sm">Export ${i + 1}</a>`).join('')}
-        </div>
-      </div>
-    `).join('')}
-    <div id="noEvidenceFolders" class="empty-state" style="display:none"><p>No evidence folders match your search</p></div>
-  </div>
-</div>
-
-<div class="grid-2">
-  <div class="card">
-    <div class="card-header"><h3>Outstanding Evidence Actions</h3></div>
-    <div class="card-body action-list">
-      ${[
-        ['Missing Right to Work evidence', stats.missingRtw, '/employees?type=missing_docs'],
-        ['Missing employment contracts', stats.missingContracts, '/employees?type=missing_docs'],
-        ['Open defects requiring closure', stats.openDefects, '/defects'],
-        ['Vehicles currently VOR', stats.activeVor, '/vor'],
-        ['PMI overdue', stats.pmiOverdue, '/fleet?due=pmi_overdue'],
-        ['Manager sign-offs pending', stats.unsignedToolbox, '/training']
-      ].map(([label, value, href]) => `<a class="action-row" href="${href}"><span>${label}</span><strong>${value}</strong></a>`).join('')}
+<div class="audit-shell">
+  <div class="audit-shell-top">
+    <div>
+      <div class="audit-breadcrumb">Compliance Hub / Audit Evidence</div>
+      <h2 class="audit-shell-title">Audit Evidence Explorer</h2>
+      <p class="audit-shell-copy">Open a live evidence folder, review readiness, and export the exact pack you need without leaving the workspace.</p>
+    </div>
+    <div class="audit-toolbar">
+      <label class="audit-search">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
+        <input class="form-control" data-live-search="#evidenceFolders" data-live-empty="#noEvidenceFolders" data-live-count="#evidenceFolderCount" placeholder="Search folders, owners, exports...">
+      </label>
     </div>
   </div>
-  <div class="card">
-    <div class="card-header"><h3>Recent Audit Trail</h3></div>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th></tr></thead>
-        <tbody>
-          ${recentAudit.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No audit events yet</td></tr>' : recentAudit.map(log => `
-            <tr>
-              <td class="cell-muted">${formatDate(log.createdAt)}</td>
-              <td>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</td>
-              <td><span class="badge badge-blue">${log.action}</span></td>
-              <td class="cell-muted">${log.entityType} / ${log.entityId}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+
+  <div class="stat-grid mb-4">
+    <div class="stat-card purple"><div class="stat-icon purple"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M5 7h14M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg></div><div><div class="stat-value">${stats.criticalAlerts}</div><div class="stat-label">Critical Alerts</div><div class="stat-sub">Need evidence or sign-off</div></div></div>
+    <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857"/></svg></div><div><div class="stat-value">${stats.sponsored}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.missingRtw} RTW gaps</div></div></div>
+    <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3"/></svg></div><div><div class="stat-value">${stats.activeVor}</div><div class="stat-label">Active VOR</div><div class="stat-sub">${stats.pmiOverdue} PMI overdue</div></div></div>
+    <div class="stat-card red"><div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></div><div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">Open Defects</div><div class="stat-sub">${stats.unsignedToolbox} sign-offs pending</div></div></div>
+  </div>
+
+  <div class="card mb-4 audit-explorer">
+    <div class="card-header">
+      <div>
+        <h3>Evidence Folders</h3>
+        <p class="audit-panel-copy"><span id="evidenceFolderCount">${folders.length}</span> live folders available for review and export.</p>
+      </div>
+      <span class="audit-status-pill">Explorer mode</span>
+    </div>
+    <div class="card-body evidence-workspace" id="evidenceFolders">
+      ${folders.map(folder => `
+        <section class="evidence-folder-card theme-${folder.theme}" data-search-row data-search-text="${`${folder.name} ${folder.owner} ${folder.exports.map(item => `${item.name} ${item.pack}`).join(' ')}`.toLowerCase()}">
+          <div class="evidence-folder-window">
+            <div class="evidence-folder-windowbar">
+              <div class="window-dots"><span></span><span></span><span></span></div>
+              <span>${folder.icon} ${folder.name}</span>
+            </div>
+            <div class="evidence-folder-body">
+              <div class="evidence-folder-head">
+                <div class="evidence-folder-title">
+                  <div class="folder-icon-tile">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/></svg>
+                  </div>
+                  <div>
+                    <h4>${folder.name}</h4>
+                    <p>${folder.owner}</p>
+                  </div>
+                </div>
+                <span class="badge ${folder.score >= 90 ? 'badge-green' : folder.score >= 75 ? 'badge-amber' : 'badge-red'}">${folder.score}% ready</span>
+              </div>
+
+              <div class="progress-bar evidence-progress">
+                <div class="progress-bar-fill ${folder.score >= 90 ? 'green' : folder.score >= 75 ? 'amber' : 'red'}" style="width:${folder.score}%"></div>
+              </div>
+
+              <div class="evidence-folder-meta">
+                <span><strong>${folder.actions}</strong> actions outstanding</span>
+                <span><strong>${folder.exports.length}</strong> export packs</span>
+                <span><strong>${folder.checklist.length}</strong> checkpoints</span>
+              </div>
+
+              <div class="evidence-folder-tags">
+                ${folder.exports.slice(0, 4).map(item => `<span class="badge ${item.tone}">${item.pack}</span>`).join('')}
+              </div>
+
+              <div class="evidence-folder-actions">
+                <a href="/audit-evidence/${folder.slug}" class="btn btn-primary" data-loading-link data-loading-text="Opening folder...">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h5l2 2h9v8a2 2 0 01-2 2H6a2 2 0 01-2-2V7z"/></svg>
+                  <span data-loading-label>Open Folder</span>
+                </a>
+                <a href="${folder.exports[0].href}" class="btn btn-ghost" data-loading-link data-loading-text="Preparing export...">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
+                  <span data-loading-label>Quick Export</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      `).join('')}
+      <div id="noEvidenceFolders" class="empty-state evidence-empty" style="display:none">
+        <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/></svg></div>
+        <p>No evidence folders match your search</p>
+        <div class="empty-hint">Try a folder owner, audit type, or export pack name.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Outstanding Evidence Actions</h3></div>
+      <div class="card-body action-list">
+        ${[
+          ['Missing Right to Work evidence', stats.missingRtw, '/employees?type=missing_docs'],
+          ['Missing employment contracts', stats.missingContracts, '/employees?type=missing_docs'],
+          ['Open defects requiring closure', stats.openDefects, '/defects'],
+          ['Vehicles currently VOR', stats.activeVor, '/vor'],
+          ['PMI overdue', stats.pmiOverdue, '/fleet?due=pmi_overdue'],
+          ['Manager sign-offs pending', stats.unsignedToolbox, '/training']
+        ].map(([label, value, href]) => `<a class="action-row" href="${href}"><span>${label}</span><strong>${value}</strong></a>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Recent Audit Trail</h3></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th></tr></thead>
+          <tbody>
+            ${recentAudit.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No audit events yet</td></tr>' : recentAudit.map(log => `
+              <tr>
+                <td class="cell-muted">${formatDate(log.createdAt)}</td>
+                <td>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</td>
+                <td><span class="badge badge-blue">${log.action}</span></td>
+                <td class="cell-muted">${log.entityType} / ${log.entityId}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
 
 <style>
-  .evidence-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px; }
-  .evidence-folder { border:1px solid var(--border);border-radius:8px;padding:16px;background:#fff; }
-  .folder-head { display:flex;justify-content:space-between;gap:12px;align-items:flex-start; }
-  .folder-head h4 { font-size:15px;font-weight:800;margin-bottom:4px; }
-  .folder-head p,.folder-meta { color:var(--text-muted);font-size:12px;font-weight:600; }
-  .folder-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px; }
-  .action-list { display:flex;flex-direction:column;gap:10px; }
-  .action-row { display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px 14px; }
-  .action-row:hover { border-color:var(--primary);background:#eff6ff; }
+  .audit-shell { display:flex; flex-direction:column; gap:16px; }
+  .audit-shell-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+  .audit-breadcrumb { font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:#64748b; margin-bottom:8px; }
+  .audit-shell-title { font-size:30px; line-height:1.1; margin-bottom:8px; }
+  .audit-shell-copy { max-width:720px; color:#64748b; font-size:14px; line-height:1.6; }
+  .audit-toolbar { min-width:320px; display:flex; justify-content:flex-end; }
+  .audit-search { position:relative; width:100%; max-width:360px; }
+  .audit-search svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); width:16px; height:16px; color:#94a3b8; }
+  .audit-search .form-control { padding-left:40px; background:#fff; }
+  .audit-panel-copy { font-size:12px; color:#64748b; font-weight:600; margin-top:4px; }
+  .audit-status-pill { background:#dbeafe; color:#1d4ed8; border:1px solid #bfdbfe; padding:8px 12px; border-radius:999px; font-size:12px; font-weight:700; }
+  .evidence-workspace { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; background:linear-gradient(180deg,#f8fbff 0%, #eef4ff 100%); }
+  .evidence-folder-card { min-width:0; }
+  .evidence-folder-window { background:#fff; border:1px solid #d6e0f5; border-radius:12px; box-shadow:0 12px 26px rgba(15,23,42,.05); overflow:hidden; }
+  .evidence-folder-windowbar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:linear-gradient(180deg,#edf4ff 0%, #e2ebfb 100%); border-bottom:1px solid #d6e0f5; font-size:12px; font-weight:700; color:#334155; }
+  .window-dots { display:flex; gap:6px; }
+  .window-dots span { width:10px; height:10px; border-radius:999px; background:#fff; border:1px solid rgba(148,163,184,.7); }
+  .evidence-folder-body { padding:18px; }
+  .evidence-folder-head { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; }
+  .evidence-folder-title { display:flex; gap:14px; align-items:flex-start; min-width:0; }
+  .folder-icon-tile { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#fde68a 0%, #fbbf24 100%); color:#7c2d12; box-shadow:inset 0 1px 0 rgba(255,255,255,.65); flex-shrink:0; }
+  .folder-icon-tile svg { width:28px; height:28px; }
+  .evidence-folder-head h4 { font-size:22px; line-height:1.15; margin-bottom:6px; }
+  .evidence-folder-head p { color:#64748b; font-size:13px; font-weight:700; }
+  .evidence-progress { margin:16px 0 14px; height:10px; border-radius:999px; background:#dbe4f2; }
+  .evidence-progress .progress-bar-fill { border-radius:999px; }
+  .evidence-folder-meta { display:flex; flex-wrap:wrap; gap:10px; color:#475569; font-size:12px; font-weight:600; margin-bottom:12px; }
+  .evidence-folder-meta strong { color:#0f172a; }
+  .evidence-folder-tags { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .evidence-folder-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .evidence-empty { grid-column:1 / -1; }
+  .action-list { display:flex; flex-direction:column; gap:10px; }
+  .action-row { display:flex; justify-content:space-between; align-items:center; text-decoration:none; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .action-row:hover { border-color:var(--primary); background:#eff6ff; }
   .action-row span { font-weight:700; }
-  .action-row strong { color:var(--primary);font-size:18px; }
-  @media (max-width:900px){ .evidence-grid { grid-template-columns:1fr; } }
+  .action-row strong { color:var(--primary); font-size:18px; }
+  @media (max-width:1100px) {
+    .audit-shell-top { flex-direction:column; }
+    .audit-toolbar { min-width:0; width:100%; justify-content:stretch; }
+    .audit-search { max-width:none; }
+    .evidence-workspace { grid-template-columns:1fr; }
+  }
 </style>
 ` }) %>

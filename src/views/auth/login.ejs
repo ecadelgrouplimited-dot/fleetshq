@@ -196,21 +196,6 @@
     .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.45); }
     .btn-submit:active { transform: translateY(0); }
 
-    /* Demo accounts */
-    .demo-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid #f1f5f9; }
-    .demo-label {
-      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-      color: #94a3b8; margin-bottom: 12px;
-    }
-    .demo-pills { display: flex; flex-wrap: wrap; gap: 7px; }
-    .demo-pill {
-      padding: 6px 13px; border-radius: 8px; background: #f8fafc;
-      border: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 600; color: #475569;
-      cursor: pointer; transition: all .15s; user-select: none;
-    }
-    .demo-pill:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--blue); transform: translateY(-1px); }
-    .demo-pill:active { transform: translateY(0); }
-
     /* Trust badges */
     .trust { margin-top: 24px; display: flex; align-items: center; gap: 8px; }
     .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
@@ -329,16 +314,6 @@
         </button>
       </form>
 
-      <div class="demo-section">
-        <div class="demo-label">Demo accounts — click to fill</div>
-        <div class="demo-pills">
-          <div class="demo-pill" onclick="fill('director@256logisticsltd.com')">Director</div>
-          <div class="demo-pill" onclick="fill('transport@256logisticsltd.com')">Transport Mgr</div>
-          <div class="demo-pill" onclick="fill('hr@256logisticsltd.com')">HR Manager</div>
-          <div class="demo-pill" onclick="fill('driver1@256logisticsltd.com')">Driver</div>
-        </div>
-      </div>
-
       <div class="trust">
         <div class="trust-dot"></div>
         <span class="trust-text">Secure session · JWT authenticated · All data encrypted at rest</span>
@@ -347,11 +322,6 @@
   </div>
 
   <script>
-    function fill(email) {
-      document.getElementById('emailInput').value = email;
-      document.getElementById('passInput').value = 'Demo2024!';
-      document.getElementById('emailInput').dispatchEvent(new Event('input'));
-    }
     document.getElementById('loginForm').addEventListener('submit', () => {
       const btn = document.getElementById('submitBtn');
       btn.textContent = 'Signing in…';

@@ -1,0 +1,260 @@
+<%
+  const selectedExport = folder.exports[0];
+  const relatedFolders = folders.filter((item) => item.slug !== folder.slug).slice(0, 3);
+%>
+<%- include('../layouts/main', { body: `
+<div class="audit-detail-shell">
+  <div class="audit-detail-topbar">
+    <div>
+      <div class="audit-breadcrumb">
+        <a href="/audit-evidence">Audit Evidence</a>
+        <span>/</span>
+        <span>${folder.name}</span>
+      </div>
+      <div class="audit-detail-heading">
+        <div class="audit-detail-folder-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/></svg>
+        </div>
+        <div>
+          <h2>${folder.name}</h2>
+          <p>${folder.owner} workspace with live checkpoints, export packs, and recent audit activity.</p>
+        </div>
+      </div>
+    </div>
+    <div class="audit-detail-actions">
+      <a href="/audit-evidence" class="btn btn-ghost">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        <span>All Folders</span>
+      </a>
+      <a href="${selectedExport.viewHref}" class="btn btn-outline">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0A9 9 0 113 12a9 9 0 0118 0z"/></svg>
+        <span>Open Report Preview</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="audit-detail-layout" data-export-selector>
+    <section class="card audit-folder-pane">
+      <div class="audit-pane-windowbar">
+        <div class="window-dots"><span></span><span></span><span></span></div>
+        <span>${folder.icon} Folder Workspace</span>
+      </div>
+      <div class="card-body">
+        <div class="audit-summary">
+          <div class="audit-summary-score">
+            <div class="score-ring ${folder.score >= 90 ? 'good' : folder.score >= 75 ? 'warn' : 'risk'}">
+              <strong>${folder.score}%</strong>
+              <span>ready</span>
+            </div>
+          </div>
+          <div class="audit-summary-copy">
+            <div class="audit-summary-meta">
+              <span class="badge ${folder.score >= 90 ? 'badge-green' : folder.score >= 75 ? 'badge-amber' : 'badge-red'}">${folder.actions} actions outstanding</span>
+              <span class="badge badge-blue">${folder.exports.length} export packs</span>
+              <span class="badge badge-purple">${folder.checklist.length} checkpoints</span>
+            </div>
+            <p>The folder opens as a live prep space before export, so teams can review what is included and jump straight to the underlying operational page where needed.</p>
+          </div>
+        </div>
+
+        <div class="audit-sections">
+          <div class="audit-section">
+            <div class="audit-section-head">
+              <h3>Evidence Readiness</h3>
+              <span class="text-muted text-sm">${folder.entityTypes.join(' • ')}</span>
+            </div>
+            <div class="progress-bar audit-summary-progress">
+              <div class="progress-bar-fill ${folder.score >= 90 ? 'green' : folder.score >= 75 ? 'amber' : 'red'}" style="width:${folder.score}%"></div>
+            </div>
+            <div class="audit-checklist">
+              ${folder.checklist.map(item => `
+                <a href="${item.href}" class="audit-check-row">
+                  <div>
+                    <strong>${item.label}</strong>
+                    <span>Open source records</span>
+                  </div>
+                  <span class="audit-check-count ${item.count === 0 ? 'ok' : item.count > 5 ? 'risk' : 'warn'}">${item.count}</span>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="audit-section">
+            <div class="audit-section-head">
+              <h3>Available Packs</h3>
+              <span class="text-muted text-sm">Choose a pack to switch the export target</span>
+            </div>
+            <div class="audit-export-list">
+              ${folder.exports.map((item, index) => `
+                <button
+                  type="button"
+                  class="audit-export-option${index === 0 ? ' active' : ''}"
+                  data-export-option
+                  data-export-href="${item.href}"
+                  data-export-title="${item.name}"
+                  data-export-description="${item.description}"
+                  data-export-pack="${item.pack}"
+                  data-export-file="${item.type}.csv"
+                  data-export-button="Export ${item.name}"
+                  data-loading-text="Preparing ${item.name}..."
+                  aria-pressed="${index === 0 ? 'true' : 'false'}"
+                >
+                  <div class="audit-export-option-main">
+                    <span class="badge ${item.tone}">${item.pack}</span>
+                    <strong>${item.name}</strong>
+                    <p>${item.description}</p>
+                  </div>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="audit-side-stack">
+      <section class="card audit-export-preview">
+        <div class="card-header">
+          <h3>Selected Export</h3>
+          <span class="badge badge-slate" data-export-pack>${selectedExport.pack}</span>
+        </div>
+        <div class="card-body">
+          <div class="audit-export-preview-window">
+            <div class="audit-export-preview-bar">
+              <span class="badge badge-cyan">CSV</span>
+              <strong data-export-filename>${selectedExport.type}.csv</strong>
+            </div>
+            <div class="audit-export-preview-body">
+              <h4 data-export-title>${selectedExport.name}</h4>
+              <p data-export-description>${selectedExport.description}</p>
+              <div class="audit-export-preview-actions">
+                <a href="${selectedExport.viewHref}" class="btn btn-outline">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0A9 9 0 113 12a9 9 0 0118 0z"/></svg>
+                  <span>Preview Report</span>
+                </a>
+                <a href="${selectedExport.href}" class="btn btn-primary" data-loading-link data-export-trigger data-loading-text="Preparing export...">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
+                  <span data-loading-label>Export Selected Pack</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header"><h3>Recent Folder Activity</h3></div>
+        <div class="card-body audit-activity-list">
+          ${folder.recentAudit.length === 0 ? `
+            <div class="empty-state" style="padding:24px 12px">
+              <p>No matching audit activity for this folder yet</p>
+            </div>
+          ` : folder.recentAudit.map(log => `
+            <div class="audit-activity-item">
+              <div>
+                <strong>${log.action}</strong>
+                <p>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'} • ${log.entityType}</p>
+              </div>
+              <span>${formatDate(log.createdAt)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header"><h3>Related Folders</h3></div>
+        <div class="card-body audit-related-folders">
+          ${relatedFolders.map(item => `
+            <a href="/audit-evidence/${item.slug}" class="audit-related-folder" data-loading-link data-loading-text="Opening folder...">
+              <div class="audit-related-folder-main">
+                <span class="audit-related-folder-icon">${item.icon}</span>
+                <div>
+                  <strong>${item.name}</strong>
+                  <p>${item.owner}</p>
+                </div>
+              </div>
+              <span class="badge ${item.score >= 90 ? 'badge-green' : item.score >= 75 ? 'badge-amber' : 'badge-red'}">${item.score}%</span>
+            </a>
+          `).join('')}
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<style>
+  .audit-detail-shell { display:flex; flex-direction:column; gap:18px; }
+  .audit-detail-topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .audit-breadcrumb { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:#64748b; margin-bottom:10px; }
+  .audit-breadcrumb a { color:#2563eb; text-decoration:none; }
+  .audit-detail-heading { display:flex; gap:16px; align-items:flex-start; }
+  .audit-detail-folder-icon { width:62px; height:62px; border-radius:16px; background:linear-gradient(180deg,#fde68a 0%, #fbbf24 100%); display:flex; align-items:center; justify-content:center; color:#7c2d12; box-shadow:inset 0 1px 0 rgba(255,255,255,.65); flex-shrink:0; }
+  .audit-detail-folder-icon svg { width:32px; height:32px; }
+  .audit-detail-heading h2 { font-size:30px; line-height:1.1; margin-bottom:8px; }
+  .audit-detail-heading p { color:#64748b; font-size:14px; line-height:1.6; max-width:720px; }
+  .audit-detail-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .audit-detail-layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(320px,.95fr); gap:18px; align-items:start; }
+  .audit-pane-windowbar { display:flex; align-items:center; gap:10px; padding:10px 14px; background:linear-gradient(180deg,#edf4ff 0%, #e2ebfb 100%); border-bottom:1px solid #d6e0f5; font-size:12px; font-weight:700; color:#334155; border-radius:14px 14px 0 0; }
+  .audit-folder-pane { overflow:hidden; }
+  .audit-summary { display:flex; gap:18px; align-items:center; padding-bottom:18px; border-bottom:1px solid #e2e8f0; }
+  .score-ring { width:124px; height:124px; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:10px solid #e2e8f0; background:#fff; box-shadow:inset 0 2px 10px rgba(148,163,184,.12); }
+  .score-ring strong { font-size:28px; line-height:1; }
+  .score-ring span { margin-top:6px; font-size:12px; text-transform:uppercase; font-weight:800; letter-spacing:.6px; color:#64748b; }
+  .score-ring.good { border-color:#86efac; }
+  .score-ring.warn { border-color:#fde68a; }
+  .score-ring.risk { border-color:#fca5a5; }
+  .audit-summary-meta { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .audit-summary-copy p { color:#475569; font-size:14px; line-height:1.7; max-width:640px; }
+  .audit-sections { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; margin-top:18px; }
+  .audit-section { border:1px solid #e2e8f0; border-radius:12px; background:#fbfdff; padding:16px; }
+  .audit-section-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px; }
+  .audit-section-head h3 { font-size:16px; }
+  .audit-summary-progress { height:10px; border-radius:999px; margin-bottom:14px; }
+  .audit-checklist { display:flex; flex-direction:column; gap:10px; }
+  .audit-check-row { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; border:1px solid #dbe5f4; border-radius:10px; text-decoration:none; background:#fff; color:#0f172a; }
+  .audit-check-row:hover { border-color:#93c5fd; background:#eff6ff; }
+  .audit-check-row strong { display:block; font-size:13px; margin-bottom:3px; }
+  .audit-check-row span { font-size:11px; color:#64748b; }
+  .audit-check-count { min-width:44px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; }
+  .audit-check-count.ok { background:#dcfce7; color:#166534; }
+  .audit-check-count.warn { background:#fef3c7; color:#92400e; }
+  .audit-check-count.risk { background:#fee2e2; color:#b91c1c; }
+  .audit-export-list { display:flex; flex-direction:column; gap:10px; }
+  .audit-export-option { width:100%; display:flex; justify-content:space-between; align-items:center; gap:12px; text-align:left; background:#fff; border:1px solid #dbe5f4; border-radius:12px; padding:14px; cursor:pointer; font-family:inherit; color:#0f172a; transition:all .15s ease; }
+  .audit-export-option:hover, .audit-export-option.active { border-color:#60a5fa; box-shadow:0 0 0 3px rgba(96,165,250,.12); background:#eff6ff; }
+  .audit-export-option svg { width:18px; height:18px; color:#2563eb; flex-shrink:0; }
+  .audit-export-option-main { display:flex; flex-direction:column; gap:8px; }
+  .audit-export-option-main strong { font-size:14px; }
+  .audit-export-option-main p { font-size:12px; color:#64748b; line-height:1.5; }
+  .audit-side-stack { display:flex; flex-direction:column; gap:18px; }
+  .audit-export-preview-window { border:1px solid #dbe5f4; border-radius:14px; overflow:hidden; background:#fff; }
+  .audit-export-preview-bar { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 14px; background:linear-gradient(180deg,#f8fbff 0%, #eff6ff 100%); border-bottom:1px solid #dbe5f4; }
+  .audit-export-preview-bar strong { font-size:13px; color:#334155; }
+  .audit-export-preview-body { padding:16px; }
+  .audit-export-preview-body h4 { font-size:18px; margin-bottom:8px; }
+  .audit-export-preview-body p { color:#64748b; font-size:13px; line-height:1.6; margin-bottom:16px; }
+  .audit-export-preview-actions { display:flex; gap:10px; flex-wrap:wrap; }
+  .audit-activity-list { display:flex; flex-direction:column; gap:10px; }
+  .audit-activity-item { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; padding:12px 14px; border:1px solid #e2e8f0; border-radius:10px; background:#fff; }
+  .audit-activity-item strong { display:block; font-size:13px; margin-bottom:4px; }
+  .audit-activity-item p { color:#64748b; font-size:12px; }
+  .audit-activity-item span { color:#64748b; font-size:11px; font-weight:700; white-space:nowrap; }
+  .audit-related-folders { display:flex; flex-direction:column; gap:10px; }
+  .audit-related-folder { display:flex; justify-content:space-between; gap:12px; align-items:center; text-decoration:none; padding:12px 14px; border:1px solid #e2e8f0; border-radius:10px; color:#0f172a; background:#fff; }
+  .audit-related-folder:hover { border-color:#93c5fd; background:#eff6ff; }
+  .audit-related-folder-main { display:flex; align-items:center; gap:12px; min-width:0; }
+  .audit-related-folder-icon { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#fef3c7; font-size:18px; }
+  .audit-related-folder strong { display:block; font-size:13px; margin-bottom:4px; }
+  .audit-related-folder p { color:#64748b; font-size:12px; }
+  @media (max-width:1200px) {
+    .audit-detail-layout { grid-template-columns:1fr; }
+  }
+  @media (max-width:900px) {
+    .audit-detail-topbar, .audit-summary, .audit-sections { flex-direction:column; grid-template-columns:1fr; }
+    .audit-detail-heading { flex-direction:column; }
+    .audit-section-head { flex-direction:column; }
+  }
+</style>
+` }) %>

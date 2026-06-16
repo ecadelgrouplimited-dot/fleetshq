@@ -8,12 +8,14 @@
 </div>
 
 <div class="card mb-4">
-  <div class="card-body" style="padding:14px 20px;display:grid;grid-template-columns:1fr 180px;gap:12px;align-items:end">
-    <div>
-      <label class="form-label">Search users</label>
-      <input class="form-control" data-live-search="#usersTableBody" data-live-count="#visibleUserCount" data-live-empty="#noUsersFound" placeholder="Name, email, role, status...">
+  <div class="card-body" style="padding:14px 20px">
+    <div class="filter-form">
+      <div class="filter-search">
+        <label class="form-label">Search users</label>
+        <input class="form-control" data-live-search="#usersTableBody" data-live-count="#visibleUserCount" data-live-empty="#noUsersFound" placeholder="Name, email, role, status...">
+      </div>
+      <button class="btn btn-ghost" type="button" onclick="document.querySelector('[data-live-search]').value='';document.querySelector('[data-live-search]').dispatchEvent(new Event('input'))">Clear</button>
     </div>
-    <button class="btn btn-ghost" type="button" onclick="document.querySelector('[data-live-search]').value='';document.querySelector('[data-live-search]').dispatchEvent(new Event('input'))">Clear</button>
   </div>
 </div>
 
