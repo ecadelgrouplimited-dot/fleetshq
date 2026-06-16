@@ -1,7 +1,7 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <div>
-    ${missedVehicles.length > 0 ? `<span class="badge badge-red" style="font-size:13px;padding:6px 12px">⚠ ${missedVehicles.length} vehicle${missedVehicles.length !== 1 ? 's' : ''} with no check today</span>` : '<span class="badge badge-green" style="font-size:13px;padding:6px 12px">All vehicles checked today</span>'}
+    ${missedVehicles.length > 0 ? `<span class="badge badge-red" style="font-size:13px;padding:6px 12px">${missedVehicles.length} vehicle${missedVehicles.length !== 1 ? 's' : ''} with no check today</span>` : '<span class="badge badge-green" style="font-size:13px;padding:6px 12px">All vehicles checked today</span>'}
   </div>
   <a href="/checks/new" class="btn btn-primary">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:15px;height:15px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -18,8 +18,8 @@ ${missedVehicles.length > 0 ? `
       <tbody>
         ${missedVehicles.map(v => `
           <tr>
-            <td style="font-weight:700">${v.registration}</td>
-            <td>${v.assignedDriver?.fullName || '—'}</td>
+            <td style="font-weight:700"><a href="/fleet/${v.id}">${v.registration}</a></td>
+            <td>${v.assignedDriver?.fullName || '-'}</td>
             <td><span class="badge badge-red">No check submitted</span></td>
           </tr>
         `).join('')}
@@ -43,8 +43,8 @@ ${missedVehicles.length > 0 ? `
           const defectItems = c.items.filter(i => i.status === 'defect_found');
           const result = c.nilDefect ? 'nil defect' : defectItems.length > 0 ? 'defects reported' : 'pass';
           return `<tr data-search-row data-search-text="${`${formatDate(c.checkDate)} ${c.vehicle?.registration || ''} ${c.driver?.fullName || ''} ${c.mileage || ''} ${result}`.toLowerCase()}">
-            <td style="font-weight:500">${formatDate(c.checkDate)} <span style="color:#64748b;font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
-            <td style="font-weight:600">${c.vehicle?.registration}</td>
+            <td style="font-weight:500"><a href="/checks/${c.id}">${formatDate(c.checkDate)}</a> <span style="color:#64748b;font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
+            <td style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${c.vehicle.registration}</a>` : c.vehicle?.registration || '-'}</td>
             <td>${c.driver?.fullName}</td>
             <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
             <td>${defectItems.length > 0 ? `<span class="badge badge-red">${defectItems.length} defect${defectItems.length !== 1 ? 's' : ''}</span>` : '<span class="badge badge-green">None</span>'}</td>

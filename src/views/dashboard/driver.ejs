@@ -54,10 +54,12 @@
     <div class="card-header"><h3>My Alerts</h3></div>
     <div class="card-body">
       ${alerts.length === 0 ? '<div class="empty-state"><p>No active alerts for you right now</p></div>' : alerts.map(a => `
-        <div class="alert-item ${a.severity}">
-          <div class="alert-main">${a.title || a.alertType.replace(/_/g, ' ')}</div>
+        <a href="${a.href}" class="alert-item ${a.severity}">
+          <div class="alert-main">${a.typeLabel}</div>
           <div class="alert-sub">${a.message || 'Please review this item in your workflow.'}</div>
-        </div>
+          ${a.preview?.length ? `<div class="alert-preview">${a.preview.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
+          <div class="alert-link">${a.actionLabel}</div>
+        </a>
       `).join('')}
     </div>
   </div>
@@ -85,7 +87,7 @@
           ${checks.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No checks submitted yet</td></tr>' : checks.map(c => {
             const defectCount = c.items.filter(i => i.status === 'defect_found').length;
             return `<tr>
-              <td>${formatDate(c.checkDate)}</td>
+              <td><a href="/checks/${c.id}" class="fw-700">${formatDate(c.checkDate)}</a></td>
               <td>${c.vehicle?.registration || '-'}</td>
               <td>${c.nilDefect ? '<span class="badge badge-green">Nil defect</span>' : defectCount > 0 ? `<span class="badge badge-amber">${defectCount} defects</span>` : '<span class="badge badge-green">Pass</span>'}</td>
             </tr>`;
@@ -120,11 +122,15 @@
   .action-row strong { color:var(--primary); }
   .vehicle-pill { display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#f8fafc; }
   .vehicle-pill span { color:var(--text-muted); font-size:13px; }
-  .alert-item { border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fff; }
+  .alert-item { display:block; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fff; color:var(--text); text-decoration:none; }
+  .alert-item:hover { border-color:var(--primary); background:#eff6ff; }
   .alert-item.critical { border-left-color:#ef4444; }
   .alert-item.warning { border-left-color:#f59e0b; }
   .alert-item.notice { border-left-color:#3b82f6; }
   .alert-main { font-weight:700; margin-bottom:3px; }
   .alert-sub { color:var(--text-muted); font-size:13px; line-height:1.5; }
+  .alert-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .alert-preview span { border:1px solid var(--border); border-radius:999px; background:#f8fafc; color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
+  .alert-link { margin-top:10px; font-size:12px; font-weight:800; color:var(--primary); }
 </style>
 ` }) %>

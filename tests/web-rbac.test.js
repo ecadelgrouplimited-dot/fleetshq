@@ -79,4 +79,40 @@ describe('web RBAC', () => {
       await agent.get(`/documents/defect-photo/${defectPhoto.id}/content`).expect(200);
     }
   });
+
+  it('serves daily check detail pages with role limits', async () => {
+    const driverUser = await prisma.user.findUnique({
+      where: { email: 'driver1@256logisticsltd.com' },
+      include: { employee: true },
+    });
+    const ownCheck = await prisma.walkAroundCheck.findFirst({
+      where: { driverId: driverUser.employeeId },
+      select: { id: true },
+      orderBy: { submittedAt: 'desc' },
+    });
+    const otherCheck = await prisma.walkAroundCheck.findFirst({
+      where: { driverId: { not: driverUser.employeeId } },
+      select: { id: true },
+      orderBy: { submittedAt: 'desc' },
+    });
+
+    const driverAgent = request.agent(app);
+    await driverAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'driver1@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    if (ownCheck) await driverAgent.get(`/checks/${ownCheck.id}`).expect(200);
+    if (otherCheck) await driverAgent.get(`/checks/${otherCheck.id}`).expect(403);
+
+    const directorAgent = request.agent(app);
+    await directorAgent
+      .post('/login')
+      .type('form')
+      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    if (otherCheck) await directorAgent.get(`/checks/${otherCheck.id}`).expect(200);
+  });
 });

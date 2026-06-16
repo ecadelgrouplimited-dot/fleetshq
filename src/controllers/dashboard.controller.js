@@ -36,7 +36,7 @@ exports.summary = async (req, res, next) => {
       licenceChecksDue: alerts.filter(a => a.alertType === 'licence_check_due').length,
     };
 
-    const score = latestScore || { peopleScore: 85, fleetScore: 78, driverScore: 82, overallScore: 82 };
+    const score = latestScore || await require('../services/compliance.service').calculateAndStore();
 
     return ok(res, {
       people: {
@@ -65,10 +65,10 @@ exports.summary = async (req, res, next) => {
         todayChecksSubmitted: todayChecks,
       },
       complianceScore: {
-        people: Number(score.peopleScore),
-        fleet: Number(score.fleetScore),
-        driver: Number(score.driverScore),
-        overall: Number(score.overallScore),
+        people: Number(score.peopleScore ?? score.people),
+        fleet: Number(score.fleetScore ?? score.fleet),
+        driver: Number(score.driverScore ?? score.driver),
+        overall: Number(score.overallScore ?? score.overall),
       },
       alerts: alerts.slice(0, 10).map(a => ({
         id: a.id,

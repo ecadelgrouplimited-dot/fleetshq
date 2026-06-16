@@ -166,6 +166,152 @@ const loadDocumentRecord = async (kind, id, user) => {
   throw new Error('not_found');
 };
 
+const formatAlertTypeLabel = (alertType) => ({
+  pmi_due: 'PMI Due',
+  mot_expiry: 'MOT Expiry',
+  insurance_expiry: 'Insurance Expiry',
+  tacho_calibration: 'Tacho Calibration',
+  visa_expiry: 'Visa Expiry',
+  right_to_work_due: 'Right to Work Due',
+  cpc_expiry: 'CPC Expiry',
+  missed_check: 'Missed Check',
+  open_defect: 'Open Defect',
+  induction_incomplete: 'Induction Incomplete',
+  toolbox_unsigned: 'Toolbox Talk',
+  policy_unsigned: 'Policy Sign-off',
+  licence_check_due: 'Licence Check Due',
+}[alertType] || alertType.replace(/_/g, ' '));
+
+const decorateAlert = async (alert, user) => {
+  const base = {
+    ...alert,
+    typeLabel: formatAlertTypeLabel(alert.alertType),
+    href: '/reports',
+    actionLabel: 'Open reports',
+    preview: [],
+  };
+
+  if (alert.alertType === 'open_defect') {
+    const defect = await prisma.defectCase.findFirst({
+      where: alert.entityType === 'defect'
+        ? { id: alert.entityId }
+        : { vehicleId: alert.entityId, status: { not: 'signed_off' } },
+      include: {
+        vehicle: { select: { registration: true } },
+      },
+      orderBy: [{ severity: 'desc' }, { reportedAt: 'desc' }],
+    });
+
+    if (!defect) return base;
+
+    return {
+      ...base,
+      href: `/defects/${defect.id}`,
+      actionLabel: 'Open defect case',
+      preview: [
+        defect.referenceNumber,
+        defect.vehicle?.registration || 'Vehicle',
+        defect.status.replace(/_/g, ' '),
+      ],
+    };
+  }
+
+  if (alert.entityType === 'employee') {
+    const employee = await prisma.employee.findUnique({
+      where: { id: alert.entityId },
+      include: {
+        sponsoredWorker: { select: { visaExpiryDate: true, rightToWorkFollowupDate: true } },
+        trainingRecords: {
+          where: { trainingType: 'cpc' },
+          select: { expiryDate: true, status: true },
+          take: 1,
+        },
+      },
+    });
+
+    if (!employee) return base;
+
+    const canOpenEmployee = hasRole(user, peopleRoles) || (user.role === 'driver' && user.employeeId === employee.id);
+    const cpcRecord = employee.trainingRecords[0];
+    const preview = [
+      employee.jobTitle,
+      employee.department,
+    ];
+
+    if (alert.alertType === 'visa_expiry' && employee.sponsoredWorker?.visaExpiryDate) {
+      preview.push(`Visa ${formatDate(employee.sponsoredWorker.visaExpiryDate)}`);
+    }
+    if (alert.alertType === 'right_to_work_due' && employee.sponsoredWorker?.rightToWorkFollowupDate) {
+      preview.push(`RTW ${formatDate(employee.sponsoredWorker.rightToWorkFollowupDate)}`);
+    }
+    if (alert.alertType === 'cpc_expiry' && cpcRecord?.expiryDate) {
+      preview.push(`CPC ${formatDate(cpcRecord.expiryDate)}`);
+    }
+
+    const shouldOpenTraining = ['cpc_expiry', 'toolbox_unsigned', 'policy_unsigned', 'induction_incomplete'].includes(alert.alertType);
+
+    return {
+      ...base,
+      href: shouldOpenTraining ? '/training' : canOpenEmployee ? `/employees/${employee.id}` : '/training',
+      actionLabel: shouldOpenTraining ? 'Open training' : canOpenEmployee ? 'Open employee' : 'Open training',
+      preview,
+    };
+  }
+
+  if (alert.entityType === 'vehicle') {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: alert.entityId },
+      include: {
+        assignedDriver: { select: { fullName: true } },
+        checks: {
+          include: { items: true },
+          orderBy: [{ checkDate: 'desc' }, { submittedAt: 'desc' }],
+          take: 1,
+        },
+      },
+    });
+
+    if (!vehicle) return base;
+
+    const canOpenFleet = hasRole(user, fleetRoles);
+    const lastCheck = vehicle.checks[0];
+    const preview = [
+      vehicle.registration,
+      vehicle.assignedDriver?.fullName || 'No assigned driver',
+      vehicle.status.replace(/_/g, ' '),
+    ];
+
+    if (alert.alertType === 'missed_check' && lastCheck?.id) {
+      preview.push(`Last check ${formatDate(lastCheck.checkDate)}`);
+      return {
+        ...base,
+        href: canOpenFleet ? `/checks/${lastCheck.id}` : '/checks',
+        actionLabel: canOpenFleet ? 'Open last check' : 'Open checks',
+        preview,
+      };
+    }
+
+    if ((alert.alertType === 'pmi_due' || alert.alertType === 'mot_expiry' || alert.alertType === 'insurance_expiry' || alert.alertType === 'tacho_calibration') && canOpenFleet) {
+      return {
+        ...base,
+        href: `/fleet/${vehicle.id}`,
+        actionLabel: 'Open vehicle',
+        preview,
+      };
+    }
+  }
+
+  if (alert.alertType === 'toolbox_unsigned' || alert.alertType === 'policy_unsigned' || alert.alertType === 'induction_incomplete') {
+    return {
+      ...base,
+      href: '/training',
+      actionLabel: 'Open training',
+    };
+  }
+
+  return base;
+};
+
 // ── Auth Pages ─────────────────────────────────────────
 router.get('/login', (req, res) => {
   const token = req.cookies?.token;
@@ -268,7 +414,7 @@ router.get('/', webAuth, async (req, res) => {
         });
       }
 
-      const [employee, alerts, checks, defects, talks] = await Promise.all([
+      const [employee, rawAlerts, checks, defects, talks] = await Promise.all([
         prisma.employee.findUnique({
           where: { id: employeeId },
           include: {
@@ -283,7 +429,7 @@ router.get('/', webAuth, async (req, res) => {
         }),
         prisma.walkAroundCheck.findMany({
           where: { driverId: employeeId },
-          include: { vehicle: { select: { registration: true } }, items: true },
+          include: { vehicle: { select: { id: true, registration: true } }, items: true },
           orderBy: [{ checkDate: 'desc' }, { submittedAt: 'desc' }],
           take: 6,
         }),
@@ -302,6 +448,7 @@ router.get('/', webAuth, async (req, res) => {
         }),
       ]);
 
+      const alerts = await Promise.all(rawAlerts.map((alert) => decorateAlert(alert, req.user)));
       const trainingCompleted = employee?.trainingRecords?.filter((r) => r.status === 'completed').length || 0;
       const trainingTotal = require('../utils/constants').TRAINING_TYPES.length;
       const trainingCompletion = trainingTotal ? Math.round((trainingCompleted / trainingTotal) * 100) : 0;
@@ -324,7 +471,7 @@ router.get('/', webAuth, async (req, res) => {
     }
 
     const [totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles,
-      openDefects, alerts, latestScore, missedChecks, pendingToolbox, recentDefects] = await Promise.all([
+      openDefects, rawAlerts, latestScore, missedChecks, pendingToolbox, recentDefects] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
       prisma.employee.count({ where: { employmentStatus: 'active', isSponsored: true } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' } } }),
@@ -342,7 +489,8 @@ router.get('/', webAuth, async (req, res) => {
       }),
     ]);
 
-    const score = latestScore || { peopleScore: 88, fleetScore: 76, driverScore: 82, overallScore: 82 };
+    const alerts = await Promise.all(rawAlerts.map((alert) => decorateAlert(alert, req.user)));
+    const score = latestScore || await require('../services/compliance.service').calculateAndStore();
     const alertGroups = {
       critical: alerts.filter(a => a.severity === 'critical'),
       warning: alerts.filter(a => a.severity === 'warning'),
@@ -352,8 +500,8 @@ router.get('/', webAuth, async (req, res) => {
     res.render('dashboard/index', {
       title: 'Dashboard',
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox },
-      score: { people: Number(score.peopleScore), fleet: Number(score.fleetScore),
-        driver: Number(score.driverScore), overall: Number(score.overallScore) },
+      score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
+        driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
       alerts, alertGroups, recentDefects,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
@@ -625,7 +773,7 @@ router.get('/checks', webAuth, async (req, res) => {
       prisma.walkAroundCheck.findMany({
         where: checkWhere,
         include: {
-          vehicle: { select: { registration: true } },
+          vehicle: { select: { id: true, registration: true } },
           driver: { select: { fullName: true } },
           items: true,
         },
@@ -661,6 +809,38 @@ router.get('/checks/new', webAuth, async (req, res) => {
 });
 
 // ── Defects ────────────────────────────────────────────
+router.get('/checks/:id', webAuth, async (req, res) => {
+  try {
+    const check = await prisma.walkAroundCheck.findUnique({
+      where: { id: req.params.id },
+      include: {
+        vehicle: true,
+        driver: { select: { id: true, fullName: true, jobTitle: true } },
+        items: true,
+        defects: {
+          select: { id: true, referenceNumber: true, severity: true, status: true },
+          orderBy: { reportedAt: 'desc' },
+        },
+      },
+    });
+    if (!check) {
+      return res.status(404).render('error', {
+        title: 'Not found',
+        message: 'The requested daily check could not be found.',
+        code: 404,
+      });
+    }
+    if (req.user.role === 'driver' && req.user.employeeId !== check.driverId) {
+      return res.status(403).render('error', {
+        title: 'Access denied',
+        message: 'You can only view your own daily checks.',
+        code: 403,
+      });
+    }
+    res.render('checks/show', { title: `Daily Check ${formatDate(check.checkDate)}`, check, formatDate, CHECK_ITEM_LABELS });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 router.get('/defects', webAuth, async (req, res) => {
   try {
     const { status, severity } = req.query;

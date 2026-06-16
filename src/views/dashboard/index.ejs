@@ -1,15 +1,13 @@
 <%- include('../layouts/main', { body: `
 
-<!-- ── Compliance Score Gauges ───────────────────────────── -->
 <div class="score-grid mb-6">
-
   <div class="score-card ${score.overall >= 85 ? 'score-good' : score.overall >= 70 ? 'score-ok' : 'score-bad'} score-overall">
     <div class="score-ring">
       <canvas id="gaugeOverall" width="100" height="100"></canvas>
       <div class="score-num" style="color:#fff">${score.overall.toFixed(0)}<sup style="font-size:13px;font-weight:600;opacity:.7">%</sup></div>
     </div>
     <div class="score-label" style="color:#94a3b8">Overall Compliance</div>
-    <div class="score-delta" style="color:#60a5fa">↑ Live score</div>
+    <div class="score-delta" style="color:#60a5fa">Live score</div>
   </div>
 
   <div class="score-card ${score.people >= 85 ? 'score-good' : score.people >= 70 ? 'score-ok' : 'score-bad'}">
@@ -18,7 +16,7 @@
       <div class="score-num">${score.people.toFixed(0)}<sup style="font-size:11px;font-weight:600;color:#94a3b8">%</sup></div>
     </div>
     <div class="score-label">People Score</div>
-    <div class="score-delta" style="color:${score.people >= 85 ? '#10b981' : score.people >= 70 ? '#f59e0b' : '#ef4444'}">HR & Sponsorship</div>
+    <div class="score-delta" style="color:${score.people >= 85 ? '#10b981' : score.people >= 70 ? '#f59e0b' : '#ef4444'}">HR and Sponsorship</div>
   </div>
 
   <div class="score-card ${score.fleet >= 85 ? 'score-good' : score.fleet >= 70 ? 'score-ok' : 'score-bad'}">
@@ -36,11 +34,10 @@
       <div class="score-num">${score.driver.toFixed(0)}<sup style="font-size:11px;font-weight:600;color:#94a3b8">%</sup></div>
     </div>
     <div class="score-label">Driver Score</div>
-    <div class="score-delta" style="color:${score.driver >= 85 ? '#10b981' : score.driver >= 70 ? '#f59e0b' : '#ef4444'}">Training & Risk</div>
+    <div class="score-delta" style="color:${score.driver >= 85 ? '#10b981' : score.driver >= 70 ? '#f59e0b' : '#ef4444'}">Training and Risk</div>
   </div>
 </div>
 
-<!-- ── Stat Cards ─────────────────────────────────────────── -->
 <div class="stat-grid mb-6">
   <a href="/employees" class="stat-card blue">
     <div class="stat-icon blue">
@@ -60,7 +57,7 @@
     <div>
       <div class="stat-value">${stats.activeVehicles}</div>
       <div class="stat-label">Active Vehicles</div>
-      <div class="stat-sub">${stats.totalVehicles} in fleet · ${stats.vorVehicles} VOR</div>
+      <div class="stat-sub">${stats.totalVehicles} in fleet - ${stats.vorVehicles} VOR</div>
     </div>
   </a>
 
@@ -87,10 +84,7 @@
   </a>
 </div>
 
-<!-- ── Alert Feed + Open Defects ─────────────────────────── -->
 <div class="grid-2">
-
-  <!-- Alert Feed -->
   <div class="card">
     <div class="card-header">
       <h3>Live Compliance Alerts</h3>
@@ -105,26 +99,29 @@
         <div class="empty-state">
           <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
           <p>All compliance checks passed</p>
-          <div class="empty-hint">No active alerts — great work</div>
+          <div class="empty-hint">No active alerts - great work</div>
         </div>
       ` : `
         <div class="alert-feed" style="padding:8px 8px">
           ${alerts.map(a => `
-            <div class="alert-item ${a.severity}">
+            <a href="${a.href}" class="alert-item ${a.severity}">
               <div class="alert-indicator ${a.severity}"></div>
               <div class="alert-body">
                 <div class="alert-msg">${a.message}</div>
-                <div class="alert-meta">${a.alertType.replace(/_/g,' ')} · ${a.severity}</div>
+                <div class="alert-meta">${a.typeLabel} - ${a.severity}</div>
+                ${a.preview?.length ? `<div class="alert-preview">${a.preview.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
               </div>
-              <span class="alert-badge ${a.severity}">${a.severity === 'critical' ? 'Critical' : a.severity === 'warning' ? 'Warning' : 'Notice'}</span>
-            </div>
+              <div class="alert-side">
+                <span class="alert-badge ${a.severity}">${a.severity === 'critical' ? 'Critical' : a.severity === 'warning' ? 'Warning' : 'Notice'}</span>
+                <span class="alert-cta">${a.actionLabel}</span>
+              </div>
+            </a>
           `).join('')}
         </div>
       `}
     </div>
   </div>
 
-  <!-- Open Defect Cases -->
   <div class="card">
     <div class="card-header">
       <h3>Open Defect Cases</h3>
@@ -155,10 +152,10 @@
             const days = Math.floor((Date.now() - new Date(d.reportedAt)) / 86400000);
             return `<tr>
               <td><a href="/defects/${d.id}" style="font-family:monospace;font-size:12px;font-weight:700">${d.referenceNumber}</a></td>
-              <td><span class="badge badge-slate">${d.vehicle?.registration || '—'}</span></td>
+              <td><span class="badge badge-slate">${d.vehicle?.registration || '-'}</span></td>
               <td>
                 <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">
-                  ${d.severity === 'dangerous' ? '⚠ ' : ''}${d.severity}
+                  ${d.severity}
                 </span>
               </td>
               <td><span class="badge badge-blue">${d.status.replace(/_/g,' ')}</span></td>
@@ -170,6 +167,29 @@
     </div>`}
   </div>
 </div>
+
+<style>
+  .alert-item { display:flex; align-items:flex-start; gap:14px; text-decoration:none; color:var(--text); border:1px solid var(--border); border-left-width:4px; border-radius:12px; padding:14px 16px; margin-bottom:10px; background:#fff; }
+  .alert-item:hover { border-color:var(--primary); background:#f8fbff; }
+  .alert-item.critical { border-left-color:#ef4444; }
+  .alert-item.warning { border-left-color:#f59e0b; }
+  .alert-item.notice { border-left-color:#8b5cf6; }
+  .alert-indicator { width:14px; height:14px; border-radius:999px; flex:0 0 auto; margin-top:6px; }
+  .alert-indicator.critical { background:#f87171; box-shadow:0 0 0 4px #fee2e2; }
+  .alert-indicator.warning { background:#f59e0b; box-shadow:0 0 0 4px #fef3c7; }
+  .alert-indicator.notice { background:#8b5cf6; box-shadow:0 0 0 4px #ede9fe; }
+  .alert-body { min-width:0; flex:1; }
+  .alert-msg { font-size:16px; font-weight:800; line-height:1.4; }
+  .alert-meta { color:var(--text-muted); font-size:13px; margin-top:4px; }
+  .alert-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .alert-preview span { border:1px solid var(--border); border-radius:999px; background:#f8fafc; color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
+  .alert-side { display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
+  .alert-cta { font-size:12px; font-weight:800; color:var(--primary); white-space:nowrap; }
+  @media (max-width: 900px) {
+    .alert-item { flex-direction:column; }
+    .alert-side { align-items:flex-start; }
+  }
+</style>
 
 <script>
 function drawGauge(id, value, trackColor, fillColor) {
@@ -193,17 +213,16 @@ function drawGauge(id, value, trackColor, fillColor) {
   });
 }
 
-// Colour logic
-function getColor(score) {
-  if (score >= 85) return { fill: '#10b981', track: '#d1fae5' };
-  if (score >= 70) return { fill: '#f59e0b', track: '#fef3c7' };
+function getColor(scoreValue) {
+  if (scoreValue >= 85) return { fill: '#10b981', track: '#d1fae5' };
+  if (scoreValue >= 70) return { fill: '#f59e0b', track: '#fef3c7' };
   return { fill: '#ef4444', track: '#fee2e2' };
 }
 
 const overall = ${score.overall};
 drawGauge('gaugeOverall', overall, 'rgba(255,255,255,0.08)', overall >= 85 ? '#34d399' : overall >= 70 ? '#fbbf24' : '#f87171');
 const pc = getColor(${score.people});  drawGauge('gaugePeople', ${score.people}, pc.track, pc.fill);
-const fc = getColor(${score.fleet});   drawGauge('gaugeFleet',  ${score.fleet},  fc.track, fc.fill);
+const fc = getColor(${score.fleet});   drawGauge('gaugeFleet', ${score.fleet}, fc.track, fc.fill);
 const dc = getColor(${score.driver});  drawGauge('gaugeDriver', ${score.driver}, dc.track, dc.fill);
 </script>
 ` }) %>
