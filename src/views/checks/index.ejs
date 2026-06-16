@@ -18,8 +18,8 @@ ${missedVehicles.length > 0 ? `
       <tbody>
         ${missedVehicles.map(v => `
           <tr>
-            <td style="font-weight:700"><a href="/fleet/${v.id}">${v.registration}</a></td>
-            <td>${v.assignedDriver?.fullName || '-'}</td>
+            <td style="font-weight:700"><a href="/fleet/${v.id}">${esc(v.registration)}</a></td>
+            <td>${esc(v.assignedDriver?.fullName || '-')}</td>
             <td><span class="badge badge-red">No check submitted</span></td>
           </tr>
         `).join('')}
@@ -42,10 +42,10 @@ ${missedVehicles.length > 0 ? `
         checks.map(c => {
           const defectItems = c.items.filter(i => i.status === 'defect_found');
           const result = c.nilDefect ? 'nil defect' : defectItems.length > 0 ? 'defects reported' : 'pass';
-          return `<tr data-search-row data-search-text="${`${formatDate(c.checkDate)} ${c.vehicle?.registration || ''} ${c.driver?.fullName || ''} ${c.mileage || ''} ${result}`.toLowerCase()}">
+          return `<tr data-search-row data-search-text="${`${formatDate(c.checkDate)} ${esc(c.vehicle?.registration || '')} ${esc(c.driver?.fullName || '')} ${c.mileage || ''} ${result}`.toLowerCase()}">
             <td style="font-weight:500"><a href="/checks/${c.id}">${formatDate(c.checkDate)}</a> <span style="color:#64748b;font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
-            <td style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${c.vehicle.registration}</a>` : c.vehicle?.registration || '-'}</td>
-            <td>${c.driver?.fullName}</td>
+            <td style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${esc(c.vehicle.registration)}</a>` : c.vehicle?.registration || '-'}</td>
+            <td>${esc(c.driver?.fullName)}</td>
             <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
             <td>${defectItems.length > 0 ? `<span class="badge badge-red">${defectItems.length} defect${defectItems.length !== 1 ? 's' : ''}</span>` : '<span class="badge badge-green">None</span>'}</td>
             <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defectItems.length > 0 ? '<span class="badge badge-amber">Defects Reported</span>' : '<span class="badge badge-green">Pass</span>'}</td>

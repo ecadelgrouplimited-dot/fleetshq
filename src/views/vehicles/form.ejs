@@ -11,7 +11,7 @@
     <div class="card-body">
       <div class="form-group">
         <label class="form-label">Registration Number <span class="required">*</span></label>
-        <input class="form-control" name="registration" required placeholder="e.g. FN16 EVK" value="${vehicle?.registration || ''}" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+        <input class="form-control" name="registration" required placeholder="e.g. FN16 EVK" value="${esc(vehicle?.registration || '')}" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
       </div>
       <div class="form-group">
         <label class="form-label">VIN / Chassis Number <span class="required">*</span></label>
@@ -20,11 +20,11 @@
       <div class="form-grid-3">
         <div class="form-group">
           <label class="form-label">Make <span class="required">*</span></label>
-          <input class="form-control" name="make" required placeholder="e.g. Volvo" value="${vehicle?.make || ''}">
+          <input class="form-control" name="make" required placeholder="e.g. Volvo" value="${esc(vehicle?.make || '')}">
         </div>
         <div class="form-group">
           <label class="form-label">Model <span class="required">*</span></label>
-          <input class="form-control" name="model" required placeholder="e.g. FH" value="${vehicle?.model || ''}">
+          <input class="form-control" name="model" required placeholder="e.g. FH" value="${esc(vehicle?.model || '')}">
         </div>
         <div class="form-group">
           <label class="form-label">Year <span class="required">*</span></label>
@@ -39,7 +39,7 @@
         <label class="form-label">Assigned Driver</label>
         <select class="form-control" name="assignedDriverId">
           <option value="">No driver assigned</option>
-          ${drivers.map(d => `<option value="${d.id}" ${vehicle?.assignedDriverId === d.id ? 'selected' : ''}>${d.fullName}</option>`).join('')}
+          ${drivers.map(d => `<option value="${d.id}" ${vehicle?.assignedDriverId === d.id ? 'selected' : ''}>${esc(d.fullName)}</option>`).join('')}
         </select>
       </div>
       <div class="form-group">

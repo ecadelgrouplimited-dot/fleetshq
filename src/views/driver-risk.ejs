@@ -17,12 +17,12 @@
       <thead><tr><th>Driver</th><th>Vehicle</th><th>CPC Expiry</th><th>Missed Checks</th><th>Risk Level</th></tr></thead>
       <tbody id="driverRiskTableBody">
         ${drivers.map(d => `
-          <tr data-search-row data-search-text="${`${d.fullName} ${d.department} ${d.drivingVehicle?.registration || ''} ${d.cpcExpiry ? formatDate(d.cpcExpiry) : 'not recorded'} ${d.missedChecks} ${d.riskLevel}`.toLowerCase()}">
+          <tr data-search-row data-search-text="${`${esc(d.fullName)} ${esc(d.department)} ${esc(d.drivingVehicle?.registration || '')} ${d.cpcExpiry ? formatDate(d.cpcExpiry) : 'not recorded'} ${d.missedChecks} ${d.riskLevel}`.toLowerCase()}">
             <td>
-              <a href="/employees/${d.id}" style="font-weight:600">${d.fullName}</a>
-              <div style="font-size:11px;color:#64748b">${d.department}</div>
+              <a href="/employees/${d.id}" style="font-weight:600">${esc(d.fullName)}</a>
+              <div style="font-size:11px;color:#64748b">${esc(d.department)}</div>
             </td>
-            <td>${d.drivingVehicle ? `<span class="badge badge-slate">${d.drivingVehicle.registration}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
+            <td>${d.drivingVehicle ? `<span class="badge badge-slate">${esc(d.drivingVehicle.registration)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
             <td>
               ${d.cpcExpiry ? `
                 <div style="font-weight:500;color:${d.cpcDays < 0 ? '#dc2626' : d.cpcDays <= 30 ? '#d97706' : '#374151'}">${formatDate(d.cpcExpiry)}</div>

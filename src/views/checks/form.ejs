@@ -12,7 +12,7 @@
         <label class="form-label">Vehicle <span class="required">*</span></label>
         <select class="form-control" id="vehicleId" required>
           <option value="">Select vehicle...</option>
-          ${vehicles.map(v => `<option value="${v.id}">${v.registration} — ${v.make} ${v.model}</option>`).join('')}
+          ${vehicles.map(v => `<option value="${v.id}">${esc(v.registration)} — ${esc(v.make)} ${esc(v.model)}</option>`).join('')}
         </select>
       </div>
       <div class="form-grid">

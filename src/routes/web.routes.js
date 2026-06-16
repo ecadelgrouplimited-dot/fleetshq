@@ -8,6 +8,7 @@ const { UPLOAD_DIR } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
 const loginLimiter = require('../middleware/loginLimiter');
+const { esc } = require('../utils/escapeHtml');
 
 router.use(cookieParser());
 
@@ -21,6 +22,7 @@ const webAuth = (req, res, next) => {
   res.locals.user = payload;
   res.locals.formatDate = formatDate;
   res.locals.daysUntil = daysUntil;
+  res.locals.esc = esc;
   next();
 };
 

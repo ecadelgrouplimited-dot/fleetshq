@@ -9,14 +9,14 @@
       <div class="audit-breadcrumb">
         <a href="/audit-evidence">Audit Evidence</a>
         <span>/</span>
-        <span>${folder.name}</span>
+        <span>${esc(folder.name)}</span>
       </div>
       <div class="audit-detail-heading">
         <div class="audit-detail-folder-icon">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/></svg>
         </div>
         <div>
-          <h2>${folder.name}</h2>
+          <h2>${esc(folder.name)}</h2>
           <p>${folder.owner} workspace with live checkpoints, export packs, and recent audit activity.</p>
         </div>
       </div>
@@ -91,18 +91,18 @@
                   class="audit-export-option${index === 0 ? ' active' : ''}"
                   data-export-option
                   data-export-href="${item.href}"
-                  data-export-title="${item.name}"
-                  data-export-description="${item.description}"
+                  data-export-title="${esc(item.name)}"
+                  data-export-description="${esc(item.description)}"
                   data-export-pack="${item.pack}"
                   data-export-file="${item.type}.csv"
-                  data-export-button="Export ${item.name}"
-                  data-loading-text="Preparing ${item.name}..."
+                  data-export-button="Export ${esc(item.name)}"
+                  data-loading-text="Preparing ${esc(item.name)}..."
                   aria-pressed="${index === 0 ? 'true' : 'false'}"
                 >
                   <div class="audit-export-option-main">
                     <span class="badge ${item.tone}">${item.pack}</span>
-                    <strong>${item.name}</strong>
-                    <p>${item.description}</p>
+                    <strong>${esc(item.name)}</strong>
+                    <p>${esc(item.description)}</p>
                   </div>
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
@@ -126,8 +126,8 @@
               <strong data-export-filename>${selectedExport.type}.csv</strong>
             </div>
             <div class="audit-export-preview-body">
-              <h4 data-export-title>${selectedExport.name}</h4>
-              <p data-export-description>${selectedExport.description}</p>
+              <h4 data-export-title>${esc(selectedExport.name)}</h4>
+              <p data-export-description>${esc(selectedExport.description)}</p>
               <div class="audit-export-preview-actions">
                 <a href="${selectedExport.viewHref}" class="btn btn-outline">
                   <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0A9 9 0 113 12a9 9 0 0118 0z"/></svg>
@@ -155,7 +155,7 @@
             <div class="audit-activity-item">
               <div>
                 <strong>${log.action}</strong>
-                <p>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'} • ${log.entityType}</p>
+                <p>${log.user ? `${esc(log.user.firstName)} ${esc(log.user.lastName)}` : 'System'} • ${log.entityType}</p>
               </div>
               <span>${formatDate(log.createdAt)}</span>
             </div>
@@ -171,7 +171,7 @@
               <div class="audit-related-folder-main">
                 <span class="audit-related-folder-icon">${item.icon}</span>
                 <div>
-                  <strong>${item.name}</strong>
+                  <strong>${esc(item.name)}</strong>
                   <p>${item.owner}</p>
                 </div>
               </div>

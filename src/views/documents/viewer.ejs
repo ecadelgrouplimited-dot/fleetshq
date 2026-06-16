@@ -10,7 +10,7 @@
 <div class="card mb-4">
   <div class="card-header">
     <div>
-      <h3>${document.title}</h3>
+      <h3>${esc(document.title)}</h3>
       <div class="text-sm text-muted" style="margin-top:4px">${document.subtitle}</div>
     </div>
     <span class="badge ${document.previewType === 'download' ? 'badge-amber' : 'badge-blue'}">${document.previewType === 'pdf' ? 'PDF preview' : document.previewType === 'image' ? 'Image preview' : 'Download view'}</span>
@@ -31,10 +31,10 @@
   <div class="card-header"><h3>Viewer</h3></div>
   <div class="card-body">
     ${document.previewType === 'pdf' ? `
-      <iframe src="${document.contentHref}" title="${document.title}" class="document-frame"></iframe>
+      <iframe src="${document.contentHref}" title="${esc(document.title)}" class="document-frame"></iframe>
     ` : document.previewType === 'image' ? `
       <div class="document-image-wrap">
-        <img src="${document.contentHref}" alt="${document.title}" class="document-image">
+        <img src="${document.contentHref}" alt="${esc(document.title)}" class="document-image">
       </div>
     ` : `
       <div class="document-download-state">

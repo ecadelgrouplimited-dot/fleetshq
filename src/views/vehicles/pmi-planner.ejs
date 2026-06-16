@@ -14,9 +14,9 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length > 0 ? `
       <tbody>
         ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).map(v => `
           <tr>
-            <td><a href="/fleet/${v.id}" style="font-weight:700">${v.registration}</a></td>
-            <td>${v.make} ${v.model}</td>
-            <td>${v.assignedDriver?.fullName || '—'}</td>
+            <td><a href="/fleet/${v.id}" style="font-weight:700">${esc(v.registration)}</a></td>
+            <td>${esc(v.make)} ${esc(v.model)}</td>
+            <td>${esc(v.assignedDriver?.fullName || '—')}</td>
             <td>${formatDate(v.lastPmiDate)}</td>
             <td style="color:#dc2626;font-weight:700">${formatDate(v.nextPmiDate)}</td>
             <td><span class="badge badge-red">${Math.abs(v.pmiDays)} days overdue</span></td>
@@ -39,9 +39,9 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).
       <tbody>
         ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).map(v => `
           <tr>
-            <td><a href="/fleet/${v.id}" style="font-weight:700">${v.registration}</a></td>
-            <td>${v.make} ${v.model}</td>
-            <td>${v.assignedDriver?.fullName || '—'}</td>
+            <td><a href="/fleet/${v.id}" style="font-weight:700">${esc(v.registration)}</a></td>
+            <td>${esc(v.make)} ${esc(v.model)}</td>
+            <td>${esc(v.assignedDriver?.fullName || '—')}</td>
             <td>${formatDate(v.lastPmiDate)}</td>
             <td>${formatDate(v.nextPmiDate)}</td>
             <td><span class="badge badge-amber">${v.pmiDays === 0 ? 'Today' : v.pmiDays + ' days'}</span></td>
@@ -63,9 +63,9 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).
           const badge = !v.nextPmiDate ? 'badge-slate' : v.pmiDays < 0 ? 'badge-red' : v.pmiDays <= 14 ? 'badge-amber' : 'badge-green';
           const status = !v.nextPmiDate ? 'No date set' : v.pmiDays < 0 ? 'OVERDUE' : v.pmiDays <= 14 ? 'Due soon' : 'On schedule';
           return `<tr>
-            <td><a href="/fleet/${v.id}" style="font-weight:700">${v.registration}</a></td>
-            <td>${v.make} ${v.model}</td>
-            <td>${v.assignedDriver?.fullName || '—'}</td>
+            <td><a href="/fleet/${v.id}" style="font-weight:700">${esc(v.registration)}</a></td>
+            <td>${esc(v.make)} ${esc(v.model)}</td>
+            <td>${esc(v.assignedDriver?.fullName || '—')}</td>
             <td>Every ${v.pmiIntervalWeeks} weeks</td>
             <td>${formatDate(v.lastPmiDate)}</td>
             <td>${formatDate(v.nextPmiDate)}</td>

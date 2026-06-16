@@ -31,11 +31,11 @@
     </div>
     <div class="card-body evidence-workspace" id="evidenceFolders">
       ${folders.map(folder => `
-        <section class="evidence-folder-card theme-${folder.theme}" data-search-row data-search-text="${`${folder.name} ${folder.owner} ${folder.exports.map(item => `${item.name} ${item.pack}`).join(' ')}`.toLowerCase()}">
+        <section class="evidence-folder-card theme-${folder.theme}" data-search-row data-search-text="${`${esc(folder.name)} ${folder.owner} ${folder.exports.map(item => `${esc(item.name)} ${item.pack}`).join(' ')}`.toLowerCase()}">
           <div class="evidence-folder-window">
             <div class="evidence-folder-windowbar">
               <div class="window-dots"><span></span><span></span><span></span></div>
-              <span>${folder.icon} ${folder.name}</span>
+              <span>${folder.icon} ${esc(folder.name)}</span>
             </div>
             <div class="evidence-folder-body">
               <div class="evidence-folder-head">
@@ -44,7 +44,7 @@
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z"/></svg>
                   </div>
                   <div>
-                    <h4>${folder.name}</h4>
+                    <h4>${esc(folder.name)}</h4>
                     <p>${folder.owner}</p>
                   </div>
                 </div>
@@ -112,7 +112,7 @@
             ${recentAudit.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No audit events yet</td></tr>' : recentAudit.map(log => `
               <tr>
                 <td class="cell-muted">${formatDate(log.createdAt)}</td>
-                <td>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</td>
+                <td>${log.user ? `${esc(log.user.firstName)} ${esc(log.user.lastName)}` : 'System'}</td>
                 <td><span class="badge badge-blue">${log.action}</span></td>
                 <td class="cell-muted">${log.entityType} / ${log.entityId}</td>
               </tr>

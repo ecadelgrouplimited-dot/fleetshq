@@ -27,14 +27,14 @@
       </thead>
       <tbody id="usersTableBody">
         ${users.map(u => `
-          <tr data-search-row data-search-text="${`${u.firstName} ${u.lastName} ${u.email} ${u.role} ${u.isActive ? 'active' : 'inactive'}`.toLowerCase()}">
+          <tr data-search-row data-search-text="${`${esc(u.firstName)} ${esc(u.lastName)} ${esc(u.email)} ${u.role} ${u.isActive ? 'active' : 'inactive'}`.toLowerCase()}">
             <td>
               <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${u.firstName.charAt(0)}</div>
-                <span class="fw-600">${u.firstName} ${u.lastName}</span>
+                <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${esc(u.firstName.charAt(0))}</div>
+                <span class="fw-600">${esc(u.firstName)} ${esc(u.lastName)}</span>
               </div>
             </td>
-            <td class="cell-muted">${u.email}</td>
+            <td class="cell-muted">${esc(u.email)}</td>
             <td>
               <span class="badge ${u.role === 'director' ? 'badge-purple' : u.role === 'transport_manager' ? 'badge-blue' : u.role === 'hr_manager' ? 'badge-cyan' : u.role === 'driver' ? 'badge-slate' : 'badge-green'}">
                 ${u.role.replace(/_/g,' ')}
@@ -46,12 +46,12 @@
             </td>
             <td>
               <div class="flex gap-2" style="flex-wrap:wrap">
-                <button onclick="openEditUser('${u.id}', '${u.firstName.replace(/'/g, "\\'")}', '${u.lastName.replace(/'/g, "\\'")}', '${(u.phone || '').replace(/'/g, "\\'")}', ${u.isActive ? 'true' : 'false'})" class="btn btn-ghost btn-sm">Edit</button>
-                <button onclick="openResetPassword('${u.id}', '${`${u.firstName} ${u.lastName}`.replace(/'/g, "\\'")}')" class="btn btn-outline btn-sm">Reset PW</button>
+                <button data-edit-user data-id="${u.id}" data-first="${esc(u.firstName)}" data-last="${esc(u.lastName)}" data-phone="${esc(u.phone || '')}" data-active="${u.isActive ? 'true' : 'false'}" class="btn btn-ghost btn-sm">Edit</button>
+                <button data-reset-user data-id="${u.id}" data-name="${esc(u.firstName)} ${esc(u.lastName)}" class="btn btn-outline btn-sm">Reset PW</button>
                 ${u.isActive
-                  ? `<button onclick="toggleUser('${u.id}', false)" class="btn btn-ghost btn-sm">Deactivate</button>`
-                  : `<button onclick="toggleUser('${u.id}', true)" class="btn btn-success btn-sm">Reactivate</button>`}
-                <button onclick="confirmDeleteUser('${u.id}', '${`${u.firstName} ${u.lastName}`.replace(/'/g, "\\'")}')" class="btn btn-danger-soft btn-sm">Delete</button>
+                  ? `<button data-toggle-user data-id="${u.id}" data-to="false" class="btn btn-ghost btn-sm">Deactivate</button>`
+                  : `<button data-toggle-user data-id="${u.id}" data-to="true" class="btn btn-success btn-sm">Reactivate</button>`}
+                <button data-delete-user data-id="${u.id}" data-name="${esc(u.firstName)} ${esc(u.lastName)}" class="btn btn-danger-soft btn-sm">Delete</button>
               </div>
             </td>
           </tr>
@@ -177,6 +177,10 @@
 </div>
 
 <script>
+document.querySelectorAll('[data-edit-user]').forEach(b => b.addEventListener('click', () => openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true')));
+document.querySelectorAll('[data-reset-user]').forEach(b => b.addEventListener('click', () => openResetPassword(b.dataset.id, b.dataset.name)));
+document.querySelectorAll('[data-toggle-user]').forEach(b => b.addEventListener('click', () => toggleUser(b.dataset.id, b.dataset.to === 'true')));
+document.querySelectorAll('[data-delete-user]').forEach(b => b.addEventListener('click', () => confirmDeleteUser(b.dataset.id, b.dataset.name)));
 function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }

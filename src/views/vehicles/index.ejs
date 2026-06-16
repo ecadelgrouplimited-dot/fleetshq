@@ -67,14 +67,14 @@
       </thead>
       <tbody id="vehiclesTableBody">
         ${vehicles.map(v => `
-        <tr data-search-row data-search-text="${`${v.registration} ${v.make} ${v.model} ${v.year} ${v.assignedDriver?.fullName || ''} ${v.status}`.toLowerCase()}">
+        <tr data-search-row data-search-text="${`${esc(v.registration)} ${esc(v.make)} ${esc(v.model)} ${v.year} ${esc(v.assignedDriver?.fullName || '')} ${v.status}`.toLowerCase()}">
           <td>
-            <a href="/fleet/${v.id}" class="reg-link">${v.registration}</a>
-            <div class="cell-muted" style="margin-top:2px">${v.year} ${v.make} ${v.model}</div>
+            <a href="/fleet/${v.id}" class="reg-link">${esc(v.registration)}</a>
+            <div class="cell-muted" style="margin-top:2px">${v.year} ${esc(v.make)} ${esc(v.model)}</div>
           </td>
           <td>
             ${v.assignedDriver
-              ? `<span class="fw-600">${v.assignedDriver.fullName}</span>`
+              ? `<span class="fw-600">${esc(v.assignedDriver.fullName)}</span>`
               : '<span class="text-light">Unassigned</span>'}
           </td>
           <td>
@@ -106,7 +106,7 @@
             <div class="flex gap-2">
               <a href="/fleet/${v.id}" class="btn btn-ghost btn-sm">View</a>
               <a href="/fleet/${v.id}/edit" class="btn btn-outline btn-sm">Edit</a>
-              <button type="button" onclick="deleteVehicle('${v.id}', '${v.registration}')" class="btn btn-danger-soft btn-sm">Delete</button>
+              <button type="button" data-del-vehicle data-id="${v.id}" data-reg="${esc(v.registration)}" class="btn btn-danger-soft btn-sm">Delete</button>
             </div>
           </td>
         </tr>`).join('')}
@@ -135,6 +135,7 @@
 </style>
 
 <script>
+document.querySelectorAll('[data-del-vehicle]').forEach(b => b.addEventListener('click', () => deleteVehicle(b.dataset.id, b.dataset.reg)));
 async function deleteVehicle(id, registration) {
   const confirmed = await showConfirmDialog({
     title: 'Delete Vehicle Record',

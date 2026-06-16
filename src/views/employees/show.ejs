@@ -100,7 +100,7 @@
               const statusText = !d.expiryDate ? 'Present' : days < 0 ? 'Expired' : days <= 30 ? `${days}d remaining` : 'Valid';
               return `<tr>
                 <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
-                <td><a href="/documents/employee-document/${d.id}" class="document-link">${d.fileName}</a></td>
+                <td><a href="/documents/employee-document/${d.id}" class="document-link">${esc(d.fileName)}</a></td>
                 <td>${d.expiryDate ? formatDate(d.expiryDate) : '—'}</td>
                 <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
                 <td><span class="badge ${status}">${statusText}</span></td>
@@ -225,7 +225,7 @@ async function updateEmployeeStatus(status) {
 async function deleteEmployeeRecord() {
   const confirmed = await showConfirmDialog({
     title: 'Delete Employee Record',
-    message: 'Delete employee record for ${emp.fullName}? This only works when there are no linked compliance records.',
+    message: 'Delete employee record for ${esc(emp.fullName)}? This only works when there are no linked compliance records.',
     confirmLabel: 'Delete Employee',
     cancelLabel: 'Cancel',
     tone: 'danger'

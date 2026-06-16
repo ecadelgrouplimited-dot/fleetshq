@@ -9,7 +9,7 @@
 
 <div class="grid-2 mb-4">
   <div class="card">
-    <div class="card-header"><h3>Defect Details — ${defect.referenceNumber}</h3></div>
+    <div class="card-header"><h3>Defect Details — ${esc(defect.referenceNumber)}</h3></div>
     <div class="card-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         ${[
@@ -29,7 +29,7 @@
       </div>
       <div style="margin-top:16px">
         <div class="text-sm text-muted" style="margin-bottom:6px">Description</div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:13.5px;line-height:1.6">${defect.description}</div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:13.5px;line-height:1.6">${esc(defect.description)}</div>
       </div>
     </div>
   </div>

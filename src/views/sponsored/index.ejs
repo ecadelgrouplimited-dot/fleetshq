@@ -120,19 +120,19 @@ ${(() => {
           rows.map(({ w, visaDays, rtwDays, salaryMatch, unreported, flags, atRisk }) => `
             <tr data-search-row
                 data-flags="${flags.join(' ')}"
-                data-search-text="${`${w.employee.fullName} ${w.employee.department} ${w.employee.jobTitle} ${w.cosNumber} ${w.socCode} ${w.sponsoredJobTitle} ${w.employee.employmentStatus}`.toLowerCase()}">
+                data-search-text="${`${esc(w.employee.fullName)} ${esc(w.employee.department)} ${esc(w.employee.jobTitle)} ${esc(w.cosNumber)} ${esc(w.socCode)} ${esc(w.sponsoredJobTitle)} ${w.employee.employmentStatus}`.toLowerCase()}">
               <td>
                 <a class="sponsor-worker" href="/employees/${w.employee.id}">
-                  <span class="mac-avatar" style="background:linear-gradient(135deg,hsl(${avatarHue(w.employee.fullName)},70%,58%),hsl(${(avatarHue(w.employee.fullName)+40)%360},68%,48%))">${initials(w.employee.fullName)}</span>
+                  <span class="mac-avatar" style="background:linear-gradient(135deg,hsl(${esc(avatarHue(w.employee.fullName))},70%,58%),hsl(${esc((avatarHue(w.employee.fullName)+40)%360)},68%,48%))">${esc(initials(w.employee.fullName))}</span>
                   <span class="sponsor-worker-text">
-                    <strong>${w.employee.fullName}</strong>
-                    <span>${w.sponsoredJobTitle || w.employee.jobTitle} · ${w.employee.department}</span>
+                    <strong>${esc(w.employee.fullName)}</strong>
+                    <span>${esc(w.sponsoredJobTitle || w.employee.jobTitle)} · ${esc(w.employee.department)}</span>
                   </span>
                 </a>
               </td>
               <td data-label="CoS / SOC">
-                <div class="mono" style="font-size:12.5px;font-weight:700">${w.cosNumber}</div>
-                <div class="cell-muted mono" style="font-size:11px">SOC ${w.socCode}</div>
+                <div class="mono" style="font-size:12.5px;font-weight:700">${esc(w.cosNumber)}</div>
+                <div class="cell-muted mono" style="font-size:11px">SOC ${esc(w.socCode)}</div>
               </td>
               <td data-label="Visa Expiry">
                 <div style="font-weight:600;color:${visaDays < 0 ? 'var(--danger)' : visaDays <= 30 ? 'var(--warning-t)' : 'var(--text-2)'}">${formatDate(w.visaExpiryDate)}</div>

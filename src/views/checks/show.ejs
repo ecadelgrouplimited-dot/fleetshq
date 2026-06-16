@@ -8,9 +8,9 @@
 </div>
 
 <div class="stat-grid mb-4">
-  <div class="stat-card blue"><div><div class="stat-value">${check.vehicle.registration}</div><div class="stat-label">Vehicle</div><div class="stat-sub">${check.vehicle.make} ${check.vehicle.model}</div></div></div>
+  <div class="stat-card blue"><div><div class="stat-value">${esc(check.vehicle.registration)}</div><div class="stat-label">Vehicle</div><div class="stat-sub">${esc(check.vehicle.make)} ${esc(check.vehicle.model)}</div></div></div>
   <div class="stat-card green"><div><div class="stat-value">${formatDate(check.checkDate)}</div><div class="stat-label">Check Date</div><div class="stat-sub">${new Date(check.checkTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div></div></div>
-  <div class="stat-card amber"><div><div class="stat-value">${check.mileage.toLocaleString()}</div><div class="stat-label">Mileage</div><div class="stat-sub">${check.location || 'Location not provided'}</div></div></div>
+  <div class="stat-card amber"><div><div class="stat-value">${check.mileage.toLocaleString()}</div><div class="stat-label">Mileage</div><div class="stat-sub">${esc(check.location || 'Location not provided')}</div></div></div>
   <div class="stat-card ${check.nilDefect ? 'green' : check.defects.length ? 'red' : 'blue'}"><div><div class="stat-value">${check.defects.length}</div><div class="stat-label">Linked Defects</div><div class="stat-sub">${check.nilDefect ? 'Nil defect submitted' : check.defects.length ? 'Needs follow-up' : 'No linked cases'}</div></div></div>
 </div>
 
@@ -19,7 +19,7 @@
     <div class="card-header"><h3>Submission Summary</h3></div>
     <div class="card-body">
       <div class="summary-grid">
-        <div><div class="text-sm text-muted">Driver</div><div class="fw-700">${check.driver.fullName}</div><div class="text-sm text-muted">${check.driver.jobTitle || ''}</div></div>
+        <div><div class="text-sm text-muted">Driver</div><div class="fw-700">${esc(check.driver.fullName)}</div><div class="text-sm text-muted">${esc(check.driver.jobTitle || '')}</div></div>
         <div><div class="text-sm text-muted">Result</div><div class="fw-700">${check.nilDefect ? 'Nil defect' : check.defects.length ? 'Defects reported' : 'Pass'}</div></div>
         <div><div class="text-sm text-muted">Submitted</div><div class="fw-700">${formatDate(check.submittedAt)}</div></div>
         <div><div class="text-sm text-muted">Vehicle Status</div><div class="fw-700">${check.vehicle.status.replace(/_/g, ' ')}</div></div>
@@ -34,7 +34,7 @@
         <div class="linked-list">
           ${check.defects.map(defect => `
             <a href="/defects/${defect.id}" class="linked-row">
-              <span class="fw-700">${defect.referenceNumber}</span>
+              <span class="fw-700">${esc(defect.referenceNumber)}</span>
               <span class="badge ${defect.severity === 'dangerous' ? 'badge-red' : defect.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${defect.severity}</span>
               <span class="badge badge-blue">${defect.status.replace(/_/g, ' ')}</span>
             </a>
@@ -59,7 +59,7 @@
                 ${item.status === 'ok' ? 'OK' : item.status === 'defect_found' ? 'Defect found' : 'Not applicable'}
               </span>
             </td>
-            <td class="cell-muted">${item.notes || '-'}</td>
+            <td class="cell-muted">${esc(item.notes || '-')}</td>
           </tr>
         `).join('')}
       </tbody>

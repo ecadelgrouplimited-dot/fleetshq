@@ -46,12 +46,12 @@
             </div>
           </td></tr>
         ` : defects.map(d => `
-          <tr class="${d.severity === 'dangerous' ? 'row-danger' : ''}" data-search-row data-search-text="${`${d.referenceNumber} ${d.vehicle?.registration || ''} ${d.reportedBy?.fullName || ''} ${d.defectCategory} ${d.severity} ${d.status} ${d.description || ''}`.toLowerCase()}">
+          <tr class="${d.severity === 'dangerous' ? 'row-danger' : ''}" data-search-row data-search-text="${`${esc(d.referenceNumber)} ${esc(d.vehicle?.registration || '')} ${esc(d.reportedBy?.fullName || '')} ${d.defectCategory} ${d.severity} ${d.status} ${esc(d.description || '')}`.toLowerCase()}">
             <td>
-              <a href="/defects/${d.id}" class="mono-ref">${d.referenceNumber}</a>
+              <a href="/defects/${d.id}" class="mono-ref">${esc(d.referenceNumber)}</a>
             </td>
-            <td><span class="badge badge-slate mono-sm">${d.vehicle ? d.vehicle.registration : '—'}</span></td>
-            <td class="cell-muted">${d.reportedBy ? d.reportedBy.fullName : '—'}</td>
+            <td><span class="badge badge-slate mono-sm">${esc(d.vehicle ? d.vehicle.registration : '—')}</span></td>
+            <td class="cell-muted">${esc(d.reportedBy ? d.reportedBy.fullName : '—')}</td>
             <td class="fw-600">${d.defectCategory}</td>
             <td>
               <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">

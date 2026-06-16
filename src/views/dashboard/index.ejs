@@ -223,7 +223,7 @@
               <a href="${a.href}" class="alert-item ${a.severity}">
                 <div class="alert-indicator ${a.severity}"></div>
                 <div class="alert-body">
-                  <div class="alert-msg">${a.message}</div>
+                  <div class="alert-msg">${esc(a.message)}</div>
                   <div class="alert-meta">${a.typeLabel} - ${a.severity}</div>
                   ${a.preview?.length ? `<div class="alert-preview">${a.preview.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
                 </div>
@@ -267,8 +267,8 @@
             ${recentDefects.map(d => {
               const days = Math.floor((Date.now() - new Date(d.reportedAt)) / 86400000);
               return `<tr>
-                <td><a href="/defects/${d.id}" style="font-family:monospace;font-size:12px;font-weight:700">${d.referenceNumber}</a></td>
-                <td><span class="badge badge-slate">${d.vehicle?.registration || '-'}</span></td>
+                <td><a href="/defects/${d.id}" style="font-family:monospace;font-size:12px;font-weight:700">${esc(d.referenceNumber)}</a></td>
+                <td><span class="badge badge-slate">${esc(d.vehicle?.registration || '-')}</span></td>
                 <td>
                   <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">
                     ${d.severity}

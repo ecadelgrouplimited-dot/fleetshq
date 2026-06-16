@@ -65,11 +65,11 @@ ${vehicle.defects?.length > 0 ? `
       <tbody>
         ${vehicle.defects.map(d => `
           <tr>
-            <td><a href="/defects/${d.id}" style="font-weight:700">${d.referenceNumber}</a></td>
+            <td><a href="/defects/${d.id}" style="font-weight:700">${esc(d.referenceNumber)}</a></td>
             <td>${d.defectCategory}</td>
             <td><span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span></td>
             <td><span class="badge badge-blue">${d.status.replace(/_/g,' ')}</span></td>
-            <td>${d.reportedBy?.fullName}</td>
+            <td>${esc(d.reportedBy?.fullName)}</td>
             <td><a href="/defects/${d.id}" class="btn btn-ghost btn-sm">View</a></td>
           </tr>
         `).join('')}
@@ -93,7 +93,7 @@ ${vehicle.defects?.length > 0 ? `
           : vehicle.documents.map(d => `
             <tr>
               <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
-              <td><a href="/documents/vehicle-document/${d.id}" class="document-link">${d.fileName}</a></td>
+              <td><a href="/documents/vehicle-document/${d.id}" class="document-link">${esc(d.fileName)}</a></td>
               <td>${formatDate(d.documentDate)}</td>
               <td>${formatDate(d.expiryDate)}</td>
               <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
@@ -116,7 +116,7 @@ ${vehicle.defects?.length > 0 ? `
               const defects = c.items.filter(i => i.status === 'defect_found').length;
               return `<tr>
                 <td style="font-weight:500">${formatDate(c.checkDate)}</td>
-                <td>${c.driver?.fullName || '—'}</td>
+                <td>${esc(c.driver?.fullName || '—')}</td>
                 <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
                 <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defects > 0 ? `<span class="badge badge-amber">${defects} defect(s)</span>` : '<span class="badge badge-green">Pass</span>'}</td>
               </tr>`;
@@ -183,7 +183,7 @@ async function updateVehicleStatus(status) {
 async function deleteVehicleRecord() {
   const confirmed = await showConfirmDialog({
     title: 'Delete Vehicle Record',
-    message: 'Delete vehicle ${vehicle.registration}? This only works when there are no linked documents, checks, defects or VOR records.',
+    message: 'Delete vehicle ${esc(vehicle.registration)}? This only works when there are no linked documents, checks, defects or VOR records.',
     confirmLabel: 'Delete Vehicle',
     cancelLabel: 'Cancel',
     tone: 'danger'

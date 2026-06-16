@@ -12,7 +12,7 @@
     <div class="card-body">
       <div class="form-group">
         <label class="form-label">Full Name <span class="required">*</span></label>
-        <input class="form-control" name="fullName" required value="${emp.fullName}">
+        <input class="form-control" name="fullName" required value="${esc(emp.fullName)}">
       </div>
       <div class="form-group">
         <label class="form-label">Phone</label>
@@ -20,7 +20,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Email</label>
-        <input class="form-control" name="email" type="email" value="${emp.email || ''}">
+        <input class="form-control" name="email" type="email" value="${esc(emp.email || '')}">
       </div>
       <div class="form-group">
         <label class="form-label">Home Address</label>
@@ -49,13 +49,13 @@
     <div class="card-body">
       <div class="form-group">
         <label class="form-label">Job Title</label>
-        <input class="form-control" name="jobTitle" value="${emp.jobTitle}">
+        <input class="form-control" name="jobTitle" value="${esc(emp.jobTitle)}">
       </div>
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Department</label>
           <select class="form-control" name="department">
-            ${['Drivers','Management','HR','Operations','Admin'].map(d => `<option value="${d}" ${emp.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+            ${['Drivers','Management','HR','Operations','Admin'].map(d => `<option value="${d}" ${esc(emp.department === d ? 'selected' : '')}>${d}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
@@ -77,13 +77,13 @@
       </div>
       <div class="form-group">
         <label class="form-label">Work Location</label>
-        <input class="form-control" name="workLocation" value="${emp.workLocation || ''}">
+        <input class="form-control" name="workLocation" value="${esc(emp.workLocation || '')}">
       </div>
       <div class="form-group">
         <label class="form-label">Line Manager</label>
         <select class="form-control" name="lineManagerId">
           <option value="">— No Manager —</option>
-          ${managers.map(m => `<option value="${m.id}" ${emp.lineManagerId === m.id ? 'selected' : ''}>${m.fullName} (${m.jobTitle})</option>`).join('')}
+          ${managers.map(m => `<option value="${m.id}" ${emp.lineManagerId === m.id ? 'selected' : ''}>${esc(m.fullName)} (${esc(m.jobTitle)})</option>`).join('')}
         </select>
       </div>
       <div class="form-grid">

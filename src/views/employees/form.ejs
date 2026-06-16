@@ -88,7 +88,7 @@
         <label class="form-label">Line Manager</label>
         <select class="form-control" name="lineManagerId">
           <option value="">— Select manager —</option>
-          ${managers.map(m => `<option value="${m.id}">${m.fullName} (${m.jobTitle})</option>`).join('')}
+          ${managers.map(m => `<option value="${m.id}">${esc(m.fullName)} (${esc(m.jobTitle)})</option>`).join('')}
         </select>
       </div>
       <div style="display:flex;gap:20px;margin-top:8px">

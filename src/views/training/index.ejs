@@ -30,8 +30,8 @@
         <thead><tr><th>Driver</th><th>Completion</th><th>Progress</th></tr></thead>
         <tbody id="trainingTableBody">
           ${drivers.map(d => `
-            <tr data-search-row data-search-text="${`${d.fullName} ${d.jobTitle} ${d.completionPercent}% ${d.completionPercent === 100 ? 'fully inducted' : d.completionPercent > 0 ? 'in progress' : 'not started'}`.toLowerCase()}">
-              <td><a href="/employees/${d.id}" style="font-weight:600">${d.fullName}</a><div style="font-size:11px;color:#64748b">${d.jobTitle}</div></td>
+            <tr data-search-row data-search-text="${`${esc(d.fullName)} ${esc(d.jobTitle)} ${d.completionPercent}% ${d.completionPercent === 100 ? 'fully inducted' : d.completionPercent > 0 ? 'in progress' : 'not started'}`.toLowerCase()}">
+              <td><a href="/employees/${d.id}" style="font-weight:600">${esc(d.fullName)}</a><div style="font-size:11px;color:#64748b">${esc(d.jobTitle)}</div></td>
               <td style="font-weight:700;color:${d.completionPercent >= 80 ? '#10b981' : d.completionPercent >= 60 ? '#f59e0b' : '#ef4444'}">${d.completionPercent}%</td>
               <td style="width:160px">
                 <div class="progress-bar">
