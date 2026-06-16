@@ -81,7 +81,11 @@ ${defect.photos?.length > 0 ? `
 <div class="card">
   <div class="card-header"><h3>Photos (${defect.photos.length})</h3></div>
   <div class="card-body" style="display:flex;flex-wrap:wrap;gap:12px">
-    ${defect.photos.map(p => `<img src="/${p.storageKey}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" onerror="this.style.display='none'">`).join('')}
+    ${defect.photos.map(p => `
+      <a href="/documents/defect-photo/${p.id}" class="defect-photo-link">
+        <img src="/documents/defect-photo/${p.id}/content" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" onerror="this.style.display='none'">
+      </a>
+    `).join('')}
   </div>
 </div>
 ` : ''}
@@ -96,4 +100,8 @@ async function signOff() {
   else { showToast('Sign-off failed','error'); }
 }
 </script>
+<style>
+  .defect-photo-link { display:block; text-decoration:none; }
+  .defect-photo-link:hover img { border-color:var(--primary); box-shadow:0 0 0 2px rgba(37,99,235,.12); }
+</style>
 ` }) %>

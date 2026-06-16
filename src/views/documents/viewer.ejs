@@ -1,0 +1,69 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="${document.backHref}" class="btn btn-ghost btn-sm">Back</a>
+  <div class="flex gap-2">
+    <a href="${document.downloadHref}" class="btn btn-outline btn-sm">Download</a>
+    <a href="${document.contentHref}" class="btn btn-primary btn-sm" target="_blank" rel="noopener">Open Raw File</a>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <div>
+      <h3>${document.title}</h3>
+      <div class="text-sm text-muted" style="margin-top:4px">${document.subtitle}</div>
+    </div>
+    <span class="badge ${document.previewType === 'download' ? 'badge-amber' : 'badge-blue'}">${document.previewType === 'pdf' ? 'PDF preview' : document.previewType === 'image' ? 'Image preview' : 'Download view'}</span>
+  </div>
+  <div class="card-body">
+    <div class="viewer-meta">
+      ${document.meta.map(([label, value]) => `
+        <div class="viewer-meta-item">
+          <div class="text-sm text-muted">${label}</div>
+          <div class="viewer-meta-value">${value || '-'}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Viewer</h3></div>
+  <div class="card-body">
+    ${document.previewType === 'pdf' ? `
+      <iframe src="${document.contentHref}" title="${document.title}" class="document-frame"></iframe>
+    ` : document.previewType === 'image' ? `
+      <div class="document-image-wrap">
+        <img src="${document.contentHref}" alt="${document.title}" class="document-image">
+      </div>
+    ` : `
+      <div class="document-download-state">
+        <div class="download-icon">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16V4m0 12l-4-4m4 4l4-4M4 20h16"/></svg>
+        </div>
+        <h4>Preview not available in-browser</h4>
+        <p>This file type opens best in its native application. You can still download it or open the raw file in a new tab.</p>
+        <div class="flex gap-2" style="justify-content:center">
+          <a href="${document.downloadHref}" class="btn btn-primary">Download File</a>
+          <a href="${document.contentHref}" class="btn btn-ghost" target="_blank" rel="noopener">Open Raw File</a>
+        </div>
+      </div>
+    `}
+  </div>
+</div>
+
+<style>
+  .viewer-meta { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+  .viewer-meta-item { padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:#f8fafc; }
+  .viewer-meta-value { font-size:13px; font-weight:700; color:var(--text); margin-top:4px; }
+  .document-frame { width:100%; min-height:72vh; border:1px solid var(--border); border-radius:10px; background:#fff; }
+  .document-image-wrap { display:flex; justify-content:center; padding:10px; background:#f8fafc; border-radius:10px; border:1px solid var(--border); }
+  .document-image { max-width:100%; max-height:72vh; border-radius:8px; box-shadow:var(--shadow-sm); }
+  .document-download-state { min-height:50vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:12px; padding:32px 24px; }
+  .download-icon { width:60px; height:60px; border-radius:16px; background:#eff6ff; color:var(--primary); display:flex; align-items:center; justify-content:center; }
+  .download-icon svg { width:28px; height:28px; }
+  .document-download-state h4 { font-size:18px; font-weight:800; }
+  .document-download-state p { color:var(--text-muted); max-width:520px; line-height:1.6; }
+  @media (max-width: 900px) { .viewer-meta { grid-template-columns:1fr 1fr; } .document-frame { min-height:60vh; } }
+</style>
+` }) %>

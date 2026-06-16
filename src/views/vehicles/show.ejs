@@ -93,7 +93,7 @@ ${vehicle.defects?.length > 0 ? `
           : vehicle.documents.map(d => `
             <tr>
               <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
-              <td style="color:#64748b;font-size:12px">${d.fileName}</td>
+              <td><a href="/documents/vehicle-document/${d.id}" class="document-link">${d.fileName}</a></td>
               <td>${formatDate(d.documentDate)}</td>
               <td>${formatDate(d.expiryDate)}</td>
               <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
@@ -203,5 +203,7 @@ async function deleteVehicleRecord() {
 <style>
   .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
   .btn-danger-soft:hover { background:#fee2e2; }
+  .document-link { font-size:12px; font-weight:700; color:var(--primary); text-decoration:none; }
+  .document-link:hover { text-decoration:underline; }
 </style>
 ` }) %>

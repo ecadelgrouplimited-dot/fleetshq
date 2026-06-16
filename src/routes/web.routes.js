@@ -1,7 +1,10 @@
 const router = require('express').Router();
 const cookieParser = require('cookie-parser');
+const fs = require('fs');
+const path = require('path');
 const prisma = require('../config/database');
 const { verify } = require('../config/jwt');
+const { UPLOAD_DIR } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
 
@@ -51,6 +54,118 @@ const exportRoles = {
   training: ['director', 'transport_manager', 'hr_manager'],
 };
 
+const documentKinds = {
+  'employee-document': 'employee-document',
+  'vehicle-document': 'vehicle-document',
+  'defect-photo': 'defect-photo',
+};
+
+const getPreviewType = (mimeType, fileName) => {
+  const mime = (mimeType || '').toLowerCase();
+  const ext = path.extname(fileName || '').toLowerCase();
+  if (mime === 'application/pdf' || ext === '.pdf') return 'pdf';
+  if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) return 'image';
+  return 'download';
+};
+
+const inferMimeType = (fileName) => {
+  const ext = path.extname(fileName || '').toLowerCase();
+  if (ext === '.pdf') return 'application/pdf';
+  if (ext === '.png') return 'image/png';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.gif') return 'image/gif';
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+  return 'application/octet-stream';
+};
+
+const getAbsoluteStoragePath = (storageKey) => path.resolve(process.cwd(), storageKey);
+
+const loadDocumentRecord = async (kind, id, user) => {
+  if (kind === documentKinds['employee-document']) {
+    const doc = await prisma.employeeDocument.findUnique({
+      where: { id },
+      include: { employee: { select: { id: true, fullName: true } } },
+    });
+    if (!doc) throw new Error('not_found');
+    const canView = hasRole(user, peopleRoles) || (user.role === 'driver' && user.employeeId === doc.employeeId);
+    if (!canView) throw new Error('forbidden');
+    return {
+      id: doc.id,
+      title: doc.fileName,
+      subtitle: `${doc.employee.fullName} - ${doc.documentType.replace(/_/g, ' ')}`,
+      fileName: doc.fileName,
+      mimeType: doc.mimeType,
+      storageKey: doc.storageKey,
+      backHref: `/employees/${doc.employeeId}`,
+      meta: [
+        ['Owner', doc.employee.fullName],
+        ['Document Type', doc.documentType.replace(/_/g, ' ')],
+        ['Expiry', formatDate(doc.expiryDate)],
+        ['Uploaded', formatDate(doc.createdAt)],
+      ],
+    };
+  }
+
+  if (kind === documentKinds['vehicle-document']) {
+    const doc = await prisma.vehicleDocument.findUnique({
+      where: { id },
+      include: { vehicle: { select: { id: true, registration: true, make: true, model: true } } },
+    });
+    if (!doc) throw new Error('not_found');
+    if (!hasRole(user, fleetRoles)) throw new Error('forbidden');
+    return {
+      id: doc.id,
+      title: doc.fileName,
+      subtitle: `${doc.vehicle.registration} - ${doc.documentType.replace(/_/g, ' ')}`,
+      fileName: doc.fileName,
+      mimeType: doc.mimeType,
+      storageKey: doc.storageKey,
+      backHref: `/fleet/${doc.vehicleId}`,
+      meta: [
+        ['Vehicle', doc.vehicle.registration],
+        ['Document Type', doc.documentType.replace(/_/g, ' ')],
+        ['Document Date', formatDate(doc.documentDate)],
+        ['Expiry', formatDate(doc.expiryDate)],
+      ],
+    };
+  }
+
+  if (kind === documentKinds['defect-photo']) {
+    const photo = await prisma.defectPhoto.findUnique({
+      where: { id },
+      include: {
+        defectCase: {
+          select: {
+            id: true,
+            referenceNumber: true,
+            reportedById: true,
+            vehicle: { select: { registration: true } },
+          },
+        },
+      },
+    });
+    if (!photo) throw new Error('not_found');
+    const canView = hasRole(user, fleetRoles) || (user.role === 'driver' && user.employeeId === photo.defectCase.reportedById);
+    if (!canView) throw new Error('forbidden');
+    return {
+      id: photo.id,
+      title: photo.fileName,
+      subtitle: `${photo.defectCase.referenceNumber} - ${photo.defectCase.vehicle?.registration || 'Defect photo'}`,
+      fileName: photo.fileName,
+      mimeType: inferMimeType(photo.fileName),
+      storageKey: photo.storageKey,
+      backHref: `/defects/${photo.defectCaseId}`,
+      meta: [
+        ['Defect', photo.defectCase.referenceNumber],
+        ['Vehicle', photo.defectCase.vehicle?.registration || '-'],
+        ['Uploaded', formatDate(photo.createdAt)],
+      ],
+    };
+  }
+
+  throw new Error('not_found');
+};
+
 // ── Auth Pages ─────────────────────────────────────────
 router.get('/login', (req, res) => {
   const token = req.cookies?.token;
@@ -84,6 +199,60 @@ router.post('/login', async (req, res) => {
 router.get('/logout', (req, res) => {
   res.clearCookie('token');
   res.redirect('/login');
+});
+
+router.get('/documents/:kind/:id', webAuth, async (req, res) => {
+  try {
+    const doc = await loadDocumentRecord(req.params.kind, req.params.id, req.user);
+    const previewType = getPreviewType(doc.mimeType, doc.fileName);
+    res.render('documents/viewer', {
+      title: 'Document Viewer',
+      document: {
+        ...doc,
+        previewType,
+        contentHref: `/documents/${req.params.kind}/${req.params.id}/content`,
+        downloadHref: `/documents/${req.params.kind}/${req.params.id}/download`,
+      },
+    });
+  } catch (e) {
+    if (e.message === 'forbidden') {
+      return res.status(403).render('error', { title: 'Access denied', message: 'You do not have permission to view this document.', code: 403 });
+    }
+    return res.status(404).render('error', { title: 'Not found', message: 'The requested document could not be found.', code: 404 });
+  }
+});
+
+router.get('/documents/:kind/:id/content', webAuth, async (req, res) => {
+  try {
+    const doc = await loadDocumentRecord(req.params.kind, req.params.id, req.user);
+    const absolutePath = getAbsoluteStoragePath(doc.storageKey);
+    if (!absolutePath.startsWith(path.resolve(process.cwd(), UPLOAD_DIR)) || !fs.existsSync(absolutePath)) {
+      return res.status(404).render('error', { title: 'Not found', message: 'The requested document file is not available.', code: 404 });
+    }
+    if (doc.mimeType) res.type(doc.mimeType);
+    return res.sendFile(absolutePath);
+  } catch (e) {
+    if (e.message === 'forbidden') {
+      return res.status(403).render('error', { title: 'Access denied', message: 'You do not have permission to view this document.', code: 403 });
+    }
+    return res.status(404).render('error', { title: 'Not found', message: 'The requested document could not be found.', code: 404 });
+  }
+});
+
+router.get('/documents/:kind/:id/download', webAuth, async (req, res) => {
+  try {
+    const doc = await loadDocumentRecord(req.params.kind, req.params.id, req.user);
+    const absolutePath = getAbsoluteStoragePath(doc.storageKey);
+    if (!absolutePath.startsWith(path.resolve(process.cwd(), UPLOAD_DIR)) || !fs.existsSync(absolutePath)) {
+      return res.status(404).render('error', { title: 'Not found', message: 'The requested document file is not available.', code: 404 });
+    }
+    return res.download(absolutePath, doc.fileName);
+  } catch (e) {
+    if (e.message === 'forbidden') {
+      return res.status(403).render('error', { title: 'Access denied', message: 'You do not have permission to download this document.', code: 403 });
+    }
+    return res.status(404).render('error', { title: 'Not found', message: 'The requested document could not be found.', code: 404 });
+  }
 });
 
 // ── Dashboard ──────────────────────────────────────────

@@ -52,4 +52,31 @@ describe('web RBAC', () => {
     await agent.get('/settings').expect(200);
     await agent.get('/migration').expect(200);
   });
+
+  it('serves shared document viewer routes for permitted users', async () => {
+    const agent = request.agent(app);
+    await agent
+      .post('/login')
+      .type('form')
+      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
+      .expect(302);
+
+    const employeeDoc = await prisma.employeeDocument.findFirst({ select: { id: true } });
+    if (employeeDoc) {
+      await agent.get(`/documents/employee-document/${employeeDoc.id}`).expect(200);
+      await agent.get(`/documents/employee-document/${employeeDoc.id}/content`).expect(200);
+    }
+
+    const vehicleDoc = await prisma.vehicleDocument.findFirst({ select: { id: true } });
+    if (vehicleDoc) {
+      await agent.get(`/documents/vehicle-document/${vehicleDoc.id}`).expect(200);
+      await agent.get(`/documents/vehicle-document/${vehicleDoc.id}/content`).expect(200);
+    }
+
+    const defectPhoto = await prisma.defectPhoto.findFirst({ select: { id: true } });
+    if (defectPhoto) {
+      await agent.get(`/documents/defect-photo/${defectPhoto.id}`).expect(200);
+      await agent.get(`/documents/defect-photo/${defectPhoto.id}/content`).expect(200);
+    }
+  });
 });
