@@ -10,7 +10,7 @@
 ### `POST /auth/login`
 ```json
 Request:
-{ "email": "manager@256logistics.co.uk", "password": "SecurePass123" }
+{ "email": "manager@256logisticsltd.com", "password": "SecurePass123" }
 
 Response 200:
 {
@@ -641,7 +641,7 @@ Role: director only.
 ```json
 Request:
 {
-  "email": "driver.jones@256logistics.co.uk",
+  "email": "driver.jones@256logisticsltd.com",
   "password": "TempPass123!",
   "role": "driver",
   "firstName": "David",

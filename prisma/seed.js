@@ -37,24 +37,24 @@ async function main() {
   const pw = await hash('Demo2024!');
 
   const [directorUser, tmUser, hrUser, opsUser] = await Promise.all([
-    prisma.user.create({ data: { email: 'director@256logistics.co.uk', passwordHash: pw, role: 'director', firstName: 'Sarah', lastName: 'Mitchell', phone: '07700900001' } }),
-    prisma.user.create({ data: { email: 'transport@256logistics.co.uk', passwordHash: pw, role: 'transport_manager', firstName: 'David', lastName: 'Hughes', phone: '07700900002' } }),
-    prisma.user.create({ data: { email: 'hr@256logistics.co.uk', passwordHash: pw, role: 'hr_manager', firstName: 'Claire', lastName: 'Pearson', phone: '07700900003' } }),
-    prisma.user.create({ data: { email: 'ops@256logistics.co.uk', passwordHash: pw, role: 'operations_manager', firstName: 'Mark', lastName: 'Ellis', phone: '07700900004' } }),
+    prisma.user.create({ data: { email: 'director@256logisticsltd.com', passwordHash: pw, role: 'director', firstName: 'Sarah', lastName: 'Mitchell', phone: '07700900001' } }),
+    prisma.user.create({ data: { email: 'transport@256logisticsltd.com', passwordHash: pw, role: 'transport_manager', firstName: 'David', lastName: 'Hughes', phone: '07700900002' } }),
+    prisma.user.create({ data: { email: 'hr@256logisticsltd.com', passwordHash: pw, role: 'hr_manager', firstName: 'Claire', lastName: 'Pearson', phone: '07700900003' } }),
+    prisma.user.create({ data: { email: 'ops@256logisticsltd.com', passwordHash: pw, role: 'operations_manager', firstName: 'Mark', lastName: 'Ellis', phone: '07700900004' } }),
   ]);
 
   // Driver users — these will be linked to employee records after
   const driverUsers = await Promise.all([
-    prisma.user.create({ data: { email: 'driver1@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'James', lastName: 'Okello' } }),
-    prisma.user.create({ data: { email: 'driver2@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Mohammed', lastName: 'Al-Rashid' } }),
-    prisma.user.create({ data: { email: 'driver3@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Thomas', lastName: 'Adeyemi' } }),
-    prisma.user.create({ data: { email: 'driver4@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Robert', lastName: 'Chen' } }),
-    prisma.user.create({ data: { email: 'driver5@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Pavel', lastName: 'Novak' } }),
-    prisma.user.create({ data: { email: 'driver6@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Kevin', lastName: 'Williams' } }),
-    prisma.user.create({ data: { email: 'driver7@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Oluwaseun', lastName: 'Bakare' } }),
-    prisma.user.create({ data: { email: 'driver8@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Gheorghe', lastName: 'Ionescu' } }),
-    prisma.user.create({ data: { email: 'driver9@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Derek', lastName: 'Morrison' } }),
-    prisma.user.create({ data: { email: 'driver10@256logistics.co.uk', passwordHash: pw, role: 'driver', firstName: 'Tariq', lastName: 'Hassan' } }),
+    prisma.user.create({ data: { email: 'driver1@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'James', lastName: 'Okello' } }),
+    prisma.user.create({ data: { email: 'driver2@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Mohammed', lastName: 'Al-Rashid' } }),
+    prisma.user.create({ data: { email: 'driver3@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Thomas', lastName: 'Adeyemi' } }),
+    prisma.user.create({ data: { email: 'driver4@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Robert', lastName: 'Chen' } }),
+    prisma.user.create({ data: { email: 'driver5@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Pavel', lastName: 'Novak' } }),
+    prisma.user.create({ data: { email: 'driver6@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Kevin', lastName: 'Williams' } }),
+    prisma.user.create({ data: { email: 'driver7@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Oluwaseun', lastName: 'Bakare' } }),
+    prisma.user.create({ data: { email: 'driver8@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Gheorghe', lastName: 'Ionescu' } }),
+    prisma.user.create({ data: { email: 'driver9@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Derek', lastName: 'Morrison' } }),
+    prisma.user.create({ data: { email: 'driver10@256logisticsltd.com', passwordHash: pw, role: 'driver', firstName: 'Tariq', lastName: 'Hassan' } }),
   ]);
 
   console.log('✓ Users created (4 management + 10 drivers)');
@@ -63,7 +63,7 @@ async function main() {
   const mgrEmp = await prisma.employee.create({ data: {
     fullName: 'David Hughes', dateOfBirth: new Date('1978-03-15'),
     homeAddress: '14 Oak Lane, Birmingham, B2 5TH',
-    phone: '07700900002', email: 'david.hughes@256logistics.co.uk',
+    phone: '07700900002', email: 'david.hughes@256logisticsltd.com',
     emergencyContactName: 'Lisa Hughes', emergencyContactPhone: '07700900020',
     nextOfKin: 'Lisa Hughes (Wife)', jobTitle: 'Transport Manager', department: 'Management',
     startDate: new Date('2019-04-01'), employmentStatus: 'active',
@@ -75,7 +75,7 @@ async function main() {
     {
       fullName: 'Sarah Mitchell', dateOfBirth: new Date('1980-02-14'),
       homeAddress: '5 Director Way, Birmingham, B1 1AA',
-      phone: '07700900001', email: 'sarah.mitchell@256logistics.co.uk',
+      phone: '07700900001', email: 'sarah.mitchell@256logisticsltd.com',
       emergencyContactName: 'Peter Mitchell', emergencyContactPhone: '07700900021',
       nextOfKin: 'Peter Mitchell (Husband)', jobTitle: 'Director', department: 'Management',
       startDate: new Date('2018-01-01'), employmentStatus: 'active',
@@ -84,7 +84,7 @@ async function main() {
     {
       fullName: 'Claire Pearson', dateOfBirth: new Date('1984-08-19'),
       homeAddress: '18 Birch Ave, Birmingham, B3 4GH',
-      phone: '07700900003', email: 'claire.pearson@256logistics.co.uk',
+      phone: '07700900003', email: 'claire.pearson@256logisticsltd.com',
       emergencyContactName: 'Tom Pearson', emergencyContactPhone: '07700900022',
       nextOfKin: 'Tom Pearson (Husband)', jobTitle: 'HR Manager', department: 'HR',
       startDate: new Date('2020-09-01'), employmentStatus: 'active',
@@ -93,7 +93,7 @@ async function main() {
     {
       fullName: 'Mark Ellis', dateOfBirth: new Date('1982-11-05'),
       homeAddress: '9 Riverside Rd, Solihull, B91 1DP',
-      phone: '07700900004', email: 'mark.ellis@256logistics.co.uk',
+      phone: '07700900004', email: 'mark.ellis@256logisticsltd.com',
       emergencyContactName: 'Jenny Ellis', emergencyContactPhone: '07700900023',
       nextOfKin: 'Jenny Ellis (Wife)', jobTitle: 'Operations Manager', department: 'Operations',
       startDate: new Date('2021-03-01'), employmentStatus: 'active',
@@ -102,7 +102,7 @@ async function main() {
     {
       fullName: 'Angela Brooks', dateOfBirth: new Date('1986-06-30'),
       homeAddress: '22 Elm Park, Birmingham, B16 0LE',
-      phone: '07700900030', email: 'angela.brooks@256logistics.co.uk',
+      phone: '07700900030', email: 'angela.brooks@256logisticsltd.com',
       emergencyContactName: 'Kevin Brooks', emergencyContactPhone: '07700900031',
       nextOfKin: 'Kevin Brooks (Husband)', jobTitle: 'Compliance Administrator', department: 'Operations',
       startDate: new Date('2022-06-15'), employmentStatus: 'active',
@@ -128,7 +128,7 @@ async function main() {
     fullName: `${d.firstName} ${d.lastName}`,
     dateOfBirth: new Date(d.dob),
     homeAddress: d.addr, phone: d.ph,
-    email: `${d.firstName.toLowerCase()}.${d.lastName.toLowerCase().replace('-', '')}@256logistics.co.uk`,
+    email: `${d.firstName.toLowerCase()}.${d.lastName.toLowerCase().replace('-', '')}@256logisticsltd.com`,
     emergencyContactName: `${d.firstName === 'James' ? 'Mary' : d.firstName === 'Mohammed' ? 'Fatima' : 'Next of'} ${d.lastName}`,
     emergencyContactPhone: `0770090${20 + d.userIdx}`,
     nextOfKin: 'Family member',
@@ -572,14 +572,14 @@ async function main() {
   console.log('  Toolbox:   4 talks      (varying sign-off levels)');
   console.log('\n  LOGIN CREDENTIALS  (password: Demo2024! for all)');
   console.log('  ─────────────────────────────────────────────────');
-  console.log('  Director:     director@256logistics.co.uk');
-  console.log('  Transport Mgr: transport@256logistics.co.uk');
-  console.log('  HR Manager:   hr@256logistics.co.uk');
-  console.log('  Operations:   ops@256logistics.co.uk');
-  console.log('  Driver 1:     driver1@256logistics.co.uk  (James Okello)');
-  console.log('  Driver 2:     driver2@256logistics.co.uk  (Mohammed Al-Rashid)');
-  console.log('  Driver 3:     driver3@256logistics.co.uk  (Thomas Adeyemi)');
-  console.log('  ...up to:     driver10@256logistics.co.uk (Tariq Hassan)');
+  console.log('  Director:     director@256logisticsltd.com');
+  console.log('  Transport Mgr: transport@256logisticsltd.com');
+  console.log('  HR Manager:   hr@256logisticsltd.com');
+  console.log('  Operations:   ops@256logisticsltd.com');
+  console.log('  Driver 1:     driver1@256logisticsltd.com  (James Okello)');
+  console.log('  Driver 2:     driver2@256logisticsltd.com  (Mohammed Al-Rashid)');
+  console.log('  Driver 3:     driver3@256logisticsltd.com  (Thomas Adeyemi)');
+  console.log('  ...up to:     driver10@256logisticsltd.com (Tariq Hassan)');
   console.log('═'.repeat(56) + '\n');
 }
 

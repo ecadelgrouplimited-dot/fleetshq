@@ -231,7 +231,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
-ALERT_FROM_EMAIL=alerts@256logistics.co.uk
+ALERT_FROM_EMAIL=alerts@256logisticsltd.com
 
 # Alert Thresholds (days)
 ALERT_CRITICAL_DAYS=7

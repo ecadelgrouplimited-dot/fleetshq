@@ -85,11 +85,11 @@ Authenticated API endpoints verified:
 
 Password for seeded accounts: `Demo2024!`
 
-- Director: `director@256logistics.co.uk`
-- Transport Manager: `transport@256logistics.co.uk`
-- HR Manager: `hr@256logistics.co.uk`
-- Operations Manager: `ops@256logistics.co.uk`
-- Drivers: `driver1@256logistics.co.uk` through `driver10@256logistics.co.uk`
+- Director: `director@256logisticsltd.com`
+- Transport Manager: `transport@256logisticsltd.com`
+- HR Manager: `hr@256logisticsltd.com`
+- Operations Manager: `ops@256logisticsltd.com`
+- Drivers: `driver1@256logisticsltd.com` through `driver10@256logisticsltd.com`
 
 ## Operational Notes
 

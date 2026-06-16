@@ -267,9 +267,9 @@
 Before the client demo, verify:
 
 - [ ] All seed data loads correctly (`npm run seed`)
-- [ ] Director login works: `director@256logistics.co.uk` / `Demo2024!`
-- [ ] Transport Manager login works: `transport@256logistics.co.uk` / `Demo2024!`
-- [ ] Driver login works: `driver@256logistics.co.uk` / `Demo2024!`
+- [ ] Director login works: `director@256logisticsltd.com` / `Demo2024!`
+- [ ] Transport Manager login works: `transport@256logisticsltd.com` / `Demo2024!`
+- [ ] Driver login works: `driver1@256logisticsltd.com` / `Demo2024!`
 - [ ] Dashboard shows populated cards (not zeros)
 - [ ] At least 5 alerts visible on dashboard
 - [ ] Compliance scores show realistic values (75–90% range)
