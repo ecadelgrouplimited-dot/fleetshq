@@ -414,44 +414,105 @@ router.get('/', webAuth, async (req, res) => {
         });
       }
 
-      const [employee, rawAlerts, checks, defects, talks] = await Promise.all([
-        prisma.employee.findUnique({
-          where: { id: employeeId },
-          include: {
-            drivingVehicle: { select: { id: true, registration: true, make: true, model: true, status: true, motExpiryDate: true, nextPmiDate: true } },
-            trainingRecords: true,
+      const employee = await prisma.employee.findUnique({
+        where: { id: employeeId },
+        include: {
+          drivingVehicle: {
+            select: {
+              id: true,
+              registration: true,
+              make: true,
+              model: true,
+              status: true,
+              currentMileage: true,
+              motExpiryDate: true,
+              nextPmiDate: true,
+              insuranceExpiryDate: true,
+              tachoCalibrExpiry: true,
+            },
           },
-        }),
+          trainingRecords: true,
+        },
+      });
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+      const alertEntityIds = [employeeId, req.user.id];
+      if (employee?.drivingVehicle?.id) alertEntityIds.push(employee.drivingVehicle.id);
+
+      const [rawAlerts, checks, defects, talks, activityChecks] = await Promise.all([
         prisma.alert.findMany({
-          where: { isResolved: false, OR: [{ entityId: employeeId }, { entityId: req.user.id }] },
+          where: { isResolved: false, entityId: { in: alertEntityIds } },
           orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
-          take: 8,
+          take: 10,
         }),
         prisma.walkAroundCheck.findMany({
           where: { driverId: employeeId },
-          include: { vehicle: { select: { id: true, registration: true } }, items: true },
+          include: { vehicle: { select: { id: true, registration: true } }, items: true, defects: { select: { id: true } } },
           orderBy: [{ checkDate: 'desc' }, { submittedAt: 'desc' }],
-          take: 6,
+          take: 8,
         }),
         prisma.defectCase.findMany({
           where: { reportedById: employeeId },
           include: { vehicle: { select: { registration: true } } },
           orderBy: { reportedAt: 'desc' },
-          take: 6,
+          take: 8,
         }),
         prisma.toolboxTalk.findMany({
           include: {
             assignments: { where: { employeeId }, select: { signedAt: true } },
+            issuedBy: { select: { firstName: true, lastName: true } },
           },
           orderBy: { dateIssued: 'desc' },
-          take: 6,
+          take: 8,
+        }),
+        prisma.walkAroundCheck.findMany({
+          where: { driverId: employeeId, checkDate: { gte: sevenDaysAgo } },
+          select: { id: true, checkDate: true, nilDefect: true },
+          orderBy: { checkDate: 'asc' },
         }),
       ]);
 
       const alerts = await Promise.all(rawAlerts.map((alert) => decorateAlert(alert, req.user)));
+      const { TRAINING_TYPES } = require('../utils/constants');
       const trainingCompleted = employee?.trainingRecords?.filter((r) => r.status === 'completed').length || 0;
-      const trainingTotal = require('../utils/constants').TRAINING_TYPES.length;
+      const trainingExpired = employee?.trainingRecords?.filter((r) => r.status === 'expired').length || 0;
+      const trainingInProgress = employee?.trainingRecords?.filter((r) => r.status === 'in_progress').length || 0;
+      const trainingTotal = TRAINING_TYPES.length;
       const trainingCompletion = trainingTotal ? Math.round((trainingCompleted / trainingTotal) * 100) : 0;
+      const trainingNotStarted = Math.max(trainingTotal - (trainingCompleted + trainingExpired + trainingInProgress), 0);
+      const pendingTalks = talks.filter((talk) => !talk.assignments[0]?.signedAt);
+      const todayCheck = checks.find((check) => new Date(check.checkDate).getTime() >= today.getTime()) || null;
+      const vehicleCompliance = employee?.drivingVehicle ? [
+        { label: 'MOT', value: formatDate(employee.drivingVehicle.motExpiryDate), days: daysUntil(employee.drivingVehicle.motExpiryDate) },
+        { label: 'PMI', value: formatDate(employee.drivingVehicle.nextPmiDate), days: daysUntil(employee.drivingVehicle.nextPmiDate) },
+        { label: 'Insurance', value: formatDate(employee.drivingVehicle.insuranceExpiryDate), days: daysUntil(employee.drivingVehicle.insuranceExpiryDate) },
+        { label: 'Tacho', value: formatDate(employee.drivingVehicle.tachoCalibrExpiry), days: daysUntil(employee.drivingVehicle.tachoCalibrExpiry) },
+      ].map((item) => ({
+        ...item,
+        tone: item.days === null ? 'slate' : item.days < 0 ? 'red' : item.days <= 14 ? 'amber' : 'green',
+        helper: item.days === null ? 'No date recorded' : item.days < 0 ? `${Math.abs(item.days)} day(s) overdue` : `${item.days} day(s) remaining`,
+      })) : [];
+      const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(sevenDaysAgo);
+        date.setDate(sevenDaysAgo.getDate() + index);
+        const match = activityChecks.find((check) => new Date(check.checkDate).toDateString() === date.toDateString());
+        return {
+          label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
+          date,
+          submitted: Boolean(match),
+          nilDefect: Boolean(match?.nilDefect),
+        };
+      });
+      const readinessScore = Math.max(0, Math.min(100,
+        100
+        - (pendingTalks.length * 8)
+        - (alerts.filter((alert) => alert.severity === 'critical').length * 10)
+        - (defects.filter((defect) => defect.status !== 'signed_off').length * 6)
+        - (todayCheck ? 0 : 12)
+      ));
 
       return res.render('dashboard/driver', {
         title: 'My Dashboard',
@@ -459,11 +520,22 @@ router.get('/', webAuth, async (req, res) => {
         alerts,
         checks,
         defects,
+        todayCheck,
+        activity: lastSevenDays,
+        pendingTalks,
+        vehicleCompliance,
         talks: talks.map((talk) => ({ ...talk, signed: Boolean(talk.assignments[0]?.signedAt) })),
         stats: {
+          readinessScore,
           trainingCompletion,
+          trainingCompleted,
+          trainingInProgress,
+          trainingExpired,
+          trainingNotStarted,
           openDefects: defects.filter((d) => d.status !== 'signed_off').length,
           checksSubmitted: checks.length,
+          checksThisWeek: activityChecks.length,
+          pendingTalks: pendingTalks.length,
           unresolvedAlerts: alerts.length,
         },
         formatDate,

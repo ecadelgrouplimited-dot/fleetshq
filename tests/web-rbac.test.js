@@ -40,6 +40,51 @@ describe('web RBAC', () => {
     await agent.get('/defects').expect(200);
   });
 
+  it('shows assigned vehicle alerts on the driver dashboard', async () => {
+    const drivers = await prisma.user.findMany({
+      where: { role: 'driver' },
+      include: {
+        employee: {
+          include: {
+            drivingVehicle: true,
+          },
+        },
+      },
+    });
+
+    let driverWithVehicleAlert = null;
+    let vehicleAlert = null;
+    for (const driver of drivers) {
+      if (!driver.employee?.drivingVehicle?.id) continue;
+      const alert = await prisma.alert.findFirst({
+        where: {
+          isResolved: false,
+          entityId: driver.employee.drivingVehicle.id,
+        },
+        orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
+      });
+      if (alert) {
+        driverWithVehicleAlert = driver;
+        vehicleAlert = alert;
+        break;
+      }
+    }
+
+    if (!driverWithVehicleAlert || !vehicleAlert) return;
+
+    const agent = request.agent(app);
+    const login = await agent
+      .post('/login')
+      .type('form')
+      .send({ email: driverWithVehicleAlert.email, password: 'Demo2024!' })
+      .then((response) => response);
+
+    if (login.status !== 302) return;
+
+    const dashboard = await agent.get('/').expect(200);
+    expect(dashboard.text).toContain(vehicleAlert.message);
+  });
+
   it('keeps director access to admin web screens', async () => {
     const agent = request.agent(app);
     await agent

@@ -1,50 +1,155 @@
 <%- include('../layouts/main', { body: `
-<div class="stat-grid mb-4">
-  <div class="stat-card blue">
-    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8"/></svg></div>
-    <div><div class="stat-value">${stats.trainingCompletion}%</div><div class="stat-label">Training Complete</div><div class="stat-sub">Keep your records current</div></div>
+<div class="driver-hero mb-4">
+  <div class="driver-hero-main">
+    <div class="text-sm text-muted" style="font-weight:700">Driver workspace</div>
+    <h3>${employee.fullName}</h3>
+    <p class="driver-hero-copy">
+      ${todayCheck
+        ? `Your walk-around check for ${formatDate(todayCheck.checkDate)} is already in. Keep an eye on open alerts, vehicle dates and pending talks.`
+        : `You have not submitted a walk-around check today yet. Use the dashboard to clear urgent items and keep your vehicle and records ready.`}
+    </p>
+    <div class="driver-hero-actions">
+      <a href="${todayCheck ? `/checks/${todayCheck.id}` : '/checks/new'}" class="btn btn-primary">
+        ${todayCheck ? "Open today's check" : "Submit today's check"}
+      </a>
+      <a href="/training" class="btn btn-outline">Open training</a>
+    </div>
   </div>
-  <div class="stat-card amber">
-    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg></div>
-    <div><div class="stat-value">${stats.checksSubmitted}</div><div class="stat-label">Recent Checks</div><div class="stat-sub">Latest 6 submissions</div></div>
+  <div class="driver-hero-score">
+    <div class="driver-readiness-ring ${stats.readinessScore >= 85 ? 'good' : stats.readinessScore >= 70 ? 'ok' : 'risk'}">
+      <div class="driver-readiness-value">${stats.readinessScore}%</div>
+      <div class="driver-readiness-label">Readiness</div>
+    </div>
+    <div class="text-sm text-muted" style="text-align:center">
+      ${stats.unresolvedAlerts} active alert${stats.unresolvedAlerts === 1 ? '' : 's'} - ${stats.pendingTalks} pending talk${stats.pendingTalks === 1 ? '' : 's'}
+    </div>
   </div>
-  <div class="stat-card red">
+</div>
+
+<div class="driver-stat-grid mb-4">
+  <a href="/checks${todayCheck ? `/${todayCheck.id}` : '/new'}" class="stat-card blue stat-link">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
+    <div><div class="stat-value">${todayCheck ? 'Done' : 'Due'}</div><div class="stat-label">Today&apos;s Check</div><div class="stat-sub">${todayCheck ? 'Submitted and ready to review' : 'Submit before driving'}</div></div>
+  </a>
+  <a href="/checks" class="stat-card amber stat-link">
+    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
+    <div><div class="stat-value">${stats.checksThisWeek}</div><div class="stat-label">Checks This Week</div><div class="stat-sub">${stats.checksSubmitted} recent submissions on record</div></div>
+  </a>
+  <a href="/defects" class="stat-card red stat-link">
     <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-7.938 4h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
-    <div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">My Open Defects</div><div class="stat-sub">Track reported issues</div></div>
-  </div>
-  <div class="stat-card green">
-    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-    <div><div class="stat-value">${stats.unresolvedAlerts}</div><div class="stat-label">My Alerts</div><div class="stat-sub">Things needing attention</div></div>
-  </div>
+    <div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">Open Defects</div><div class="stat-sub">Track reported issues and status changes</div></div>
+  </a>
+  <a href="/training" class="stat-card green stat-link">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/></svg></div>
+    <div><div class="stat-value">${stats.trainingCompletion}%</div><div class="stat-label">Training Complete</div><div class="stat-sub">${stats.pendingTalks} talk${stats.pendingTalks === 1 ? '' : 's'} waiting for your sign-off</div></div>
+  </a>
+  <a href="${alerts[0]?.href || '/training'}" class="stat-card purple stat-link">
+    <div class="stat-icon purple"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+    <div><div class="stat-value">${stats.unresolvedAlerts}</div><div class="stat-label">My Alerts</div><div class="stat-sub">${alerts.filter(a => a.severity === 'critical').length} critical issues need attention</div></div>
+  </a>
 </div>
 
 <div class="grid-2 mb-4">
   <div class="card">
-    <div class="card-header"><h3>My Profile</h3><a class="btn btn-outline btn-sm" href="/employees/${employee.id}">Open Profile</a></div>
+    <div class="card-header">
+      <h3>Today&apos;s Status</h3>
+      <a class="btn btn-outline btn-sm" href="/employees/${employee.id}">Open Profile</a>
+    </div>
     <div class="card-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div><div class="text-sm text-muted">Name</div><div class="fw-700">${employee.fullName}</div></div>
-        <div><div class="text-sm text-muted">Role</div><div class="fw-700">${employee.jobTitle}</div></div>
-        <div><div class="text-sm text-muted">Department</div><div class="fw-700">${employee.department}</div></div>
-        <div><div class="text-sm text-muted">Status</div><div class="fw-700">${employee.employmentStatus.replace('_', ' ')}</div></div>
+      <div class="status-grid">
+        <div class="status-box">
+          <div class="text-sm text-muted">Driver</div>
+          <div class="status-value">${employee.fullName}</div>
+          <div class="status-note">${employee.jobTitle} - ${employee.department}</div>
+        </div>
+        <div class="status-box">
+          <div class="text-sm text-muted">Employment Status</div>
+          <div class="status-value">${employee.employmentStatus.replace(/_/g, ' ')}</div>
+          <div class="status-note">${todayCheck ? 'Checked in today' : 'Check still pending today'}</div>
+        </div>
+        <div class="status-box">
+          <div class="text-sm text-muted">Training Mix</div>
+          <div class="status-value">${stats.trainingCompleted}/${stats.trainingCompleted + stats.trainingInProgress + stats.trainingExpired + stats.trainingNotStarted}</div>
+          <div class="status-note">Completed modules</div>
+        </div>
+        <div class="status-box">
+          <div class="text-sm text-muted">Toolbox Talks</div>
+          <div class="status-value">${stats.pendingTalks}</div>
+          <div class="status-note">Pending your signature</div>
+        </div>
       </div>
-      <hr class="divider">
-      <div>
-        <div class="text-sm text-muted" style="margin-bottom:4px">Assigned Vehicle</div>
-        ${employee.drivingVehicle
-          ? `<div class="vehicle-pill"><strong>${employee.drivingVehicle.registration}</strong><span>${employee.drivingVehicle.make} ${employee.drivingVehicle.model}</span></div>`
-          : '<div class="text-sm text-muted">No vehicle assigned</div>'}
+      <div class="week-strip">
+        ${activity.map(day => `
+          <div class="week-day ${day.submitted ? (day.nilDefect ? 'ok' : 'warn') : 'miss'}">
+            <span>${day.label}</span>
+            <strong>${day.submitted ? (day.nilDefect ? 'OK' : 'DEF') : 'MISS'}</strong>
+          </div>
+        `).join('')}
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header"><h3>Quick Actions</h3></div>
-    <div class="card-body quick-actions">
-      <a href="/checks/new" class="action-row"><span>Submit today&apos;s walk-around check</span><strong>Open</strong></a>
-      <a href="/checks" class="action-row"><span>Review my submitted checks</span><strong>${checks.length}</strong></a>
-      <a href="/defects" class="action-row"><span>Review my reported defects</span><strong>${defects.length}</strong></a>
-      <a href="/training" class="action-row"><span>Check training and toolbox talks</span><strong>${stats.trainingCompletion}%</strong></a>
+    <div class="card-header">
+      <h3>Assigned Vehicle</h3>
+      ${employee.drivingVehicle ? `<a class="btn btn-outline btn-sm" href="/checks/new">${todayCheck ? 'Submit another check' : 'Start check'}</a>` : ''}
+    </div>
+    <div class="card-body">
+      ${employee.drivingVehicle ? `
+        <div class="vehicle-summary">
+          <div>
+            <div class="vehicle-registration">${employee.drivingVehicle.registration}</div>
+            <div class="vehicle-model">${employee.drivingVehicle.make} ${employee.drivingVehicle.model}</div>
+          </div>
+          <div class="vehicle-meta">
+            <span class="badge badge-${employee.drivingVehicle.status === 'active' ? 'green' : employee.drivingVehicle.status === 'vor' ? 'red' : 'amber'}">${employee.drivingVehicle.status.replace(/_/g, ' ')}</span>
+            <span>${employee.drivingVehicle.currentMileage.toLocaleString()} mi</span>
+          </div>
+        </div>
+        <div class="vehicle-compliance-grid">
+          ${vehicleCompliance.map(item => `
+            <div class="vehicle-compliance-card ${item.tone}">
+              <div class="vehicle-compliance-top">
+                <span>${item.label}</span>
+                <strong>${item.value || '-'}</strong>
+              </div>
+              <div class="vehicle-compliance-helper">${item.helper}</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : '<div class="empty-state"><p>No vehicle is currently assigned to your profile</p></div>'}
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Training Progress</h3><a class="btn btn-outline btn-sm" href="/training">Open Training</a></div>
+    <div class="card-body">
+      <div class="training-progress-bar">
+        <div class="training-progress-fill" style="width:${stats.trainingCompletion}%"></div>
+      </div>
+      <div class="training-breakdown">
+        <div class="training-chip completed"><strong>${stats.trainingCompleted}</strong><span>Completed</span></div>
+        <div class="training-chip progress"><strong>${stats.trainingInProgress}</strong><span>In Progress</span></div>
+        <div class="training-chip expired"><strong>${stats.trainingExpired}</strong><span>Expired</span></div>
+        <div class="training-chip pending"><strong>${stats.trainingNotStarted}</strong><span>Not Started</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Pending Toolbox Talks</h3></div>
+    <div class="card-body dashboard-talks">
+      ${pendingTalks.length === 0 ? '<div class="empty-state"><p>All assigned toolbox talks are signed</p></div>' : pendingTalks.map(talk => `
+        <div class="dashboard-talk-card" id="talk-card-${talk.id}">
+          <div>
+            <div class="dashboard-talk-topic">${talk.topic}</div>
+            <div class="dashboard-talk-meta">Issued ${formatDate(talk.dateIssued)} by ${talk.issuedBy.firstName} ${talk.issuedBy.lastName}</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="signToolboxTalk('${talk.id}', this)">Sign now</button>
+        </div>
+      `).join('')}
     </div>
   </div>
 </div>
@@ -65,12 +170,15 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h3>Toolbox Talks</h3></div>
-    <div class="card-body">
+    <div class="card-header"><h3>All Recent Toolbox Talks</h3></div>
+    <div class="card-body dashboard-talks">
       ${talks.length === 0 ? '<div class="empty-state"><p>No toolbox talks assigned</p></div>' : talks.map(t => `
-        <div class="action-row">
-          <span>${t.topic}</span>
-          <strong>${t.signed ? 'Signed' : 'Pending'}</strong>
+        <div class="dashboard-talk-card ${t.signed ? 'signed' : 'pending'}">
+          <div>
+            <div class="dashboard-talk-topic">${t.topic}</div>
+            <div class="dashboard-talk-meta">${formatDate(t.dateIssued)} - ${t.signed ? 'Signed' : 'Awaiting signature'}</div>
+          </div>
+          <span class="badge ${t.signed ? 'badge-green' : 'badge-amber'}">${t.signed ? 'Signed' : 'Pending'}</span>
         </div>
       `).join('')}
     </div>
@@ -79,17 +187,18 @@
 
 <div class="grid-2 mt-4">
   <div class="card">
-    <div class="card-header"><h3>Recent Checks</h3></div>
+    <div class="card-header"><h3>Recent Checks</h3><a class="btn btn-outline btn-sm" href="/checks">View all</a></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Vehicle</th><th>Result</th></tr></thead>
+        <thead><tr><th>Date</th><th>Vehicle</th><th>Result</th><th>Action</th></tr></thead>
         <tbody>
-          ${checks.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No checks submitted yet</td></tr>' : checks.map(c => {
+          ${checks.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No checks submitted yet</td></tr>' : checks.map(c => {
             const defectCount = c.items.filter(i => i.status === 'defect_found').length;
             return `<tr>
               <td><a href="/checks/${c.id}" class="fw-700">${formatDate(c.checkDate)}</a></td>
               <td>${c.vehicle?.registration || '-'}</td>
               <td>${c.nilDefect ? '<span class="badge badge-green">Nil defect</span>' : defectCount > 0 ? `<span class="badge badge-amber">${defectCount} defects</span>` : '<span class="badge badge-green">Pass</span>'}</td>
+              <td><a href="/checks/${c.id}" class="table-link">Open</a></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -98,16 +207,17 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h3>Recent Defects</h3></div>
+    <div class="card-header"><h3>Recent Defects</h3><a class="btn btn-outline btn-sm" href="/defects">View all</a></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Reference</th><th>Vehicle</th><th>Status</th></tr></thead>
+        <thead><tr><th>Reference</th><th>Vehicle</th><th>Status</th><th>Severity</th></tr></thead>
         <tbody>
-          ${defects.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No defects reported</td></tr>' : defects.map(d => `
+          ${defects.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No defects reported</td></tr>' : defects.map(d => `
             <tr>
               <td><a href="/defects/${d.id}" class="fw-700">${d.referenceNumber}</a></td>
               <td>${d.vehicle?.registration || '-'}</td>
               <td><span class="badge ${d.status === 'signed_off' ? 'badge-green' : 'badge-amber'}">${d.status.replace(/_/g, ' ')}</span></td>
+              <td><span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span></td>
             </tr>
           `).join('')}
         </tbody>
@@ -117,11 +227,60 @@
 </div>
 
 <style>
-  .quick-actions { display:flex; flex-direction:column; gap:10px; }
-  .action-row { display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
-  .action-row strong { color:var(--primary); }
-  .vehicle-pill { display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#f8fafc; }
-  .vehicle-pill span { color:var(--text-muted); font-size:13px; }
+  .driver-hero { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(260px, 0.8fr); gap:16px; }
+  .driver-hero-main, .driver-hero-score { background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px 22px; box-shadow:var(--shadow-sm); }
+  .driver-hero-main h3 { font-size:28px; margin-top:6px; }
+  .driver-hero-copy { color:var(--text-muted); line-height:1.6; margin-top:8px; max-width:780px; }
+  .driver-hero-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+  .driver-hero-score { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  .driver-readiness-ring { width:156px; height:156px; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:12px solid #dbeafe; background:#f8fbff; }
+  .driver-readiness-ring.good { border-color:#bbf7d0; background:#f0fdf4; }
+  .driver-readiness-ring.ok { border-color:#fde68a; background:#fffbeb; }
+  .driver-readiness-ring.risk { border-color:#fecaca; background:#fef2f2; }
+  .driver-readiness-value { font-size:36px; font-weight:900; color:var(--text); line-height:1; }
+  .driver-readiness-label { margin-top:8px; font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+  .driver-stat-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:14px; }
+  .stat-link { text-decoration:none; color:var(--text); }
+  .stat-link:hover { border-color:var(--primary); background:#f8fbff; }
+  .status-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
+  .status-box { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:#f8fafc; }
+  .status-value { font-size:22px; font-weight:800; color:var(--text); margin-top:4px; }
+  .status-note { color:var(--text-muted); font-size:12px; margin-top:4px; }
+  .week-strip { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:8px; margin-top:18px; }
+  .week-day { border-radius:8px; padding:10px 8px; text-align:center; border:1px solid var(--border); background:#fff; }
+  .week-day span { display:block; font-size:11px; font-weight:700; color:var(--text-muted); }
+  .week-day strong { display:block; font-size:13px; margin-top:6px; }
+  .week-day.ok { background:#f0fdf4; border-color:#bbf7d0; }
+  .week-day.warn { background:#fffbeb; border-color:#fde68a; }
+  .week-day.miss { background:#fef2f2; border-color:#fecaca; }
+  .vehicle-summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:#f8fafc; }
+  .vehicle-registration { font-size:28px; font-weight:900; letter-spacing:0; }
+  .vehicle-model { color:var(--text-muted); margin-top:4px; }
+  .vehicle-meta { display:flex; flex-direction:column; align-items:flex-end; gap:8px; color:var(--text-muted); font-size:12px; font-weight:700; }
+  .vehicle-compliance-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:14px; }
+  .vehicle-compliance-card { border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#fff; }
+  .vehicle-compliance-card.green { background:#f0fdf4; border-color:#bbf7d0; }
+  .vehicle-compliance-card.amber { background:#fffbeb; border-color:#fde68a; }
+  .vehicle-compliance-card.red { background:#fef2f2; border-color:#fecaca; }
+  .vehicle-compliance-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .vehicle-compliance-top span { font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; }
+  .vehicle-compliance-top strong { font-size:14px; font-weight:800; color:var(--text); text-align:right; }
+  .vehicle-compliance-helper { margin-top:6px; font-size:12px; color:var(--text-muted); }
+  .training-progress-bar { height:14px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .training-progress-fill { height:100%; background:linear-gradient(90deg, #2563eb 0%, #60a5fa 100%); border-radius:999px; }
+  .training-breakdown { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-top:16px; }
+  .training-chip { border:1px solid var(--border); border-radius:8px; padding:14px 12px; text-align:center; background:#fff; }
+  .training-chip strong { display:block; font-size:24px; font-weight:900; }
+  .training-chip span { display:block; font-size:12px; color:var(--text-muted); margin-top:6px; }
+  .training-chip.completed { background:#f0fdf4; border-color:#bbf7d0; }
+  .training-chip.progress { background:#eff6ff; border-color:#bfdbfe; }
+  .training-chip.expired { background:#fef2f2; border-color:#fecaca; }
+  .training-chip.pending { background:#f8fafc; }
+  .dashboard-talks { display:flex; flex-direction:column; gap:10px; }
+  .dashboard-talk-card { display:flex; justify-content:space-between; align-items:center; gap:14px; border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+  .dashboard-talk-card.signed { background:#f8fafc; }
+  .dashboard-talk-topic { font-size:15px; font-weight:800; color:var(--text); }
+  .dashboard-talk-meta { font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
   .alert-item { display:block; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fff; color:var(--text); text-decoration:none; }
   .alert-item:hover { border-color:var(--primary); background:#eff6ff; }
   .alert-item.critical { border-left-color:#ef4444; }
@@ -132,5 +291,38 @@
   .alert-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .alert-preview span { border:1px solid var(--border); border-radius:999px; background:#f8fafc; color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
   .alert-link { margin-top:10px; font-size:12px; font-weight:800; color:var(--primary); }
+  .table-link { font-weight:800; color:var(--primary); text-decoration:none; }
+  @media (max-width: 1200px) {
+    .driver-stat-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 900px) {
+    .driver-hero, .driver-stat-grid, .status-grid, .vehicle-compliance-grid, .training-breakdown { grid-template-columns:1fr; }
+    .vehicle-summary, .dashboard-talk-card { flex-direction:column; align-items:flex-start; }
+    .vehicle-meta { align-items:flex-start; }
+    .week-strip { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+  }
 </style>
+
+<script>
+async function signToolboxTalk(id, button) {
+  const original = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Signing...';
+  try {
+    const res = await fetch('/api/v1/toolbox-talks/' + id + '/sign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ signatureData: 'signed-via-driver-dashboard' }),
+    });
+    if (!res.ok) throw new Error('Unable to sign toolbox talk');
+    showToast('Toolbox talk signed successfully', 'success');
+    setTimeout(() => window.location.reload(), 500);
+  } catch (error) {
+    button.disabled = false;
+    button.textContent = original;
+    showToast(error.message || 'Unable to sign toolbox talk', 'error');
+  }
+}
+</script>
 ` }) %>
