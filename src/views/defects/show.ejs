@@ -1,6 +1,6 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
-  <a href="/defects" class="btn btn-ghost btn-sm">← Back to Defects</a>
+  <a href="/defects" class="btn btn-ghost btn-sm">${user.role === 'driver' ? 'Back to My Defects' : '← Back to Defects'}</a>
   <div class="flex gap-2">
     <span class="badge ${defect.severity === 'dangerous' ? 'badge-red' : defect.severity === 'serious' ? 'badge-amber' : 'badge-slate'}" style="font-size:13px;padding:6px 12px">${defect.severity.toUpperCase()}</span>
     <span class="badge ${defect.status === 'reported' ? 'badge-red' : defect.status === 'under_review' ? 'badge-amber' : defect.status === 'signed_off' ? 'badge-green' : 'badge-blue'}" style="font-size:13px;padding:6px 12px">${defect.status.replace(/_/g,' ')}</span>
@@ -68,7 +68,7 @@
         </div>
       ` : ''}
 
-      ${defect.status === 'repaired' && user.role === 'transport_manager' || user.role === 'director' ? `
+      ${(defect.status === 'repaired' && (user.role === 'transport_manager' || user.role === 'director')) ? `
         <form action="/api/v1/defects/${defect.id}/signoff" method="POST" id="signoffForm" style="margin-top:16px">
           <button type="button" onclick="signOff()" class="btn btn-success" style="width:100%">Final Sign-Off & Close</button>
         </form>

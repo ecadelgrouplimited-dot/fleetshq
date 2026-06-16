@@ -20,6 +20,37 @@ const webAuth = (req, res, next) => {
   next();
 };
 
+const hasRole = (user, roles) => roles.includes(user.role);
+
+const requireRoles = (...roles) => (req, res, next) => {
+  if (hasRole(req.user, roles)) return next();
+  return res.status(403).render('error', {
+    title: 'Access denied',
+    message: 'Your account does not have permission to access this area.',
+    code: 403,
+  });
+};
+
+const peopleRoles = ['director', 'transport_manager', 'hr_manager', 'operations_manager'];
+const fleetRoles = ['director', 'transport_manager', 'operations_manager'];
+const transportRoles = ['director', 'transport_manager'];
+const hrRoles = ['director', 'hr_manager'];
+const evidenceRoles = ['director', 'transport_manager', 'hr_manager'];
+const reportsRoles = ['director', 'transport_manager', 'hr_manager', 'operations_manager'];
+
+const exportRoles = {
+  staff: peopleRoles,
+  sponsored: hrRoles,
+  'right-to-work': hrRoles,
+  'document-expiry': hrRoles,
+  fleet: fleetRoles,
+  pmi: fleetRoles,
+  defects: fleetRoles,
+  vor: fleetRoles,
+  'daily-checks': fleetRoles,
+  training: ['director', 'transport_manager', 'hr_manager'],
+};
+
 // ── Auth Pages ─────────────────────────────────────────
 router.get('/login', (req, res) => {
   const token = req.cookies?.token;
@@ -32,13 +63,16 @@ router.post('/login', async (req, res) => {
   const { sign } = require('../config/jwt');
   const { email, password } = req.body;
   try {
-    const user = await prisma.user.findUnique({ where: { email: email?.toLowerCase().trim() } });
+    const user = await prisma.user.findUnique({
+      where: { email: email?.toLowerCase().trim() },
+      include: { employee: { select: { id: true } } },
+    });
     if (!user || !user.isActive) return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
 
     const token = sign({ id: user.id, role: user.role, email: user.email,
-      name: `${user.firstName} ${user.lastName}`, employeeId: null });
+      name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null });
 
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
     res.redirect('/');
@@ -55,6 +89,71 @@ router.get('/logout', (req, res) => {
 // ── Dashboard ──────────────────────────────────────────
 router.get('/', webAuth, async (req, res) => {
   try {
+    if (req.user.role === 'driver') {
+      const employeeId = req.user.employeeId;
+      if (!employeeId) {
+        return res.status(403).render('error', {
+          title: 'Access denied',
+          message: 'Your driver account is not linked to an employee record.',
+          code: 403,
+        });
+      }
+
+      const [employee, alerts, checks, defects, talks] = await Promise.all([
+        prisma.employee.findUnique({
+          where: { id: employeeId },
+          include: {
+            drivingVehicle: { select: { id: true, registration: true, make: true, model: true, status: true, motExpiryDate: true, nextPmiDate: true } },
+            trainingRecords: true,
+          },
+        }),
+        prisma.alert.findMany({
+          where: { isResolved: false, OR: [{ entityId: employeeId }, { entityId: req.user.id }] },
+          orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }],
+          take: 8,
+        }),
+        prisma.walkAroundCheck.findMany({
+          where: { driverId: employeeId },
+          include: { vehicle: { select: { registration: true } }, items: true },
+          orderBy: [{ checkDate: 'desc' }, { submittedAt: 'desc' }],
+          take: 6,
+        }),
+        prisma.defectCase.findMany({
+          where: { reportedById: employeeId },
+          include: { vehicle: { select: { registration: true } } },
+          orderBy: { reportedAt: 'desc' },
+          take: 6,
+        }),
+        prisma.toolboxTalk.findMany({
+          include: {
+            assignments: { where: { employeeId }, select: { signedAt: true } },
+          },
+          orderBy: { dateIssued: 'desc' },
+          take: 6,
+        }),
+      ]);
+
+      const trainingCompleted = employee?.trainingRecords?.filter((r) => r.status === 'completed').length || 0;
+      const trainingTotal = require('../utils/constants').TRAINING_TYPES.length;
+      const trainingCompletion = trainingTotal ? Math.round((trainingCompleted / trainingTotal) * 100) : 0;
+
+      return res.render('dashboard/driver', {
+        title: 'My Dashboard',
+        employee,
+        alerts,
+        checks,
+        defects,
+        talks: talks.map((talk) => ({ ...talk, signed: Boolean(talk.assignments[0]?.signedAt) })),
+        stats: {
+          trainingCompletion,
+          openDefects: defects.filter((d) => d.status !== 'signed_off').length,
+          checksSubmitted: checks.length,
+          unresolvedAlerts: alerts.length,
+        },
+        formatDate,
+      });
+    }
+
     const [totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles,
       openDefects, alerts, latestScore, missedChecks, pendingToolbox, recentDefects] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
@@ -92,7 +191,7 @@ router.get('/', webAuth, async (req, res) => {
 });
 
 // ── Employees ──────────────────────────────────────────
-router.get('/employees', webAuth, async (req, res) => {
+router.get('/employees', webAuth, requireRoles(...peopleRoles), async (req, res) => {
   try {
     const { search, status = 'active', department, type = '' } = req.query;
     const where = {};
@@ -129,7 +228,7 @@ router.get('/employees', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/employees/new', webAuth, async (req, res) => {
+router.get('/employees/new', webAuth, requireRoles(...hrRoles), async (req, res) => {
   const managers = await prisma.employee.findMany({ where: { employmentStatus: 'active' },
     select: { id: true, fullName: true, jobTitle: true }, orderBy: { fullName: 'asc' } });
   const vehicles = await prisma.vehicle.findMany({ where: { status: 'active', assignedDriverId: null },
@@ -137,7 +236,7 @@ router.get('/employees/new', webAuth, async (req, res) => {
   res.render('employees/form', { title: 'Add Employee', employee: null, managers, vehicles, errors: [] });
 });
 
-router.get('/employees/:id/edit', webAuth, async (req, res) => {
+router.get('/employees/:id/edit', webAuth, requireRoles(...hrRoles), async (req, res) => {
   try {
     const [emp, managers] = await Promise.all([
       prisma.employee.findUnique({ where: { id: req.params.id } }),
@@ -151,6 +250,15 @@ router.get('/employees/:id/edit', webAuth, async (req, res) => {
 
 router.get('/employees/:id', webAuth, async (req, res) => {
   try {
+    const canViewAllEmployees = hasRole(req.user, peopleRoles);
+    if (!canViewAllEmployees && !(req.user.role === 'driver' && req.user.employeeId === req.params.id)) {
+      return res.status(403).render('error', {
+        title: 'Access denied',
+        message: 'You can only view your own employee profile.',
+        code: 403,
+      });
+    }
+
     const emp = await prisma.employee.findUnique({
       where: { id: req.params.id },
       include: {
@@ -180,7 +288,7 @@ router.get('/employees/:id', webAuth, async (req, res) => {
 });
 
 // ── Sponsored Workers ──────────────────────────────────
-router.get('/sponsored-workers', webAuth, async (req, res) => {
+router.get('/sponsored-workers', webAuth, requireRoles(...evidenceRoles), async (req, res) => {
   try {
     const workers = await prisma.sponsoredWorker.findMany({
       include: {
@@ -197,6 +305,32 @@ router.get('/sponsored-workers', webAuth, async (req, res) => {
 // ── Training & Competency ──────────────────────────────
 router.get('/training', webAuth, async (req, res) => {
   try {
+    if (req.user.role === 'driver') {
+      if (!req.user.employeeId) {
+        return res.status(403).render('error', { title: 'Access denied', message: 'Your driver account is not linked to an employee record.', code: 403 });
+      }
+      const driver = await prisma.employee.findUnique({
+        where: { id: req.user.employeeId },
+        include: { trainingRecords: true },
+      });
+      if (!driver) {
+        return res.status(403).render('error', { title: 'Access denied', message: 'Your driver record could not be found.', code: 403 });
+      }
+      const talks = await prisma.toolboxTalk.findMany({
+        include: { assignments: { where: { employeeId: req.user.employeeId }, select: { signedAt: true } } },
+        orderBy: { dateIssued: 'desc' },
+        take: 10,
+      });
+      const { TRAINING_TYPES } = require('../utils/constants');
+      const completed = driver.trainingRecords.filter((r) => r.status === 'completed').length;
+      return res.render('training/index', {
+        title: 'My Training',
+        drivers: [{ ...driver, completionPercent: Math.round((completed / TRAINING_TYPES.length) * 100) }],
+        talks: talks.map((t) => ({ ...t, totalSigned: t.assignments.filter((a) => a.signedAt).length, assignments: t.assignments })),
+        formatDate,
+      });
+    }
+
     const drivers = await prisma.employee.findMany({
       where: { isDriver: true, employmentStatus: 'active' },
       include: { trainingRecords: true },
@@ -221,7 +355,7 @@ router.get('/training', webAuth, async (req, res) => {
 });
 
 // ── Fleet & Roadworthiness ─────────────────────────────
-router.get('/fleet', webAuth, async (req, res) => {
+router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const { status = '', due = '' } = req.query;
     const where = {};
@@ -257,7 +391,7 @@ router.get('/fleet', webAuth, async (req, res) => {
 });
 
 // ── Add Vehicle (must be before /fleet/:id) ───────────────
-router.get('/fleet/new', webAuth, async (req, res) => {
+router.get('/fleet/new', webAuth, requireRoles(...transportRoles), async (req, res) => {
   try {
     const drivers = await prisma.employee.findMany({
       where: { isDriver: true, employmentStatus: 'active' },
@@ -267,7 +401,7 @@ router.get('/fleet/new', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/fleet/:id/edit', webAuth, async (req, res) => {
+router.get('/fleet/:id/edit', webAuth, requireRoles(...transportRoles), async (req, res) => {
   try {
     const [vehicle, drivers] = await Promise.all([
       prisma.vehicle.findUnique({ where: { id: req.params.id } }),
@@ -282,7 +416,7 @@ router.get('/fleet/:id/edit', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/fleet/pmi-planner', webAuth, async (req, res) => {
+router.get('/fleet/pmi-planner', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const vehicles = await prisma.vehicle.findMany({
       where: { status: { not: 'sold' } },
@@ -294,7 +428,7 @@ router.get('/fleet/pmi-planner', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/fleet/:id', webAuth, async (req, res) => {
+router.get('/fleet/:id', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const v = await prisma.vehicle.findUnique({
       where: { id: req.params.id },
@@ -315,8 +449,12 @@ router.get('/fleet/:id', webAuth, async (req, res) => {
 router.get('/checks', webAuth, async (req, res) => {
   try {
     const today = new Date(); today.setHours(0, 0, 0, 0);
+    const checkWhere = req.user.role === 'driver' && req.user.employeeId
+      ? { driverId: req.user.employeeId }
+      : {};
     const [checks, missed] = await Promise.all([
       prisma.walkAroundCheck.findMany({
+        where: checkWhere,
         include: {
           vehicle: { select: { registration: true } },
           driver: { select: { fullName: true } },
@@ -334,14 +472,19 @@ router.get('/checks', webAuth, async (req, res) => {
       }),
     ]);
 
-    const missedVehicles = missed.filter(v => v.checks.length === 0);
+    const missedVehicles = req.user.role === 'driver' ? [] : missed.filter(v => v.checks.length === 0);
     res.render('checks/index', { title: 'Daily Checks', checks, missedVehicles, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
 router.get('/checks/new', webAuth, async (req, res) => {
+  if (req.user.role === 'driver' && !req.user.employeeId) {
+    return res.status(403).render('error', { title: 'Access denied', message: 'Your driver account is not linked to an employee record.', code: 403 });
+  }
   const vehicles = await prisma.vehicle.findMany({
-    where: { status: 'active' },
+    where: req.user.role === 'driver' && req.user.employeeId
+      ? { status: 'active', assignedDriverId: req.user.employeeId }
+      : { status: 'active' },
     select: { id: true, registration: true, make: true, model: true },
     orderBy: { registration: 'asc' },
   });
@@ -356,6 +499,7 @@ router.get('/defects', webAuth, async (req, res) => {
     if (status) where.status = status;
     else where.status = { not: 'signed_off' };
     if (severity) where.severity = severity;
+    if (req.user.role === 'driver' && req.user.employeeId) where.reportedById = req.user.employeeId;
 
     const defects = await prisma.defectCase.findMany({
       where,
@@ -386,13 +530,20 @@ router.get('/defects/:id', webAuth, async (req, res) => {
       },
     });
     if (!d) return res.redirect('/defects');
+    if (req.user.role === 'driver' && req.user.employeeId !== d.reportedById) {
+      return res.status(403).render('error', {
+        title: 'Access denied',
+        message: 'You can only view defects you reported.',
+        code: 403,
+      });
+    }
     const daysOpen = Math.floor((Date.now() - new Date(d.reportedAt)) / 86400000);
     res.render('defects/show', { title: `Defect ${d.referenceNumber}`, defect: d, daysOpen, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
 // ── VOR ─────────────────────────────────────────────
-router.get('/vor', webAuth, async (req, res) => {
+router.get('/vor', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const [active, history] = await Promise.all([
       prisma.vorRecord.findMany({
@@ -419,7 +570,7 @@ router.get('/vor', webAuth, async (req, res) => {
 });
 
 // ── Driver Risk ────────────────────────────────────────
-router.get('/driver-risk', webAuth, async (req, res) => {
+router.get('/driver-risk', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const drivers = await prisma.employee.findMany({
       where: { isDriver: true, employmentStatus: 'active' },
@@ -466,6 +617,13 @@ const sendCsv = (res, filename, headers, rows) => {
 router.get('/reports/export/:type', webAuth, async (req, res) => {
   try {
     const { type } = req.params;
+    if (!exportRoles[type] || !hasRole(req.user, exportRoles[type])) {
+      return res.status(403).render('error', {
+        title: 'Access denied',
+        message: 'Your account does not have permission to export this report.',
+        code: 403,
+      });
+    }
     if (type === 'staff') {
       const rows = await prisma.employee.findMany({ orderBy: { fullName: 'asc' } });
       return sendCsv(res, '256-logistics-staff.csv',
@@ -533,7 +691,7 @@ router.get('/reports/export/:type', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/reports', webAuth, async (req, res) => {
+router.get('/reports', webAuth, requireRoles(...reportsRoles), async (req, res) => {
   try {
     const [employees, sponsored, vehicles, vor, defects, criticalAlerts, trainingIncomplete, missedChecks] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
@@ -553,7 +711,7 @@ router.get('/reports', webAuth, async (req, res) => {
 });
 
 // ── User Management ─────────────────────────────────────
-router.get('/audit-evidence', webAuth, async (req, res) => {
+router.get('/audit-evidence', webAuth, requireRoles(...evidenceRoles), async (req, res) => {
   try {
     const [employees, sponsored, missingRtw, missingContracts, openDefects, activeVor, pmiOverdue, criticalAlerts, unsignedToolbox, recentAudit] = await Promise.all([
       prisma.employee.count({ where: { employmentStatus: 'active' } }),
@@ -581,9 +739,8 @@ router.get('/audit-evidence', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/settings', webAuth, async (req, res) => {
+router.get('/settings', webAuth, requireRoles('director'), async (req, res) => {
   try {
-    if (req.user.role !== 'director') return res.redirect('/');
     res.render('settings/index', {
       title: 'Settings',
       config: {
@@ -600,9 +757,8 @@ router.get('/settings', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/users', webAuth, async (req, res) => {
+router.get('/users', webAuth, requireRoles('director'), async (req, res) => {
   try {
-    if (req.user.role !== 'director') return res.redirect('/');
     const users = await prisma.user.findMany({
       select: { id: true, email: true, role: true, firstName: true, lastName: true,
         isActive: true, lastLoginAt: true },
@@ -612,9 +768,8 @@ router.get('/users', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/migration', webAuth, async (req, res) => {
+router.get('/migration', webAuth, requireRoles('director'), async (req, res) => {
   try {
-    if (req.user.role !== 'director') return res.redirect('/');
     const [employees, users, vehicles] = await Promise.all([
       prisma.employee.count(),
       prisma.user.count(),

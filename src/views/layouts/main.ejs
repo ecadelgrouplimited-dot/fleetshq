@@ -13,6 +13,16 @@
 
 <!-- ── Sidebar ─────────────────────────────────────────── -->
 <aside class="sidebar">
+  <% const isDirector = user.role === 'director'; %>
+  <% const isTransport = user.role === 'transport_manager'; %>
+  <% const isHr = user.role === 'hr_manager'; %>
+  <% const isOps = user.role === 'operations_manager'; %>
+  <% const isDriver = user.role === 'driver'; %>
+  <% const canSeePeople = isDirector || isTransport || isHr || isOps; %>
+  <% const canSeeSponsored = isDirector || isTransport || isHr; %>
+  <% const canSeeFleet = isDirector || isTransport || isOps; %>
+  <% const canSeeCompliance = isDirector || isTransport || isHr || isOps; %>
+  <% const canSeeAuditEvidence = isDirector || isTransport || isHr; %>
 
   <div class="sidebar-brand">
     <div class="sidebar-brand-inner">
@@ -29,13 +39,42 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">Overview</div>
     <nav>
-      <a href="/" class="<%= title === 'Dashboard' ? 'active' : '' %>">
+      <a href="/" class="<%= ['Dashboard', 'My Dashboard'].includes(title) ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-        Dashboard
+        <%= isDriver ? 'My Dashboard' : 'Dashboard' %>
       </a>
     </nav>
   </div>
 
+  <% if (isDriver) { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">My Work</div>
+    <nav>
+      <a href="/employees/<%= user.employeeId %>" class="<%= title === user.name ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A10.969 10.969 0 0112 15c2.236 0 4.315.669 6.034 1.816M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        My Profile
+      </a>
+      <a href="/training" class="<%= title === 'My Training' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+        My Training
+      </a>
+      <a href="/checks" class="<%= title === 'Daily Checks' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+        My Checks
+      </a>
+      <a href="/checks/new" class="<%= title === 'Daily Walk-Around Check' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Submit Check
+      </a>
+      <a href="/defects" class="<%= title === 'Defects & VOR' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        My Defects
+      </a>
+    </nav>
+  </div>
+  <% } %>
+
+  <% if (canSeePeople) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-label">People</div>
     <nav>
@@ -43,17 +82,21 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         People & Compliance
       </a>
+      <% if (canSeeSponsored) { %>
       <a href="/sponsored-workers" class="<%= title === 'Sponsored Workers' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         Sponsored Workers
       </a>
-      <a href="/training" class="<%= title === 'Training & Competency' ? 'active' : '' %>">
+      <% } %>
+      <a href="/training" class="<%= ['Training & Competency', 'My Training'].includes(title) ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-        Training & Competency
+        <%= isDriver ? 'My Training' : 'Training & Competency' %>
       </a>
     </nav>
   </div>
+  <% } %>
 
+  <% if (canSeeFleet) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-label">Fleet</div>
     <nav>
@@ -75,30 +118,37 @@
       </a>
     </nav>
   </div>
+  <% } %>
 
+  <% if (canSeeCompliance) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-label">Compliance</div>
     <nav>
+      <% if (isDirector || isTransport || isOps) { %>
       <a href="/driver-risk" class="<%= title === 'Driver Risk' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         Driver Risk
       </a>
+      <% } %>
+      <% if (canSeeAuditEvidence) { %>
       <a href="/audit-evidence" class="<%= title === 'Audit Evidence Centre' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z"/></svg>
         Audit Evidence
       </a>
+      <% } %>
       <a href="/reports" class="<%= title === 'Reports' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
         Reports
       </a>
     </nav>
   </div>
+  <% } %>
 
-  <% if (user.role === 'director' || user.role === 'transport_manager' || user.role === 'hr_manager') { %>
+  <% if (isDirector || isTransport || isHr) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-label">Admin</div>
     <nav>
-      <% if (user.role === 'director') { %>
+      <% if (isDirector) { %>
       <a href="/users" class="<%= title === 'User Management' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         User Management
@@ -112,14 +162,18 @@
         Settings
       </a>
       <% } %>
+      <% if (isDirector || isTransport) { %>
       <a href="/fleet/new" class="<%= title === 'Add Vehicle' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Add Vehicle
       </a>
+      <% } %>
+      <% if (isDirector || isHr) { %>
       <a href="/employees/new" class="<%= title === 'Add Employee' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
         Add Employee
       </a>
+      <% } %>
     </nav>
   </div>
   <% } %>

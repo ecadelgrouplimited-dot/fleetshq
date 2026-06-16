@@ -1,0 +1,130 @@
+<%- include('../layouts/main', { body: `
+<div class="stat-grid mb-4">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8"/></svg></div>
+    <div><div class="stat-value">${stats.trainingCompletion}%</div><div class="stat-label">Training Complete</div><div class="stat-sub">Keep your records current</div></div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg></div>
+    <div><div class="stat-value">${stats.checksSubmitted}</div><div class="stat-label">Recent Checks</div><div class="stat-sub">Latest 6 submissions</div></div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-7.938 4h15.876c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L2.33 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+    <div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">My Open Defects</div><div class="stat-sub">Track reported issues</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+    <div><div class="stat-value">${stats.unresolvedAlerts}</div><div class="stat-label">My Alerts</div><div class="stat-sub">Things needing attention</div></div>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>My Profile</h3><a class="btn btn-outline btn-sm" href="/employees/${employee.id}">Open Profile</a></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><div class="text-sm text-muted">Name</div><div class="fw-700">${employee.fullName}</div></div>
+        <div><div class="text-sm text-muted">Role</div><div class="fw-700">${employee.jobTitle}</div></div>
+        <div><div class="text-sm text-muted">Department</div><div class="fw-700">${employee.department}</div></div>
+        <div><div class="text-sm text-muted">Status</div><div class="fw-700">${employee.employmentStatus.replace('_', ' ')}</div></div>
+      </div>
+      <hr class="divider">
+      <div>
+        <div class="text-sm text-muted" style="margin-bottom:4px">Assigned Vehicle</div>
+        ${employee.drivingVehicle
+          ? `<div class="vehicle-pill"><strong>${employee.drivingVehicle.registration}</strong><span>${employee.drivingVehicle.make} ${employee.drivingVehicle.model}</span></div>`
+          : '<div class="text-sm text-muted">No vehicle assigned</div>'}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Quick Actions</h3></div>
+    <div class="card-body quick-actions">
+      <a href="/checks/new" class="action-row"><span>Submit today&apos;s walk-around check</span><strong>Open</strong></a>
+      <a href="/checks" class="action-row"><span>Review my submitted checks</span><strong>${checks.length}</strong></a>
+      <a href="/defects" class="action-row"><span>Review my reported defects</span><strong>${defects.length}</strong></a>
+      <a href="/training" class="action-row"><span>Check training and toolbox talks</span><strong>${stats.trainingCompletion}%</strong></a>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>My Alerts</h3></div>
+    <div class="card-body">
+      ${alerts.length === 0 ? '<div class="empty-state"><p>No active alerts for you right now</p></div>' : alerts.map(a => `
+        <div class="alert-item ${a.severity}">
+          <div class="alert-main">${a.title || a.alertType.replace(/_/g, ' ')}</div>
+          <div class="alert-sub">${a.message || 'Please review this item in your workflow.'}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Toolbox Talks</h3></div>
+    <div class="card-body">
+      ${talks.length === 0 ? '<div class="empty-state"><p>No toolbox talks assigned</p></div>' : talks.map(t => `
+        <div class="action-row">
+          <span>${t.topic}</span>
+          <strong>${t.signed ? 'Signed' : 'Pending'}</strong>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 mt-4">
+  <div class="card">
+    <div class="card-header"><h3>Recent Checks</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Vehicle</th><th>Result</th></tr></thead>
+        <tbody>
+          ${checks.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No checks submitted yet</td></tr>' : checks.map(c => {
+            const defectCount = c.items.filter(i => i.status === 'defect_found').length;
+            return `<tr>
+              <td>${formatDate(c.checkDate)}</td>
+              <td>${c.vehicle?.registration || '-'}</td>
+              <td>${c.nilDefect ? '<span class="badge badge-green">Nil defect</span>' : defectCount > 0 ? `<span class="badge badge-amber">${defectCount} defects</span>` : '<span class="badge badge-green">Pass</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Recent Defects</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Reference</th><th>Vehicle</th><th>Status</th></tr></thead>
+        <tbody>
+          ${defects.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No defects reported</td></tr>' : defects.map(d => `
+            <tr>
+              <td><a href="/defects/${d.id}" class="fw-700">${d.referenceNumber}</a></td>
+              <td>${d.vehicle?.registration || '-'}</td>
+              <td><span class="badge ${d.status === 'signed_off' ? 'badge-green' : 'badge-amber'}">${d.status.replace(/_/g, ' ')}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  .quick-actions { display:flex; flex-direction:column; gap:10px; }
+  .action-row { display:flex; align-items:center; justify-content:space-between; text-decoration:none; color:var(--text); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .action-row strong { color:var(--primary); }
+  .vehicle-pill { display:flex; align-items:center; justify-content:space-between; gap:12px; border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#f8fafc; }
+  .vehicle-pill span { color:var(--text-muted); font-size:13px; }
+  .alert-item { border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fff; }
+  .alert-item.critical { border-left-color:#ef4444; }
+  .alert-item.warning { border-left-color:#f59e0b; }
+  .alert-item.notice { border-left-color:#3b82f6; }
+  .alert-main { font-weight:700; margin-bottom:3px; }
+  .alert-sub { color:var(--text-muted); font-size:13px; line-height:1.5; }
+</style>
+` }) %>

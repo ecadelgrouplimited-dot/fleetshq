@@ -1,13 +1,13 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
-  <a href="/employees" class="btn btn-ghost btn-sm">← Back to Employees</a>
+  <a href="${user.role === 'driver' ? '/' : '/employees'}" class="btn btn-ghost btn-sm">${user.role === 'driver' ? 'Back to Dashboard' : '← Back to Employees'}</a>
   <div class="flex gap-2">
     <span class="badge ${emp.employmentStatus === 'active' ? 'badge-green' : emp.employmentStatus === 'terminated' ? 'badge-red' : 'badge-amber'}" style="font-size:13px;padding:6px 12px">
       ${emp.employmentStatus.replace('_',' ')}
     </span>
     ${emp.isSponsored ? '<span class="badge badge-purple" style="font-size:13px;padding:6px 12px">Sponsored Worker</span>' : ''}
     ${emp.isDriver ? '<span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Driver</span>' : ''}
-    <a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>
+    ${['director','hr_manager'].includes(user.role) ? `<a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>` : ''}
     ${['director','hr_manager'].includes(user.role) ? `
       <select class="form-control" style="width:150px;height:32px;padding:4px 10px" onchange="updateEmployeeStatus(this.value)">
         ${[['active','Active'],['on_leave','On Leave'],['suspended','Suspended'],['terminated','Terminated']].map(([v,l]) => `<option value="${v}" ${emp.employmentStatus === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -83,9 +83,9 @@
 <div class="card mb-4">
   <div class="card-header">
     <h3>Employment Documents</h3>
-    <button class="btn btn-primary btn-sm" onclick="document.getElementById('uploadModal').style.display='flex'">
+    ${['director','hr_manager'].includes(user.role) ? `<button class="btn btn-primary btn-sm" onclick="document.getElementById('uploadModal').style.display='flex'">
       + Upload Document
-    </button>
+    </button>` : ''}
   </div>
   <div class="table-wrap">
     <table>
@@ -158,6 +158,7 @@ ${emp.sponsoredWorker ? `
 </div>
 ` : ''}
 
+${['director','hr_manager'].includes(user.role) ? `
 <!-- Upload Document Modal -->
 <div id="uploadModal" class="modal-overlay" style="display:none">
   <div class="modal">
@@ -195,15 +196,19 @@ ${emp.sponsoredWorker ? `
     </form>
   </div>
 </div>
+` : ''}
 <script>
-document.getElementById('uploadForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const fd = new FormData(e.target);
-  const res = await fetch(e.target.action, { method:'POST', body: fd,
-    credentials: 'same-origin' });
-  if (res.ok) { showToast('Document uploaded successfully','success'); document.getElementById('uploadModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
-  else { showToast('Upload failed','error'); }
-});
+const uploadForm = document.getElementById('uploadForm');
+if (uploadForm) {
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const res = await fetch(e.target.action, { method:'POST', body: fd,
+      credentials: 'same-origin' });
+    if (res.ok) { showToast('Document uploaded successfully','success'); document.getElementById('uploadModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
+    else { showToast('Upload failed','error'); }
+  });
+}
 
 async function updateEmployeeStatus(status) {
   const res = await fetch('/api/v1/employees/${emp.id}/status', {
