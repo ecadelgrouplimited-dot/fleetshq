@@ -1,0 +1,112 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-muted">Import spreadsheet rows into the system without developer help</p>
+  <button class="btn btn-ghost" type="button" onclick="downloadTemplate()">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
+    Download Template
+  </button>
+</div>
+
+<div class="stat-grid mb-4">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+    <div><div class="stat-value">${counts.employees}</div><div class="stat-label">Employees</div><div class="stat-sub">Current records</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0A1.724 1.724 0 0015.248 5.6l1.182-.682c1.543-.94 3.31.826 2.37 2.37l-.682 1.182a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.065 2.572l.682 1.182c.94 1.543-.827 3.31-2.37 2.37l-1.182-.682a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.572-1.065l-1.182.682c-1.543.94-3.31-.827-2.37-2.37l.682-1.182a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35A1.724 1.724 0 005.6 8.47l-.682-1.182c-.94-1.543.827-3.31 2.37-2.37l1.182.682a1.724 1.724 0 002.572-1.065z"/></svg></div>
+    <div><div class="stat-value">${counts.users}</div><div class="stat-label">Users</div><div class="stat-sub">System accounts</div></div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7"/></svg></div>
+    <div><div class="stat-value">${counts.vehicles}</div><div class="stat-label">Vehicles</div><div class="stat-sub">Fleet records</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header">
+      <h3>Import Data</h3>
+      <span class="badge badge-blue" id="rowCount">0 rows</span>
+    </div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Record Type</label>
+        <select class="form-control" id="entityType" onchange="loadTemplate()">
+          <option value="employees">Employees</option>
+          <option value="users">Users</option>
+          <option value="vehicles">Vehicles</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CSV Rows</label>
+        <textarea class="form-control" id="csvInput" rows="16" spellcheck="false" style="font-family:ui-monospace,monospace;font-size:12px;line-height:1.5"></textarea>
+        <div class="form-hint">Paste from Excel or Google Sheets after saving/copying as CSV. Existing users are matched by email; existing vehicles are matched by registration.</div>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-primary" type="button" onclick="runImport()">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+          Import Rows
+        </button>
+        <button class="btn btn-ghost" type="button" onclick="loadTemplate()">Reset Template</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Import Results</h3>
+      <span class="badge badge-slate" id="resultSummary">Ready</span>
+    </div>
+    <div class="card-body" id="resultPanel">
+      <div class="empty-state">
+        <p>No import has run yet</p>
+        <div class="empty-hint">Choose a record type, paste rows, then import</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const templates = {
+  users: 'email,firstName,lastName,role,phone,password\\ndispatch@256logisticsltd.com,Dispatch,Desk,operations_manager,07700900111,ChangeMe2026!',
+  employees: 'fullName,email,dateOfBirth,homeAddress,phone,jobTitle,department,startDate,contractedHours,salary,workLocation,isDriver,isSponsored\\nJane Driver,jane.driver@256logisticsltd.com,1991-05-20,12 Example Street,07700900112,HGV Driver,Drivers,2026-06-16,45,34000,Main Depot,true,false',
+  vehicles: 'registration,vinNumber,make,model,year,motExpiryDate,insuranceExpiryDate,pmiIntervalWeeks,lastPmiDate,currentMileage,status\\nAB26 CDE,VIN00000000000001,Volvo,FH,2024,2027-06-16,2027-06-16,6,2026-06-01,12500,active'
+};
+
+function countRows() {
+  const rows = document.getElementById('csvInput').value.split(/\\r?\\n/).map(r => r.trim()).filter(Boolean);
+  document.getElementById('rowCount').textContent = Math.max(rows.length - 1, 0) + ' rows';
+}
+
+function loadTemplate() {
+  document.getElementById('csvInput').value = templates[document.getElementById('entityType').value];
+  countRows();
+}
+
+function downloadTemplate() {
+  const entity = document.getElementById('entityType').value;
+  const blob = new Blob([templates[entity]], { type: 'text/csv;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '256-logistics-' + entity + '-template.csv';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function runImport() {
+  const entity = document.getElementById('entityType').value;
+  const csv = document.getElementById('csvInput').value;
+  const res = await apiCall('POST', '/api/v1/migration/import', { entity, csv });
+  const summary = res.data.summary;
+  const results = res.data.results;
+  document.getElementById('resultSummary').textContent = summary.created + ' created, ' + summary.updated + ' updated, ' + summary.failed + ' failed';
+  document.getElementById('resultPanel').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Line</th><th>Status</th><th>Record</th><th>Message</th></tr></thead><tbody>' +
+    results.map(r => '<tr><td>' + r.line + '</td><td><span class="badge ' + (r.status === 'failed' ? 'badge-red' : r.status === 'updated' ? 'badge-blue' : 'badge-green') + '">' + r.status + '</span></td><td class="fw-600">' + (r.key || '-') + '</td><td class="cell-muted">' + (r.message || '-') + '</td></tr>').join('') +
+    '</tbody></table></div>';
+  showToast('Import complete: ' + summary.created + ' created, ' + summary.updated + ' updated, ' + summary.failed + ' failed', summary.failed ? 'warning' : 'success');
+}
+
+document.getElementById('csvInput').addEventListener('input', countRows);
+loadTemplate();
+</script>
+` }) %>

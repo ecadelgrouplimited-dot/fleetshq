@@ -420,8 +420,68 @@ router.get('/driver-risk', webAuth, async (req, res) => {
 });
 
 // ── Reports ────────────────────────────────────────────
+const csvValue = (value) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const sendCsv = (res, filename, headers, rows) => {
+  const csv = [headers.map(csvValue).join(',')]
+    .concat(rows.map(row => headers.map(header => csvValue(row[header])).join(',')))
+    .join('\n');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  return res.send(csv);
+};
+
+router.get('/reports/export/:type', webAuth, async (req, res) => {
+  try {
+    const { type } = req.params;
+    if (type === 'staff') {
+      const rows = await prisma.employee.findMany({ orderBy: { fullName: 'asc' } });
+      return sendCsv(res, '256-logistics-staff.csv',
+        ['fullName', 'email', 'phone', 'jobTitle', 'department', 'employmentStatus', 'isDriver', 'isSponsored', 'startDate'],
+        rows.map(r => ({ ...r, startDate: formatDate(r.startDate) })));
+    }
+    if (type === 'fleet') {
+      const rows = await prisma.vehicle.findMany({ include: { assignedDriver: { select: { fullName: true } } }, orderBy: { registration: 'asc' } });
+      return sendCsv(res, '256-logistics-fleet.csv',
+        ['registration', 'make', 'model', 'year', 'status', 'assignedDriver', 'motExpiryDate', 'insuranceExpiryDate', 'nextPmiDate'],
+        rows.map(r => ({ ...r, assignedDriver: r.assignedDriver?.fullName || '', motExpiryDate: formatDate(r.motExpiryDate), insuranceExpiryDate: formatDate(r.insuranceExpiryDate), nextPmiDate: formatDate(r.nextPmiDate) })));
+    }
+    if (type === 'defects') {
+      const rows = await prisma.defectCase.findMany({ include: { vehicle: { select: { registration: true } }, reportedBy: { select: { fullName: true } } }, orderBy: { reportedAt: 'desc' } });
+      return sendCsv(res, '256-logistics-defects.csv',
+        ['referenceNumber', 'vehicle', 'reportedBy', 'severity', 'status', 'defectCategory', 'reportedAt', 'description'],
+        rows.map(r => ({ ...r, vehicle: r.vehicle.registration, reportedBy: r.reportedBy.fullName, reportedAt: formatDate(r.reportedAt) })));
+    }
+    if (type === 'sponsored') {
+      const rows = await prisma.sponsoredWorker.findMany({ include: { employee: { select: { fullName: true, email: true, employmentStatus: true } } }, orderBy: { employee: { fullName: 'asc' } } });
+      return sendCsv(res, '256-logistics-sponsored-workers.csv',
+        ['employee', 'email', 'cosNumber', 'socCode', 'sponsoredJobTitle', 'salaryOnCos', 'actualSalary', 'visaExpiryDate', 'rightToWorkFollowupDate', 'employmentStatus'],
+        rows.map(r => ({ ...r, employee: r.employee.fullName, email: r.employee.email, visaExpiryDate: formatDate(r.visaExpiryDate), rightToWorkFollowupDate: formatDate(r.rightToWorkFollowupDate), employmentStatus: r.employee.employmentStatus })));
+    }
+    return res.status(404).render('error', { title: 'Not Found', message: 'Report export not found.', code: 404 });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 router.get('/reports', webAuth, async (req, res) => {
-  res.render('reports/index', { title: 'Reports' });
+  try {
+    const [employees, sponsored, vehicles, vor, defects, criticalAlerts, trainingIncomplete, missedChecks] = await Promise.all([
+      prisma.employee.count({ where: { employmentStatus: 'active' } }),
+      prisma.employee.count({ where: { employmentStatus: 'active', isSponsored: true } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' } } }),
+      prisma.vehicle.count({ where: { status: 'vor' } }),
+      prisma.defectCase.count({ where: { status: { not: 'signed_off' } } }),
+      prisma.alert.count({ where: { severity: 'critical', isResolved: false } }),
+      prisma.alert.count({ where: { alertType: 'induction_incomplete', isResolved: false } }),
+      prisma.alert.count({ where: { alertType: 'missed_check', isResolved: false } }),
+    ]);
+    res.render('reports/index', {
+      title: 'Reports',
+      stats: { employees, sponsored, vehicles, vor, defects, criticalAlerts, trainingIncomplete, missedChecks },
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
 // ── User Management ─────────────────────────────────────
@@ -434,6 +494,18 @@ router.get('/users', webAuth, async (req, res) => {
       orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
     });
     res.render('users/index', { title: 'User Management', users, formatDate });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/migration', webAuth, async (req, res) => {
+  try {
+    if (req.user.role !== 'director') return res.redirect('/');
+    const [employees, users, vehicles] = await Promise.all([
+      prisma.employee.count(),
+      prisma.user.count(),
+      prisma.vehicle.count(),
+    ]);
+    res.render('migration/index', { title: 'Migration Center', counts: { employees, users, vehicles } });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

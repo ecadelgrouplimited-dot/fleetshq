@@ -1,10 +1,20 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
-  <p class="text-sm text-muted">${users.length} system users</p>
+  <p class="text-sm text-muted"><span id="visibleUserCount">${users.length}</span> of ${users.length} system users</p>
   <button class="btn btn-primary" onclick="document.getElementById('addUserModal').style.display='flex'">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
     Add User
   </button>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body" style="padding:14px 20px;display:grid;grid-template-columns:1fr 180px;gap:12px;align-items:end">
+    <div>
+      <label class="form-label">Search users</label>
+      <input class="form-control" data-live-search="#usersTableBody" data-live-count="#visibleUserCount" data-live-empty="#noUsersFound" placeholder="Name, email, role, status...">
+    </div>
+    <button class="btn btn-ghost" type="button" onclick="document.querySelector('[data-live-search]').value='';document.querySelector('[data-live-search]').dispatchEvent(new Event('input'))">Clear</button>
+  </div>
 </div>
 
 <div class="card">
@@ -13,9 +23,9 @@
       <thead>
         <tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
       </thead>
-      <tbody>
+      <tbody id="usersTableBody">
         ${users.map(u => `
-          <tr>
+          <tr data-search-row data-search-text="${`${u.firstName} ${u.lastName} ${u.email} ${u.role} ${u.isActive ? 'active' : 'inactive'}`.toLowerCase()}">
             <td>
               <div style="display:flex;align-items:center;gap:10px">
                 <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${u.firstName.charAt(0)}</div>
@@ -39,6 +49,14 @@
             </td>
           </tr>
         `).join('')}
+        <tr id="noUsersFound" style="display:none">
+          <td colspan="6">
+            <div class="empty-state">
+              <p>No users match your search</p>
+              <div class="empty-hint">Clear the search to see everyone again</div>
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -90,8 +108,6 @@
 </div>
 
 <script>
-const token = () => (document.cookie.match(/token=([^;]+)/)||[])[1];
-
 async function createUser() {
   const body = {
     firstName: document.getElementById('uFirstName').value,
@@ -101,7 +117,7 @@ async function createUser() {
     role: document.getElementById('uRole').value,
   };
   const res = await fetch('/api/v1/users', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
+    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (res.ok) { showToast('User created successfully', 'success'); setTimeout(() => location.reload(), 1200); }
@@ -111,7 +127,7 @@ async function createUser() {
 
 async function toggleUser(id, active) {
   const res = await fetch('/api/v1/users/' + id, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token() },
+    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ isActive: active }),
   });
   if (res.ok) { showToast(active ? 'User reactivated' : 'User deactivated', 'success'); setTimeout(() => location.reload(), 1000); }

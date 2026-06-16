@@ -2,7 +2,7 @@
 <!-- Page header -->
 <div class="flex items-center justify-between mb-6">
   <div>
-    <p class="text-sm text-muted">${employees.length} employee${employees.length !== 1 ? 's' : ''} · filtered results</p>
+    <p class="text-sm text-muted"><span id="visibleEmployeeCount">${employees.length}</span> of ${employees.length} employee${employees.length !== 1 ? 's' : ''} · filtered results</p>
   </div>
   <a href="/employees/new" class="btn btn-primary">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -16,7 +16,7 @@
     <form method="GET" action="/employees" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
       <div style="flex:1;min-width:200px">
         <label class="form-label">Search employees</label>
-        <input class="form-control" name="search" placeholder="Name or job title…" value="${filters.search || ''}">
+        <input class="form-control" name="search" data-live-search="#employeesTableBody" data-live-count="#visibleEmployeeCount" data-live-empty="#noEmployeesFound" placeholder="Name, role, department, vehicle…" value="${filters.search || ''}">
       </div>
       <div style="min-width:140px">
         <label class="form-label">Status</label>
@@ -55,9 +55,9 @@
           <th>Status</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="employeesTableBody">
         ${employees.length === 0 ? `
-          <tr>
+          <tr data-search-row data-search-text="${`${e.fullName} ${e.jobTitle} ${e.department} ${e.email || ''} ${e.drivingVehicle?.registration || ''} ${e.employmentStatus} ${e.isDriver ? 'driver' : ''} ${e.isSponsored ? 'sponsored' : ''}`.toLowerCase()}">
             <td colspan="7">
               <div class="empty-state">
                 <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
@@ -102,6 +102,14 @@
             </td>
           </tr>
         `).join('')}
+        <tr id="noEmployeesFound" style="display:none">
+          <td colspan="7">
+            <div class="empty-state">
+              <p>No employees match your search</p>
+              <div class="empty-hint">Clear the search or adjust filters</div>
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>

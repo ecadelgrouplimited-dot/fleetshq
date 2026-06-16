@@ -16,6 +16,7 @@ const defectsCtrl = require('../controllers/defects.controller');
 const vorCtrl = require('../controllers/vor.controller');
 const alertsCtrl = require('../controllers/alerts.controller');
 const usersCtrl  = require('../controllers/users.controller');
+const migrationCtrl = require('../controllers/migration.controller');
 
 // ── Auth ─────────────────────────────────────────────
 router.post('/auth/login', authCtrl.login);
@@ -106,5 +107,8 @@ router.get('/users',              authenticate, authorize('users:manage'), users
 router.post('/users',             authenticate, authorize('users:manage'), usersCtrl.create);
 router.put('/users/:id',          authenticate, authorize('users:manage'), usersCtrl.update);
 router.post('/users/:id/reset-password', authenticate, authorize('users:manage'), usersCtrl.resetPassword);
+
+// ── Migration Center ───────────────────────────────────────────────
+router.post('/migration/import', authenticate, authorize('users:manage'), migrationCtrl.importCsv);
 
 module.exports = router;

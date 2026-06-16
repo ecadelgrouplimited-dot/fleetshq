@@ -25,12 +25,11 @@ function showToast(message, type) {
 
 // ── Generic authenticated API fetch ───────────────────────────────────
 function apiCall(method, url, body) {
-  var token = (document.cookie.match(/token=([^;]+)/) || [])[1] || '';
   var opts = {
     method: method,
+    credentials: 'same-origin',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + token
+      'Content-Type': 'application/json'
     }
   };
   if (body) opts.body = JSON.stringify(body);
@@ -55,5 +54,27 @@ document.addEventListener('DOMContentLoaded', function() {
     if (href === path || (href !== '/' && path.startsWith(href))) {
       a.classList.add('active');
     }
+  });
+
+  document.querySelectorAll('[data-live-search]').forEach(function(input) {
+    var target = document.querySelector(input.getAttribute('data-live-search'));
+    var countTarget = document.querySelector(input.getAttribute('data-live-count') || '');
+    if (!target) return;
+    var rows = Array.from(target.querySelectorAll('[data-search-row]'));
+    var empty = document.querySelector(input.getAttribute('data-live-empty') || '');
+    var update = function() {
+      var q = input.value.trim().toLowerCase();
+      var visible = 0;
+      rows.forEach(function(row) {
+        var text = (row.getAttribute('data-search-text') || row.textContent || '').toLowerCase();
+        var match = !q || text.indexOf(q) !== -1;
+        row.style.display = match ? '' : 'none';
+        if (match) visible += 1;
+      });
+      if (countTarget) countTarget.textContent = String(visible);
+      if (empty) empty.style.display = visible ? 'none' : '';
+    };
+    input.addEventListener('input', update);
+    update();
   });
 });

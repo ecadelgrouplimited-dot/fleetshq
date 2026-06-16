@@ -1,9 +1,19 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
-  <p class="text-sm text-muted">${vehicles.length} vehicles in fleet</p>
+  <p class="text-sm text-muted"><span id="visibleVehicleCount">${vehicles.length}</span> of ${vehicles.length} vehicles in fleet</p>
   <div class="flex gap-2">
     <a href="/fleet/pmi-planner" class="btn btn-outline btn-sm">PMI Planner</a>
     <a href="/vor" class="btn btn-ghost btn-sm">VOR Records</a>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body" style="padding:14px 20px;display:grid;grid-template-columns:1fr 160px;gap:12px;align-items:end">
+    <div>
+      <label class="form-label">Search fleet</label>
+      <input class="form-control" data-live-search="#vehiclesTableBody" data-live-count="#visibleVehicleCount" data-live-empty="#noVehiclesFound" placeholder="Registration, make, model, driver, status...">
+    </div>
+    <button class="btn btn-ghost" type="button" onclick="document.querySelector('[data-live-search]').value='';document.querySelector('[data-live-search]').dispatchEvent(new Event('input'))">Clear</button>
   </div>
 </div>
 
@@ -38,9 +48,9 @@
           <th>Next PMI</th><th>Insurance</th><th>Defects</th><th>Status</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="vehiclesTableBody">
         ${vehicles.map(v => `
-        <tr>
+        <tr data-search-row data-search-text="${`${v.registration} ${v.make} ${v.model} ${v.year} ${v.assignedDriver?.fullName || ''} ${v.status}`.toLowerCase()}">
           <td>
             <a href="/fleet/${v.id}" class="reg-link">${v.registration}</a>
             <div class="cell-muted" style="margin-top:2px">${v.year} ${v.make} ${v.model}</div>
@@ -76,6 +86,14 @@
             </span>
           </td>
         </tr>`).join('')}
+        <tr id="noVehiclesFound" style="display:none">
+          <td colspan="7">
+            <div class="empty-state">
+              <p>No vehicles match your search</p>
+              <div class="empty-hint">Clear the search to restore the fleet list</div>
+            </div>
+          </td>
+        </tr>
       </tbody>
     </table>
   </div>

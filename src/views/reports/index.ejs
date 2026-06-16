@@ -1,46 +1,85 @@
 <%- include('../layouts/main', { body: `
-<div class="grid-3">
-  <div class="card">
-    <div class="card-header"><h3>Home Office Reports</h3></div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-      ${[['Staff List','Staff list with employment status'],['Sponsored Worker Records','All sponsored worker details'],['Right to Work Report','RTW check dates and expiry'],['Absence Report','Absence records last 12 months'],['Audit Pack Status','Home Office audit pack completeness']].map(([name, desc]) => `
-        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
-          <div style="font-size:12px;color:#64748b">${desc}</div>
+<div class="stat-grid mb-4">
+  <a class="stat-card blue" href="/employees">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+    <div><div class="stat-value">${stats.employees}</div><div class="stat-label">Active Staff</div><div class="stat-sub">${stats.sponsored} sponsored workers</div></div>
+  </a>
+  <a class="stat-card amber" href="/fleet">
+    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7"/></svg></div>
+    <div><div class="stat-value">${stats.vehicles}</div><div class="stat-label">Fleet Records</div><div class="stat-sub">${stats.vor} vehicles off road</div></div>
+  </a>
+  <a class="stat-card red" href="/defects">
+    <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></div>
+    <div><div class="stat-value">${stats.defects}</div><div class="stat-label">Open Defects</div><div class="stat-sub">${stats.criticalAlerts} critical alerts</div></div>
+  </a>
+  <a class="stat-card green" href="/training">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253"/></svg></div>
+    <div><div class="stat-value">${stats.trainingIncomplete}</div><div class="stat-label">Training Actions</div><div class="stat-sub">${stats.missedChecks} missed check alerts</div></div>
+  </a>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Export Packs</h3>
+    <span class="badge badge-blue">CSV ready</span>
+  </div>
+  <div class="card-body report-grid">
+    ${[
+      ['Staff List', 'Employee, role, department, status and contact details.', '/reports/export/staff', 'Home Office'],
+      ['Sponsored Workers', 'CoS, SOC, salary, visa and Right to Work follow-up dates.', '/reports/export/sponsored', 'Home Office'],
+      ['Fleet Register', 'Vehicle, driver, MOT, insurance, PMI and status records.', '/reports/export/fleet', 'DVSA'],
+      ['Defect Register', 'Defect references, vehicles, severity, status and descriptions.', '/reports/export/defects', 'DVSA']
+    ].map(([name, desc, href, pack]) => `
+      <div class="report-tile">
+        <div>
+          <span class="badge ${pack === 'DVSA' ? 'badge-amber' : 'badge-purple'}">${pack}</span>
+          <h4>${name}</h4>
+          <p>${desc}</p>
         </div>
+        <a class="btn btn-primary btn-sm" href="${href}">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
+          Export
+        </a>
+      </div>
+    `).join('')}
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Management Focus</h3></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      ${[
+        ['Critical alerts', stats.criticalAlerts, '/'],
+        ['Open defects', stats.defects, '/defects'],
+        ['Vehicles off road', stats.vor, '/vor'],
+        ['Incomplete inductions', stats.trainingIncomplete, '/training']
+      ].map(([label, value, href]) => `
+        <a href="${href}" class="action-row">
+          <span>${label}</span>
+          <strong>${value}</strong>
+        </a>
       `).join('')}
     </div>
   </div>
-
   <div class="card">
-    <div class="card-header"><h3>DVSA Reports</h3></div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-      ${[['Fleet List','All vehicles with compliance status'],['PMI Planner','PMI schedule for all vehicles'],['PMI History','Completed PMI records last 12 months'],['Defect Report','All defect cases and outcomes'],['VOR History','VOR records and durations'],['Daily Walk-Around Checks','Check records last 28 days']].map(([name, desc]) => `
-        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
-          <div style="font-size:12px;color:#64748b">${desc}</div>
-        </div>
-      `).join('')}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header"><h3>Management Reports</h3></div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
-      ${[['Compliance Score','Live compliance score breakdown'],['Overdue Actions','All overdue compliance items'],['Driver Risk Ranking','Drivers ranked by risk level'],['Monthly Summary','Monthly compliance summary report']].map(([name, desc]) => `
-        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
-          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
-          <div style="font-size:12px;color:#64748b">${desc}</div>
-        </div>
-      `).join('')}
+    <div class="card-header"><h3>Migration Tools</h3></div>
+    <div class="card-body">
+      <p class="text-sm text-muted" style="line-height:1.6;margin-bottom:16px">Use the Migration Center to paste CSV rows from existing spreadsheets and import users, staff and vehicles. It updates matching records where possible and reports row-level errors.</p>
+      <a class="btn btn-outline" href="/migration">Open Migration Center</a>
     </div>
   </div>
 </div>
 
-<div class="card" style="margin-top:20px">
-  <div class="card-body" style="text-align:center;padding:32px;color:#64748b">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:48px;height:48px;margin:0 auto 12px;opacity:.4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-    <p style="font-size:14px">PDF export available in Phase 2 — all reports viewable via API now</p>
-  </div>
-</div>
+<style>
+  .report-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px; }
+  .report-tile { border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:138px; }
+  .report-tile h4 { font-size:15px;font-weight:800;margin:12px 0 6px;color:var(--text); }
+  .report-tile p { color:var(--text-muted);font-size:12.5px;line-height:1.5;max-width:420px; }
+  .action-row { display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px 14px; }
+  .action-row:hover { border-color:var(--primary);background:#eff6ff; }
+  .action-row span { font-weight:600; }
+  .action-row strong { font-size:18px;color:var(--primary); }
+  @media (max-width:900px){ .report-grid { grid-template-columns:1fr; } }
+</style>
 ` }) %>
