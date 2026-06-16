@@ -1,0 +1,82 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <div class="flex gap-2">
+    <a href="/defects" class="btn btn-sm ${!filters.status && !filters.severity ? 'btn-primary' : 'btn-ghost'}">All Open</a>
+    <a href="/defects?status=reported" class="btn btn-sm ${filters.status === 'reported' ? 'btn-primary' : 'btn-ghost'}">Reported</a>
+    <a href="/defects?status=under_review" class="btn btn-sm ${filters.status === 'under_review' ? 'btn-primary' : 'btn-ghost'}">Under Review</a>
+    <a href="/defects?status=repair_booked" class="btn btn-sm ${filters.status === 'repair_booked' ? 'btn-primary' : 'btn-ghost'}">In Repair</a>
+    <a href="/defects?severity=dangerous" class="btn btn-sm btn-danger-soft ${filters.severity === 'dangerous' ? 'active' : ''}">&#9888; Dangerous</a>
+  </div>
+  <a href="/vor" class="btn btn-outline btn-sm">VOR Records</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Reference</th><th>Vehicle</th><th>Reported By</th>
+          <th>Category</th><th>Severity</th><th>Status</th>
+          <th>Days Open</th><th>Vehicle OK?</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${defects.length === 0 ? `
+          <tr><td colspan="8">
+            <div class="empty-state">
+              <div class="empty-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </div>
+              <p>No open defects found</p>
+              <div class="empty-hint">All defects may be closed or use a different filter</div>
+            </div>
+          </td></tr>
+        ` : defects.map(d => `
+          <tr class="${d.severity === 'dangerous' ? 'row-danger' : ''}">
+            <td>
+              <a href="/defects/${d.id}" class="mono-ref">${d.referenceNumber}</a>
+            </td>
+            <td><span class="badge badge-slate mono-sm">${d.vehicle ? d.vehicle.registration : '—'}</span></td>
+            <td class="cell-muted">${d.reportedBy ? d.reportedBy.fullName : '—'}</td>
+            <td class="fw-600">${d.defectCategory}</td>
+            <td>
+              <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">
+                ${d.severity === 'dangerous' ? '&#9888; DANGEROUS' : d.severity === 'serious' ? '&#9889; Serious' : 'Minor'}
+              </span>
+            </td>
+            <td>
+              <span class="badge ${d.status === 'reported' ? 'badge-red' : d.status === 'under_review' ? 'badge-amber' : d.status === 'signed_off' ? 'badge-green' : 'badge-blue'}">
+                ${d.status.replace(/_/g, ' ')}
+              </span>
+            </td>
+            <td>
+              <span class="days-chip ${d.daysOpen > 7 ? 'days-critical' : d.daysOpen > 3 ? 'days-warn' : 'days-ok'}">
+                ${d.daysOpen}d
+              </span>
+            </td>
+            <td>
+              ${d.vehicleAllowedToContinue
+                ? '<span class="badge badge-green">&#10003; Yes</span>'
+                : '<span class="badge badge-red">&#9940; VOR</span>'}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .row-danger td { background: rgba(239,68,68,.025); }
+  .mono-ref { font-family: ui-monospace, monospace; font-size: 12.5px; font-weight: 700; letter-spacing: -.3px; }
+  .mono-sm  { font-family: ui-monospace, monospace; font-size: 11.5px; }
+  .days-chip { display:inline-block; padding:3px 10px; border-radius:100px; font-size:12px; font-weight:700; }
+  .days-critical { background:#fef2f2; color:#dc2626; }
+  .days-warn     { background:#fffbeb; color:#d97706; }
+  .days-ok       { background:#f8fafc; color:#475569; }
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; }
+  .btn-danger-soft.active { background:#ef4444; color:#fff; border-color:#ef4444; }
+</style>
+` }) %>

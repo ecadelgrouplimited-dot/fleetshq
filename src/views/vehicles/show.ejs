@@ -1,0 +1,169 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
+  <span class="badge ${vehicle.status === 'active' ? 'badge-green' : vehicle.status === 'vor' ? 'badge-red' : 'badge-slate'}" style="font-size:14px;padding:6px 14px">
+    ${vehicle.status.toUpperCase()}
+  </span>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Vehicle Profile</h3></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        ${[
+          ['Registration', vehicle.registration],
+          ['Make & Model', vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model],
+          ['VIN', vehicle.vinNumber],
+          ['Operator Licence Disc', vehicle.operatorLicenceDisc || '—'],
+          ['Assigned Driver', vehicle.assignedDriver?.fullName || 'Unassigned'],
+          ['Current Mileage', vehicle.currentMileage?.toLocaleString() + ' miles'],
+          ['PMI Interval', 'Every ' + vehicle.pmiIntervalWeeks + ' weeks'],
+          ['Last PMI', formatDate(vehicle.lastPmiDate)],
+        ].map(([k, v]) => `
+          <div><div class="text-sm text-muted" style="margin-bottom:3px">${k}</div><div style="font-weight:600;font-size:13.5px">${v}</div></div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Compliance Dates</h3></div>
+    <div class="card-body">
+      ${[
+        { label: 'Next PMI', date: vehicle.nextPmiDate, days: daysUntil(vehicle.nextPmiDate), critical: 14 },
+        { label: 'MOT Expiry', date: vehicle.motExpiryDate, days: daysUntil(vehicle.motExpiryDate), critical: 14 },
+        { label: 'Insurance Expiry', date: vehicle.insuranceExpiryDate, days: daysUntil(vehicle.insuranceExpiryDate), critical: 14 },
+        { label: 'Tacho Calibration', date: vehicle.tachoCalibrExpiry, days: daysUntil(vehicle.tachoCalibrExpiry), critical: 30 },
+      ].map(item => {
+        const status = !item.date ? 'slate' : item.days < 0 ? 'danger' : item.days <= item.critical ? 'warning' : 'ok';
+        const color = status === 'danger' ? '#dc2626' : status === 'warning' ? '#d97706' : '#10b981';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+            <div style="font-size:13px;font-weight:500">${item.label}</div>
+            <div style="text-align:right">
+              <div style="font-weight:700;font-size:13px;color:${color}">${formatDate(item.date)}</div>
+              ${item.days !== null ? `<div style="font-size:11px;color:${color}">${item.days < 0 ? 'OVERDUE by ' + Math.abs(item.days) + 'd' : item.days + ' days remaining'}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  </div>
+</div>
+
+${vehicle.defects?.length > 0 ? `
+<div class="card mb-4">
+  <div class="card-header"><h3 style="color:#dc2626">Open Defects (${vehicle.defects.length})</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Reference</th><th>Category</th><th>Severity</th><th>Status</th><th>Reported By</th><th></th></tr></thead>
+      <tbody>
+        ${vehicle.defects.map(d => `
+          <tr>
+            <td><a href="/defects/${d.id}" style="font-weight:700">${d.referenceNumber}</a></td>
+            <td>${d.defectCategory}</td>
+            <td><span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span></td>
+            <td><span class="badge badge-blue">${d.status.replace(/_/g,' ')}</span></td>
+            <td>${d.reportedBy?.fullName}</td>
+            <td><a href="/defects/${d.id}" class="btn btn-ghost btn-sm">View</a></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+` : ''}
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Maintenance Documents</h3>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('docModal').style.display='flex'">+ Upload</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Type</th><th>File</th><th>Document Date</th><th>Expiry</th><th>Uploaded</th></tr></thead>
+      <tbody>
+        ${vehicle.documents.length === 0
+          ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:#64748b">No documents uploaded</td></tr>`
+          : vehicle.documents.map(d => `
+            <tr>
+              <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
+              <td style="color:#64748b;font-size:12px">${d.fileName}</td>
+              <td>${formatDate(d.documentDate)}</td>
+              <td>${formatDate(d.expiryDate)}</td>
+              <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
+            </tr>
+          `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Recent Daily Checks (Last 7)</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Driver</th><th>Mileage</th><th>Result</th></tr></thead>
+      <tbody>
+        ${vehicle.checks.length === 0
+          ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No checks recorded</td></tr>`
+          : vehicle.checks.map(c => {
+              const defects = c.items.filter(i => i.status === 'defect_found').length;
+              return `<tr>
+                <td style="font-weight:500">${formatDate(c.checkDate)}</td>
+                <td>${c.driver?.fullName || '—'}</td>
+                <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
+                <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defects > 0 ? `<span class="badge badge-amber">${defects} defect(s)</span>` : '<span class="badge badge-green">Pass</span>'}</td>
+              </tr>`;
+            }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Document Upload Modal -->
+<div id="docModal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Upload Maintenance Document</h3>
+      <button onclick="document.getElementById('docModal').style.display='none'" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <form id="vehDocForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Document Type</label>
+          <select class="form-control" name="documentType">
+            ${['pmi_sheet','brake_test','mot_certificate','service_invoice','repair_invoice','tyre_report','tacho_certificate','safety_inspection','roadside_inspection','prohibition_notice','rectification_evidence','other']
+              .map(t => `<option value="${t}">${t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Document Date</label>
+          <input class="form-control" type="date" name="documentDate" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">File</label>
+          <input class="form-control" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="document.getElementById('docModal').style.display='none'" class="btn btn-ghost">Cancel</button>
+        <button type="button" onclick="uploadVehDoc()" class="btn btn-primary">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+async function uploadVehDoc() {
+  const form = document.getElementById('vehDocForm');
+  const fd = new FormData(form);
+  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  const res = await fetch('/api/v1/vehicles/${vehicle.id}/documents', { method:'POST', body: fd,
+    headers:{'Authorization':'Bearer '+token} });
+  if (res.ok) { showToast('Document uploaded','success'); document.getElementById('docModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
+  else { showToast('Upload failed','error'); }
+}
+</script>
+` }) %>

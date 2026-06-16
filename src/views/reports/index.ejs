@@ -1,0 +1,46 @@
+<%- include('../layouts/main', { body: `
+<div class="grid-3">
+  <div class="card">
+    <div class="card-header"><h3>Home Office Reports</h3></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      ${[['Staff List','Staff list with employment status'],['Sponsored Worker Records','All sponsored worker details'],['Right to Work Report','RTW check dates and expiry'],['Absence Report','Absence records last 12 months'],['Audit Pack Status','Home Office audit pack completeness']].map(([name, desc]) => `
+        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
+          <div style="font-size:12px;color:#64748b">${desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>DVSA Reports</h3></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      ${[['Fleet List','All vehicles with compliance status'],['PMI Planner','PMI schedule for all vehicles'],['PMI History','Completed PMI records last 12 months'],['Defect Report','All defect cases and outcomes'],['VOR History','VOR records and durations'],['Daily Walk-Around Checks','Check records last 28 days']].map(([name, desc]) => `
+        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
+          <div style="font-size:12px;color:#64748b">${desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Management Reports</h3></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      ${[['Compliance Score','Live compliance score breakdown'],['Overdue Actions','All overdue compliance items'],['Driver Risk Ranking','Drivers ranked by risk level'],['Monthly Summary','Monthly compliance summary report']].map(([name, desc]) => `
+        <div style="padding:12px;border:1px solid #e2e8f0;border-radius:8px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:3px">${name}</div>
+          <div style="font-size:12px;color:#64748b">${desc}</div>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <div class="card-body" style="text-align:center;padding:32px;color:#64748b">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:48px;height:48px;margin:0 auto 12px;opacity:.4"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    <p style="font-size:14px">PDF export available in Phase 2 — all reports viewable via API now</p>
+  </div>
+</div>
+` }) %>

@@ -1,0 +1,582 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────
+
+enum UserRole {
+  director
+  transport_manager
+  hr_manager
+  operations_manager
+  driver
+  garage
+}
+
+enum EmploymentStatus {
+  active
+  on_leave
+  suspended
+  terminated
+}
+
+enum VehicleStatus {
+  active
+  vor
+  sold
+  hired
+  awaiting_repair
+}
+
+enum DefectSeverity {
+  minor
+  serious
+  dangerous
+}
+
+enum DefectStatus {
+  reported
+  under_review
+  repair_booked
+  repaired
+  signed_off
+}
+
+enum TrainingStatus {
+  not_started
+  in_progress
+  completed
+  expired
+}
+
+enum TrainingType {
+  induction
+  hgv_induction
+  tachograph
+  drivers_hours
+  walk_around_check
+  defect_reporting
+  load_security
+  health_safety
+  accident_reporting
+  mobile_phone
+  drug_alcohol
+  fatigue_management
+  fuel_card
+  yard_rules
+  vehicle_cleanliness
+  customer_site
+  manual_handling
+  fire_safety
+  refresher
+  cpc
+}
+
+enum PolicyType {
+  walk_around_duties
+  defect_reporting
+  tachograph_rules
+  drivers_hours
+  fatigue_management
+  mobile_phone
+  drug_alcohol
+  accident_reporting
+  serious_defects
+}
+
+enum DocumentType {
+  contract
+  offer_letter
+  job_description
+  passport
+  right_to_work
+  driving_licence
+  cpc_card
+  tacho_card
+  proof_of_address
+  national_insurance
+  payroll
+  disciplinary
+  appraisal
+  resignation_termination
+  other
+}
+
+enum VehicleDocumentType {
+  pmi_sheet
+  brake_test
+  mot_certificate
+  service_invoice
+  repair_invoice
+  tyre_report
+  tacho_certificate
+  safety_inspection
+  roadside_inspection
+  prohibition_notice
+  rectification_evidence
+  other
+}
+
+enum CheckItemStatus {
+  ok
+  defect_found
+  not_applicable
+}
+
+enum CheckItemType {
+  tyres_wheel_nuts
+  lights_indicators
+  brakes
+  steering
+  mirrors
+  windscreen_wipers
+  horn
+  number_plates
+  bodywork
+  fuel_adblue
+  warning_lights
+  tachograph
+  load_security
+  leaks
+  coupling
+  fifth_wheel
+  mudguards
+  reflectors
+}
+
+enum SponsoredChangeType {
+  salary
+  hours
+  job_duties
+  work_location
+  end_of_employment
+}
+
+enum AlertType {
+  pmi_due
+  mot_expiry
+  insurance_expiry
+  tacho_calibration
+  visa_expiry
+  right_to_work_due
+  cpc_expiry
+  missed_check
+  open_defect
+  induction_incomplete
+  toolbox_unsigned
+  policy_unsigned
+  licence_check_due
+}
+
+enum AlertSeverity {
+  critical
+  warning
+  notice
+}
+
+// ─────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         UserRole
+  firstName    String
+  lastName     String
+  phone        String?
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+
+  employee   Employee? @relation("UserEmployee", fields: [employeeId], references: [id])
+  employeeId String?   @unique
+
+  auditLogs            AuditLog[]
+  uploadedEmpDocs      EmployeeDocument[]       @relation("EmpDocUploadedBy")
+  uploadedVehDocs      VehicleDocument[]        @relation("VehDocUploadedBy")
+  defectReviews        DefectCase[]             @relation("DefectReviewedBy")
+  defectSignoffs       DefectCase[]             @relation("DefectSignedOffBy")
+  vorAuthorisations    VorRecord[]              @relation("VorAuthorisedBy")
+  vorSignoffs          VorRecord[]              @relation("VorSignedOffBy")
+  toolboxIssued        ToolboxTalk[]            @relation("TalkIssuedBy")
+  toolboxSignoffs      ToolboxTalk[]            @relation("TalkSignedOffBy")
+  sponsoredChanges     SponsoredWorkerChange[]  @relation("ChangeAuthorisedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Employee {
+  id                    String           @id @default(uuid())
+  fullName              String
+  dateOfBirth           DateTime
+  homeAddress           String
+  phone                 String
+  email                 String
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  nextOfKin             String?
+  jobTitle              String
+  department            String
+  startDate             DateTime
+  employmentStatus      EmploymentStatus @default(active)
+  contractedHours       Decimal          @db.Decimal(5, 2)
+  salary                Decimal          @db.Decimal(10, 2)
+  workLocation          String
+  isDriver              Boolean          @default(false)
+  isSponsored           Boolean          @default(false)
+
+  lineManager   Employee?  @relation("ManagerSubordinates", fields: [lineManagerId], references: [id])
+  lineManagerId String?
+  subordinates  Employee[] @relation("ManagerSubordinates")
+
+  // User account (optional)
+  userAccount User? @relation("UserEmployee")
+
+  // Sponsored worker details
+  sponsoredWorker SponsoredWorker?
+
+  // Documents and training
+  documents          EmployeeDocument[]
+  trainingRecords    TrainingRecord[]
+  acknowledgements   PolicyAcknowledgement[]
+  toolboxAssignments ToolboxTalkAssignment[]
+
+  // Vehicle assignment — Vehicle owns the FK (assignedDriverId on Vehicle)
+  drivingVehicle Vehicle? @relation("VehicleDriver")
+
+  // Operations as driver
+  checksSubmitted WalkAroundCheck[] @relation("CheckDriver")
+  defectsReported DefectCase[]      @relation("DefectReporter")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SponsoredWorker {
+  id                      String    @id @default(uuid())
+  employee                Employee  @relation(fields: [employeeId], references: [id])
+  employeeId              String    @unique
+  cosNumber               String
+  socCode                 String
+  sponsoredJobTitle       String
+  salaryOnCos             Decimal   @db.Decimal(10, 2)
+  actualSalary            Decimal   @db.Decimal(10, 2)
+  contractedHours         Decimal   @db.Decimal(5, 2)
+  actualWorkingPattern    String?
+  workLocation            String
+  visaExpiryDate          DateTime
+  rightToWorkCheckDate    DateTime
+  rightToWorkFollowupDate DateTime?
+  rightToWorkDocumentType String?
+  absenceMonitoringNotes  String?
+
+  changes SponsoredWorkerChange[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SponsoredWorkerChange {
+  id                   String              @id @default(uuid())
+  sponsoredWorker      SponsoredWorker     @relation(fields: [sponsoredWorkerId], references: [id])
+  sponsoredWorkerId    String
+  changeType           SponsoredChangeType
+  previousValue        String
+  newValue             String
+  effectiveDate        DateTime
+  reportedToHomeOffice Boolean             @default(false)
+  reportedDate         DateTime?
+  authorisedBy         User                @relation("ChangeAuthorisedBy", fields: [authorisedById], references: [id])
+  authorisedById       String
+  notes                String?
+
+  createdAt DateTime @default(now())
+}
+
+model EmployeeDocument {
+  id            String       @id @default(uuid())
+  employee      Employee     @relation(fields: [employeeId], references: [id])
+  employeeId    String
+  documentType  DocumentType
+  fileName      String
+  storageKey    String
+  fileSizeBytes Int
+  mimeType      String
+  expiryDate    DateTime?
+  uploadedBy    User         @relation("EmpDocUploadedBy", fields: [uploadedById], references: [id])
+  uploadedById  String
+  notes         String?
+
+  createdAt DateTime @default(now())
+}
+
+model TrainingRecord {
+  id                 String         @id @default(uuid())
+  employee           Employee       @relation(fields: [employeeId], references: [id])
+  employeeId         String
+  trainingType       TrainingType
+  status             TrainingStatus @default(not_started)
+  completedDate      DateTime?
+  expiryDate         DateTime?
+  trainerName        String?
+  certificateNumber  String?
+  documentStorageKey String?
+  notes              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, trainingType])
+}
+
+model PolicyAcknowledgement {
+  id            String     @id @default(uuid())
+  employee      Employee   @relation(fields: [employeeId], references: [id])
+  employeeId    String
+  policyType    PolicyType
+  policyVersion String
+  signedAt      DateTime
+  ipAddress     String
+  signatureData String
+  deviceInfo    String?
+
+  createdAt DateTime @default(now())
+}
+
+model ToolboxTalk {
+  id                 String    @id @default(uuid())
+  topic              String
+  description        String
+  dateIssued         DateTime
+  issuedBy           User      @relation("TalkIssuedBy", fields: [issuedById], references: [id])
+  issuedById         String
+  managerSignedOff   Boolean   @default(false)
+  managerSignoffAt   DateTime?
+  managerSignoffBy   User?     @relation("TalkSignedOffBy", fields: [managerSignoffById], references: [id])
+  managerSignoffById String?
+
+  assignments ToolboxTalkAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ToolboxTalkAssignment {
+  id            String      @id @default(uuid())
+  toolboxTalk   ToolboxTalk @relation(fields: [toolboxTalkId], references: [id])
+  toolboxTalkId String
+  employee      Employee    @relation(fields: [employeeId], references: [id])
+  employeeId    String
+  signedAt      DateTime?
+  signatureData String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([toolboxTalkId, employeeId])
+}
+
+model Vehicle {
+  id                  String        @id @default(uuid())
+  registration        String        @unique
+  vinNumber           String        @unique
+  make                String
+  model               String
+  year                Int
+  operatorLicenceDisc String?
+  motExpiryDate       DateTime
+  roadTaxExpiryDate   DateTime?
+  insuranceExpiryDate DateTime
+  tachoCalibrExpiry   DateTime?
+  pmiIntervalWeeks    Int           @default(6)
+  lastPmiDate         DateTime?
+  nextPmiDate         DateTime?
+  currentMileage      Int           @default(0)
+  status              VehicleStatus @default(active)
+
+  // Vehicle owns the driver FK — one driver per vehicle at a time
+  assignedDriver   Employee? @relation("VehicleDriver", fields: [assignedDriverId], references: [id])
+  assignedDriverId String?   @unique
+
+  documents  VehicleDocument[]
+  checks     WalkAroundCheck[] @relation("CheckVehicle")
+  defects    DefectCase[]      @relation("DefectVehicle")
+  vorRecords VorRecord[]       @relation("VorVehicle")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VehicleDocument {
+  id            String              @id @default(uuid())
+  vehicle       Vehicle             @relation(fields: [vehicleId], references: [id])
+  vehicleId     String
+  documentType  VehicleDocumentType
+  fileName      String
+  storageKey    String
+  fileSizeBytes Int
+  mimeType      String
+  documentDate  DateTime?
+  expiryDate    DateTime?
+  uploadedBy    User                @relation("VehDocUploadedBy", fields: [uploadedById], references: [id])
+  uploadedById  String
+  notes         String?
+
+  createdAt DateTime @default(now())
+}
+
+model WalkAroundCheck {
+  id            String   @id @default(uuid())
+  vehicle       Vehicle  @relation("CheckVehicle", fields: [vehicleId], references: [id])
+  vehicleId     String
+  driver        Employee @relation("CheckDriver", fields: [driverId], references: [id])
+  driverId      String
+  checkDate     DateTime @db.Date
+  checkTime     DateTime @db.Time
+  location      String?
+  mileage       Int
+  nilDefect     Boolean  @default(false)
+  signatureData String
+  submittedAt   DateTime @default(now())
+
+  items   WalkAroundCheckItem[]
+  defects DefectCase[]          @relation("CheckDefects")
+
+  createdAt DateTime @default(now())
+}
+
+model WalkAroundCheckItem {
+  id      String          @id @default(uuid())
+  check   WalkAroundCheck @relation(fields: [checkId], references: [id])
+  checkId String
+  item    CheckItemType
+  status  CheckItemStatus
+  notes   String?
+}
+
+model DefectCase {
+  id                       String         @id @default(uuid())
+  referenceNumber          String         @unique
+  vehicle                  Vehicle        @relation("DefectVehicle", fields: [vehicleId], references: [id])
+  vehicleId                String
+  reportedBy               Employee       @relation("DefectReporter", fields: [reportedById], references: [id])
+  reportedById             String
+  walkAroundCheck          WalkAroundCheck? @relation("CheckDefects", fields: [walkAroundCheckId], references: [id])
+  walkAroundCheckId        String?
+  reportedAt               DateTime       @default(now())
+  defectCategory           String
+  description              String
+  severity                 DefectSeverity
+  vehicleAllowedToContinue Boolean
+  status                   DefectStatus   @default(reported)
+  vorDecision              Boolean        @default(false)
+  reviewedBy               User?          @relation("DefectReviewedBy", fields: [reviewedById], references: [id])
+  reviewedById             String?
+  reviewedAt               DateTime?
+  repairAction             String?
+  repairGarage             String?
+  dateRepaired             DateTime?
+  invoiceStorageKey        String?
+  finalSignoffBy           User?          @relation("DefectSignedOffBy", fields: [finalSignoffById], references: [id])
+  finalSignoffById         String?
+  finalSignoffAt           DateTime?
+
+  photos     DefectPhoto[]
+  vorRecords VorRecord[]   @relation("VorDefect")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DefectPhoto {
+  id           String     @id @default(uuid())
+  defectCase   DefectCase @relation(fields: [defectCaseId], references: [id])
+  defectCaseId String
+  storageKey   String
+  fileName     String
+  uploadedById String
+
+  createdAt DateTime @default(now())
+}
+
+model VorRecord {
+  id                  String      @id @default(uuid())
+  vehicle             Vehicle     @relation("VorVehicle", fields: [vehicleId], references: [id])
+  vehicleId           String
+  defectCase          DefectCase? @relation("VorDefect", fields: [defectCaseId], references: [id])
+  defectCaseId        String?
+  takenOffRoadDate    DateTime
+  reason              String
+  authorisedBy        User        @relation("VorAuthorisedBy", fields: [authorisedById], references: [id])
+  authorisedById      String
+  repairGarage        String?
+  estimatedReturnDate DateTime?
+  actualReturnDate    DateTime?
+  evidenceStorageKey  String?
+  managerSignoffBy    User?       @relation("VorSignedOffBy", fields: [managerSignoffById], references: [id])
+  managerSignoffById  String?
+  managerSignoffAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String
+  action        String
+  entityType    String
+  entityId      String
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  userAgent     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Alert {
+  id           String        @id @default(uuid())
+  alertType    AlertType
+  severity     AlertSeverity
+  entityType   String
+  entityId     String
+  entityName   String
+  message      String
+  daysUntil    Int?
+  isResolved   Boolean       @default(false)
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  createdAt DateTime @default(now())
+
+  @@index([severity, isResolved])
+  @@index([entityType, entityId])
+}
+
+model ComplianceScore {
+  id            String   @id @default(uuid())
+  scoreDate     DateTime @unique @db.Date
+  peopleScore   Decimal  @db.Decimal(5, 2)
+  fleetScore    Decimal  @db.Decimal(5, 2)
+  driverScore   Decimal  @db.Decimal(5, 2)
+  overallScore  Decimal  @db.Decimal(5, 2)
+  peopleDetails Json
+  fleetDetails  Json
+  driverDetails Json
+
+  createdAt DateTime @default(now())
+}

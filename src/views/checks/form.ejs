@@ -1,0 +1,173 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/checks" class="btn btn-ghost btn-sm">← Back to Checks</a>
+</div>
+
+<form id="checkForm">
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Check Details</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Vehicle <span class="required">*</span></label>
+        <select class="form-control" id="vehicleId" required>
+          <option value="">Select vehicle...</option>
+          ${vehicles.map(v => `<option value="${v.id}">${v.registration} — ${v.make} ${v.model}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Check Date</label>
+          <input class="form-control" type="date" id="checkDate" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Time</label>
+          <input class="form-control" type="time" id="checkTime" value="${new Date().toTimeString().slice(0,5)}">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-control" type="text" id="location" placeholder="e.g. Birmingham Depot">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Mileage</label>
+          <input class="form-control" type="number" id="mileage" placeholder="e.g. 245320">
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="nilDefect" style="width:16px;height:16px">
+          <span style="font-size:13px;font-weight:600">Declare Nil Defect (no faults found on this vehicle)</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Driver Signature</h3></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:#64748b;margin-bottom:12px">By signing below, I confirm I have completed this walk-around check and the information recorded is accurate.</p>
+      <canvas id="sigCanvas" style="border:1.5px solid #e2e8f0;border-radius:8px;width:100%;height:160px;cursor:crosshair;touch-action:none"></canvas>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button type="button" onclick="clearSig()" class="btn btn-ghost btn-sm">Clear</button>
+        <span style="font-size:11px;color:#94a3b8;margin-left:auto;align-self:center">Draw your signature above</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Checklist -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Vehicle Checklist</h3>
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="setAll('ok')" class="btn btn-success btn-sm">Mark All OK</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="check-grid" id="checklistGrid">
+      ${CHECK_ITEMS.map(item => `
+        <div class="check-item" id="item-${item}" onclick="toggleItem('${item}')">
+          <div class="check-item-label">${CHECK_ITEM_LABELS[item]}</div>
+          <div class="check-item-status" id="status-${item}">Tap to record</div>
+          <input type="hidden" id="val-${item}" value="">
+        </div>
+      `).join('')}
+    </div>
+    <div id="defectNotes" style="display:none;margin-top:16px">
+      <label class="form-label">Defect Notes</label>
+      <textarea class="form-control" id="defectNotesText" rows="3" placeholder="Describe the defect(s) found..."></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-between">
+  <div id="checkSummary" style="font-size:13px;color:#64748b;align-self:center">Select status for each item</div>
+  <button type="button" onclick="submitCheck()" class="btn btn-primary" style="padding:12px 32px;font-size:15px">Submit Check Record</button>
+</div>
+</form>
+
+<script>
+const items = ${JSON.stringify(CHECK_ITEMS)};
+const statuses = {};
+let signing = false; let lastX, lastY;
+
+// Signature pad
+const canvas = document.getElementById('sigCanvas');
+const ctx2 = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth * 2; canvas.height = 320;
+ctx2.scale(2,2); ctx2.strokeStyle = '#0f172a'; ctx2.lineWidth = 2; ctx2.lineCap = 'round';
+
+const getPos = (e) => {
+  const r = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - r.left) * (canvas.width / r.width / 2), y: (src.clientY - r.top) * (canvas.height / r.height / 2) };
+};
+canvas.addEventListener('mousedown', e => { signing=true; const p=getPos(e); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('mousemove', e => { if (!signing) return; const p=getPos(e); ctx2.beginPath(); ctx2.moveTo(lastX,lastY); ctx2.lineTo(p.x,p.y); ctx2.stroke(); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('mouseup', () => signing=false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); signing=true; const p=getPos(e); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!signing) return; const p=getPos(e); ctx2.beginPath(); ctx2.moveTo(lastX,lastY); ctx2.lineTo(p.x,p.y); ctx2.stroke(); lastX=p.x; lastY=p.y; });
+canvas.addEventListener('touchend', () => signing=false);
+function clearSig() { ctx2.clearRect(0,0,canvas.width/2*2,canvas.height/2*2); }
+
+function toggleItem(item) {
+  const el = document.getElementById('item-' + item);
+  const statusEl = document.getElementById('status-' + item);
+  const cur = statuses[item] || '';
+  if (!cur || cur === 'not_applicable') { statuses[item] = 'ok'; el.className = 'check-item ok'; statusEl.textContent = '✓ OK'; }
+  else if (cur === 'ok') { statuses[item] = 'defect_found'; el.className = 'check-item defect'; statusEl.textContent = '⚠ Defect Found'; }
+  else { statuses[item] = 'not_applicable'; el.className = 'check-item'; statusEl.textContent = 'N/A'; }
+  document.getElementById('val-' + item).value = statuses[item];
+  updateSummary();
+}
+
+function setAll(status) {
+  items.forEach(item => {
+    statuses[item] = status;
+    document.getElementById('item-'+item).className = 'check-item ' + (status === 'ok' ? 'ok' : '');
+    document.getElementById('status-'+item).textContent = status === 'ok' ? '✓ OK' : status;
+    document.getElementById('val-'+item).value = status;
+  });
+  updateSummary();
+}
+
+function updateSummary() {
+  const ok = Object.values(statuses).filter(s=>s==='ok').length;
+  const defects = Object.values(statuses).filter(s=>s==='defect_found').length;
+  document.getElementById('checkSummary').textContent = ok + ' OK · ' + defects + ' defect(s)';
+  document.getElementById('defectNotes').style.display = defects > 0 ? 'block' : 'none';
+}
+
+async function submitCheck() {
+  const vehicleId = document.getElementById('vehicleId').value;
+  if (!vehicleId) { showToast('Please select a vehicle','error'); return; }
+  const incomplete = items.filter(i => !statuses[i]);
+  if (incomplete.length > 0) { showToast('Please record status for all ' + incomplete.length + ' remaining items','error'); return; }
+
+  const sigData = canvas.toDataURL();
+  if (sigData === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') {
+    showToast('Please provide your signature','error'); return;
+  }
+
+  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  const payload = {
+    vehicleId,
+    checkDate: document.getElementById('checkDate').value,
+    checkTime: document.getElementById('checkTime').value,
+    location: document.getElementById('location').value,
+    mileage: parseInt(document.getElementById('mileage').value) || 0,
+    nilDefect: document.getElementById('nilDefect').checked,
+    signatureData: sigData,
+    items: items.map(item => ({ item, status: statuses[item] || 'ok', notes: statuses[item] === 'defect_found' ? document.getElementById('defectNotesText').value : null })),
+  };
+
+  const res = await fetch('/api/v1/checks', { method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body: JSON.stringify(payload) });
+
+  if (res.ok) { showToast('Daily check submitted successfully','success'); setTimeout(()=>window.location.href='/checks',1200); }
+  else { const err = await res.json(); showToast(err.error?.message || 'Submission failed','error'); }
+}
+</script>
+` }) %>

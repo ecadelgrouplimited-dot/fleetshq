@@ -1,0 +1,65 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <span class="text-sm text-muted">${workers.length} sponsored worker${workers.length !== 1 ? 's' : ''}</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>CoS Number</th>
+          <th>Job Title</th>
+          <th>Visa Expiry</th>
+          <th>RTW Follow-Up</th>
+          <th>Salary Match</th>
+          <th>Unreported Changes</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${workers.length === 0 ? `<tr><td colspan="8" style="text-align:center;padding:32px;color:#64748b">No sponsored workers found</td></tr>` :
+        workers.map(w => {
+          const visaDays = daysUntil(w.visaExpiryDate);
+          const rtwDays = daysUntil(w.rightToWorkFollowupDate);
+          const salaryMatch = Number(w.salaryOnCos) === Number(w.actualSalary);
+          return `<tr>
+            <td>
+              <a href="/employees/${w.employee.id}" style="font-weight:600">${w.employee.fullName}</a>
+              <div style="font-size:11px;color:#64748b">${w.employee.department}</div>
+            </td>
+            <td style="font-family:monospace;font-size:13px">${w.cosNumber}</td>
+            <td>${w.sponsoredJobTitle}</td>
+            <td>
+              <div style="font-weight:600;color:${visaDays < 0 ? '#dc2626' : visaDays <= 30 ? '#d97706' : '#374151'}">${formatDate(w.visaExpiryDate)}</div>
+              ${visaDays < 0 ? '<span class="badge badge-red">EXPIRED</span>' : visaDays <= 30 ? `<span class="badge badge-amber">${visaDays}d remaining</span>` : ''}
+            </td>
+            <td>
+              ${w.rightToWorkFollowupDate ? `
+                <div style="font-weight:600;color:${rtwDays < 0 ? '#dc2626' : rtwDays <= 14 ? '#d97706' : '#374151'}">${formatDate(w.rightToWorkFollowupDate)}</div>
+                ${rtwDays <= 14 ? `<span class="badge badge-${rtwDays < 0 ? 'red' : 'amber'}">${rtwDays < 0 ? 'OVERDUE' : rtwDays + 'd'}</span>` : ''}
+              ` : '<span style="color:#94a3b8">Not set</span>'}
+            </td>
+            <td>
+              ${salaryMatch
+                ? '<span class="badge badge-green">Match</span>'
+                : `<span class="badge badge-red">Mismatch</span><div style="font-size:11px;color:#dc2626">CoS: £${Number(w.salaryOnCos).toLocaleString()} · Actual: £${Number(w.actualSalary).toLocaleString()}</div>`}
+            </td>
+            <td>
+              ${w.changes.filter(c=>!c.reportedToHomeOffice).length > 0
+                ? `<span class="badge badge-red">${w.changes.filter(c=>!c.reportedToHomeOffice).length} unreported</span>`
+                : '<span class="badge badge-green">All reported</span>'}
+            </td>
+            <td>
+              <span class="badge ${w.employee.employmentStatus === 'active' ? 'badge-green' : 'badge-slate'}">${w.employee.employmentStatus}</span>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+` }) %>

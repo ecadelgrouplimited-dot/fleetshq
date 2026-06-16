@@ -1,0 +1,116 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
+</div>
+
+<form id="vehicleForm">
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Vehicle Identity</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Registration Number <span class="required">*</span></label>
+        <input class="form-control" name="registration" required placeholder="e.g. FN16 EVK" style="font-family:monospace;font-size:15px;font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">VIN / Chassis Number <span class="required">*</span></label>
+        <input class="form-control" name="vinNumber" required placeholder="17-character VIN" style="font-family:monospace">
+      </div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label class="form-label">Make <span class="required">*</span></label>
+          <input class="form-control" name="make" required placeholder="e.g. Volvo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Model <span class="required">*</span></label>
+          <input class="form-control" name="model" required placeholder="e.g. FH">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Year <span class="required">*</span></label>
+          <input class="form-control" type="number" name="year" required placeholder="2020" min="2000" max="2030">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Operator Licence Disc Number</label>
+        <input class="form-control" name="operatorLicenceDisc" placeholder="e.g. OL-2024-8825">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Assigned Driver</label>
+        <select class="form-control" name="assignedDriverId">
+          <option value="">— No driver assigned —</option>
+          ${drivers.map(d => `<option value="${d.id}">${d.fullName}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Compliance Dates</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">MOT Expiry Date <span class="required">*</span></label>
+        <input class="form-control" type="date" name="motExpiryDate" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Insurance Expiry Date <span class="required">*</span></label>
+        <input class="form-control" type="date" name="insuranceExpiryDate" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Road Tax Expiry Date</label>
+        <input class="form-control" type="date" name="roadTaxExpiryDate">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tachograph Calibration Expiry</label>
+        <input class="form-control" type="date" name="tachoCalibrExpiry">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">PMI Interval (weeks)</label>
+          <select class="form-control" name="pmiIntervalWeeks">
+            <option value="4">Every 4 weeks (high mileage)</option>
+            <option value="6" selected>Every 6 weeks (standard)</option>
+            <option value="8">Every 8 weeks (low usage)</option>
+            <option value="12">Every 12 weeks</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last PMI Date</label>
+          <input class="form-control" type="date" name="lastPmiDate">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Current Mileage</label>
+        <input class="form-control" type="number" name="currentMileage" placeholder="e.g. 245000">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-between">
+  <a href="/fleet" class="btn btn-ghost">Cancel</a>
+  <button type="button" onclick="addVehicle()" class="btn btn-primary" style="padding:10px 32px">Add Vehicle to Fleet</button>
+</div>
+</form>
+
+<script>
+async function addVehicle() {
+  const form = document.getElementById('vehicleForm');
+  const fd = new FormData(form);
+  const body = Object.fromEntries(fd.entries());
+  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  const res = await fetch('/api/v1/vehicles', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body),
+  });
+  if (res.ok) {
+    const data = await res.json();
+    showToast('Vehicle added to fleet', 'success');
+    setTimeout(() => window.location.href = '/fleet/' + data.data.id, 1200);
+  } else {
+    const err = await res.json();
+    showToast(err.error?.message || 'Failed to add vehicle', 'error');
+  }
+}
+</script>
+` }) %>

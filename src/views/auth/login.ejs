@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — 256 Logistics Compliance Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0a1628;
+      --navy-mid: #0f2042;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --blue-glow: rgba(59,130,246,0.35);
+      --cyan: #06b6d4;
+      --green: #10b981;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      background: var(--navy);
+      overflow: hidden;
+    }
+
+    /* ── Left Panel ─────────────────────────────────── */
+    .left {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 60px 64px;
+      overflow: hidden;
+    }
+
+    /* Animated gradient orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .orb-1 { width: 500px; height: 500px; background: rgba(37,99,235,0.25); top: -100px; right: -100px; animation-delay: 0s; }
+    .orb-2 { width: 350px; height: 350px; background: rgba(6,182,212,0.15); bottom: -50px; left: -80px; animation-delay: -3s; }
+    .orb-3 { width: 250px; height: 250px; background: rgba(16,185,129,0.12); top: 50%; left: 40%; animation-delay: -5s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    /* Grid overlay */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+
+    /* Diagonal accent bar */
+    .left::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 1px; height: 100%;
+      background: linear-gradient(to bottom, transparent, rgba(59,130,246,0.4) 30%, rgba(59,130,246,0.4) 70%, transparent);
+    }
+
+    .left-content { position: relative; z-index: 1; }
+
+    .logo-badge {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25);
+      border-radius: 100px; padding: 8px 16px; margin-bottom: 36px;
+      backdrop-filter: blur(8px);
+    }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue-light); box-shadow: 0 0 8px var(--blue-light); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.3)} }
+    .logo-badge span { font-size: 12px; font-weight: 600; color: #93c5fd; letter-spacing: .5px; }
+
+    .brand-title {
+      font-size: 48px; font-weight: 900; color: #fff;
+      line-height: 1.05; margin-bottom: 20px; letter-spacing: -1.5px;
+    }
+    .brand-title .accent { color: var(--blue-light); }
+
+    .brand-sub {
+      font-size: 16px; color: #94a3b8; line-height: 1.7;
+      max-width: 380px; margin-bottom: 52px; font-weight: 400;
+    }
+
+    /* Feature list */
+    .features { display: flex; flex-direction: column; gap: 14px; }
+    .feature {
+      display: flex; align-items: center; gap: 14px;
+      animation: fadeUp .5s ease both;
+    }
+    .feature:nth-child(1){animation-delay:.1s}
+    .feature:nth-child(2){animation-delay:.2s}
+    .feature:nth-child(3){animation-delay:.3s}
+    .feature:nth-child(4){animation-delay:.4s}
+    .feature:nth-child(5){animation-delay:.5s}
+    .feature:nth-child(6){animation-delay:.6s}
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    .feature-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .feature-icon svg { width: 16px; height: 16px; color: var(--blue-light); }
+    .feature-text { font-size: 14px; color: #cbd5e1; font-weight: 500; }
+
+    /* Stats strip */
+    .stats-strip {
+      display: flex; gap: 32px; margin-top: 52px; padding-top: 36px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .stat-item .num { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
+    .stat-item .lbl { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+    /* ── Right Panel ─────────────────────────────────── */
+    .right {
+      width: 460px; background: #fff; display: flex; align-items: center;
+      justify-content: center; padding: 48px 44px; position: relative;
+      box-shadow: -20px 0 60px rgba(0,0,0,0.3);
+    }
+
+    /* Subtle top stripe */
+    .right::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--blue) 0%, var(--cyan) 50%, var(--green) 100%);
+    }
+
+    .form-box { width: 100%; max-width: 340px; }
+
+    .form-eyebrow {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px;
+      color: var(--blue-light); margin-bottom: 8px;
+    }
+    .form-title { font-size: 28px; font-weight: 800; color: #0f172a; margin-bottom: 6px; letter-spacing: -0.5px; }
+    .form-sub { font-size: 14px; color: #64748b; margin-bottom: 32px; }
+
+    .error-box {
+      background: #fef2f2; border-left: 3px solid #ef4444; color: #dc2626;
+      border-radius: 8px; padding: 12px 14px; font-size: 13px; font-weight: 500;
+      margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .form-group { margin-bottom: 18px; }
+
+    .form-label {
+      display: block; font-size: 12px; font-weight: 700; color: #374151;
+      margin-bottom: 7px; letter-spacing: .3px;
+    }
+
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: #9ca3af; pointer-events: none;
+    }
+
+    .form-input {
+      width: 100%; padding: 11px 14px 11px 40px;
+      border: 1.5px solid #e5e7eb; border-radius: 10px;
+      font-size: 14px; font-family: inherit; color: #111827;
+      background: #fafafa; transition: all .2s;
+    }
+    .form-input:focus {
+      outline: none; border-color: var(--blue-light); background: #fff;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .form-input::placeholder { color: #d1d5db; }
+
+    .btn-submit {
+      width: 100%; padding: 13px; background: linear-gradient(135deg, var(--blue) 0%, #1d4ed8 100%);
+      color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700;
+      cursor: pointer; font-family: inherit; transition: all .2s; margin-top: 6px;
+      letter-spacing: .3px; box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+      position: relative; overflow: hidden;
+    }
+    .btn-submit::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    }
+    .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.45); }
+    .btn-submit:active { transform: translateY(0); }
+
+    /* Demo accounts */
+    .demo-section { margin-top: 28px; padding-top: 22px; border-top: 1px solid #f1f5f9; }
+    .demo-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      color: #94a3b8; margin-bottom: 12px;
+    }
+    .demo-pills { display: flex; flex-wrap: wrap; gap: 7px; }
+    .demo-pill {
+      padding: 6px 13px; border-radius: 8px; background: #f8fafc;
+      border: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 600; color: #475569;
+      cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .demo-pill:hover { background: #eff6ff; border-color: #bfdbfe; color: var(--blue); transform: translateY(-1px); }
+    .demo-pill:active { transform: translateY(0); }
+
+    /* Trust badges */
+    .trust { margin-top: 24px; display: flex; align-items: center; gap: 8px; }
+    .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+    .trust-text { font-size: 11px; color: #94a3b8; font-weight: 500; }
+
+    @media (max-width: 900px) {
+      .left { display: none; }
+      .right { width: 100%; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Left Panel ─────────────────────────────────── -->
+  <div class="left">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="left-content">
+      <div class="logo-badge">
+        <div class="logo-dot"></div>
+        <span>COMPLIANCE PLATFORM</span>
+      </div>
+
+      <h1 class="brand-title">
+        256 Logistics<br>
+        <span class="accent">Compliance</span> Hub
+      </h1>
+
+      <p class="brand-sub">
+        Purpose-built compliance management for UK HGV operators. HR, DVSA fleet, driver training and audit evidence — one controlled platform.
+      </p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          </div>
+          <span class="feature-text">HR & Home Office Sponsor Licence Compliance</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          </div>
+          <span class="feature-text">DVSA Fleet & Roadworthiness Management</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          </div>
+          <span class="feature-text">Driver Training Records & Digital Signatures</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+          </div>
+          <span class="feature-text">Daily Checks, Defect Cases & VOR Workflow</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <span class="feature-text">Live Compliance Scoring & Risk Dashboard</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <span class="feature-text">One-Click Home Office & DVSA Audit Packs</span>
+        </div>
+      </div>
+
+      <div class="stats-strip">
+        <div class="stat-item"><div class="num">5</div><div class="lbl">Compliance Modules</div></div>
+        <div class="stat-item"><div class="num">6</div><div class="lbl">User Role Levels</div></div>
+        <div class="stat-item"><div class="num">100%</div><div class="lbl">Audit-Ready</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Right Panel ─────────────────────────────────── -->
+  <div class="right">
+    <div class="form-box">
+      <div class="form-eyebrow">Secure Access</div>
+      <h2 class="form-title">Welcome back</h2>
+      <p class="form-sub">Sign in to your compliance dashboard</p>
+
+      <% if (error) { %>
+        <div class="error-box">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <%= error %>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/login" id="loginForm">
+        <div class="form-group">
+          <label class="form-label">Email address</label>
+          <div class="input-wrap">
+            <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <input class="form-input" type="email" name="email" id="emailInput"
+              placeholder="you@256logistics.co.uk" required autocomplete="username">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-wrap">
+            <svg class="input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <input class="form-input" type="password" name="password" id="passInput"
+              placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn">
+          Sign in to Dashboard →
+        </button>
+      </form>
+
+      <div class="demo-section">
+        <div class="demo-label">Demo accounts — click to fill</div>
+        <div class="demo-pills">
+          <div class="demo-pill" onclick="fill('director@256logistics.co.uk')">Director</div>
+          <div class="demo-pill" onclick="fill('transport@256logistics.co.uk')">Transport Mgr</div>
+          <div class="demo-pill" onclick="fill('hr@256logistics.co.uk')">HR Manager</div>
+          <div class="demo-pill" onclick="fill('driver@256logistics.co.uk')">Driver</div>
+        </div>
+      </div>
+
+      <div class="trust">
+        <div class="trust-dot"></div>
+        <span class="trust-text">Secure session · JWT authenticated · All data encrypted at rest</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function fill(email) {
+      document.getElementById('emailInput').value = email;
+      document.getElementById('passInput').value = 'Demo2024!';
+      document.getElementById('emailInput').dispatchEvent(new Event('input'));
+    }
+    document.getElementById('loginForm').addEventListener('submit', () => {
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Signing in…';
+      btn.style.opacity = '.8';
+    });
+  </script>
+</body>
+</html>

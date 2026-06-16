@@ -1,0 +1,92 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <p class="text-sm text-muted">${vehicles.length} vehicles in fleet</p>
+  <div class="flex gap-2">
+    <a href="/fleet/pmi-planner" class="btn btn-outline btn-sm">PMI Planner</a>
+    <a href="/vor" class="btn btn-ghost btn-sm">VOR Records</a>
+  </div>
+</div>
+
+<!-- Fleet health strip -->
+<div class="card mb-4">
+  <div class="vehicle-status-strip">
+    <div class="vss-item">
+      <div class="vss-val vss-green">${vehicles.filter(v => v.status === 'active').length}</div>
+      <div class="vss-key">Active</div>
+    </div>
+    <div class="vss-item">
+      <div class="vss-val vss-red">${vehicles.filter(v => v.status === 'vor').length}</div>
+      <div class="vss-key">Off Road (VOR)</div>
+    </div>
+    <div class="vss-item">
+      <div class="vss-val vss-amber">${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length}</div>
+      <div class="vss-key">PMI Overdue</div>
+    </div>
+    <div class="vss-item">
+      <div class="vss-val vss-amber">${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length}</div>
+      <div class="vss-key">PMI Due Soon</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Vehicle</th><th>Driver</th><th>MOT Expiry</th>
+          <th>Next PMI</th><th>Insurance</th><th>Defects</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${vehicles.map(v => `
+        <tr>
+          <td>
+            <a href="/fleet/${v.id}" class="reg-link">${v.registration}</a>
+            <div class="cell-muted" style="margin-top:2px">${v.year} ${v.make} ${v.model}</div>
+          </td>
+          <td>
+            ${v.assignedDriver
+              ? `<span class="fw-600">${v.assignedDriver.fullName}</span>`
+              : '<span class="text-light">Unassigned</span>'}
+          </td>
+          <td>
+            <span class="badge ${!v.motExpiryDate ? 'badge-slate' : v.motDays < 0 ? 'badge-red' : v.motDays <= 14 ? 'badge-amber' : 'badge-green'}">
+              ${!v.motExpiryDate ? '—' : v.motDays < 0 ? 'OVERDUE' : v.motDays <= 14 ? v.motDays + 'd left' : formatDate(v.motExpiryDate)}
+            </span>
+          </td>
+          <td>
+            <span class="badge ${!v.nextPmiDate ? 'badge-slate' : v.pmiDays < 0 ? 'badge-red' : v.pmiDays <= 14 ? 'badge-amber' : 'badge-green'}">
+              ${!v.nextPmiDate ? 'Not set' : v.pmiDays < 0 ? Math.abs(v.pmiDays) + 'd overdue' : v.pmiDays <= 14 ? v.pmiDays + 'd remaining' : formatDate(v.nextPmiDate)}
+            </span>
+          </td>
+          <td>
+            <span class="badge ${!v.insuranceExpiryDate ? 'badge-slate' : v.insuranceDays < 0 ? 'badge-red' : v.insuranceDays <= 30 ? 'badge-amber' : 'badge-green'}">
+              ${!v.insuranceExpiryDate ? '—' : v.insuranceDays < 0 ? 'EXPIRED' : v.insuranceDays <= 30 ? v.insuranceDays + 'd' : 'Valid'}
+            </span>
+          </td>
+          <td>
+            ${v.defects.length > 0
+              ? `<span class="badge ${v.defects.some(d => d.severity === 'dangerous') ? 'badge-red' : 'badge-amber'}">${v.defects.length} open</span>`
+              : '<span class="badge badge-green">Clear</span>'}
+          </td>
+          <td>
+            <span class="badge ${v.status === 'active' ? 'badge-green' : v.status === 'vor' ? 'badge-red' : 'badge-slate'}">
+              ${v.status === 'active' ? 'Active' : v.status === 'vor' ? 'VOR' : v.status.toUpperCase()}
+            </span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+  .reg-link { font-weight: 800; font-size: 15px; font-family: ui-monospace, monospace; letter-spacing: -.5px; color: var(--primary); text-decoration: none; }
+  .reg-link:hover { text-decoration: underline; }
+  .vss-green { color: #10b981; }
+  .vss-red   { color: #ef4444; }
+  .vss-amber { color: #f59e0b; }
+  .text-light { color: #cbd5e1; }
+</style>
+` }) %>

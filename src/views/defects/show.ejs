@@ -1,0 +1,100 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/defects" class="btn btn-ghost btn-sm">← Back to Defects</a>
+  <div class="flex gap-2">
+    <span class="badge ${defect.severity === 'dangerous' ? 'badge-red' : defect.severity === 'serious' ? 'badge-amber' : 'badge-slate'}" style="font-size:13px;padding:6px 12px">${defect.severity.toUpperCase()}</span>
+    <span class="badge ${defect.status === 'reported' ? 'badge-red' : defect.status === 'under_review' ? 'badge-amber' : defect.status === 'signed_off' ? 'badge-green' : 'badge-blue'}" style="font-size:13px;padding:6px 12px">${defect.status.replace(/_/g,' ')}</span>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Defect Details — ${defect.referenceNumber}</h3></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        ${[
+          ['Vehicle', defect.vehicle?.registration],
+          ['Reported By', defect.reportedBy?.fullName],
+          ['Reported', formatDate(defect.reportedAt)],
+          ['Category', defect.defectCategory],
+          ['Days Open', daysOpen + ' days'],
+          ['Vehicle Allowed to Continue', defect.vehicleAllowedToContinue ? 'Yes' : 'No — VOR required'],
+          ['VOR Decision', defect.vorDecision ? 'Yes' : 'No'],
+        ].map(([k, v]) => `
+          <div>
+            <div class="text-sm text-muted" style="margin-bottom:3px">${k}</div>
+            <div style="font-weight:600;font-size:13.5px">${v || '—'}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="margin-top:16px">
+        <div class="text-sm text-muted" style="margin-bottom:6px">Description</div>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:13.5px;line-height:1.6">${defect.description}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Timeline -->
+  <div class="card">
+    <div class="card-header"><h3>Case Timeline</h3></div>
+    <div class="card-body">
+      ${['reported','under_review','repair_booked','repaired','signed_off'].map((s, i) => {
+        const statuses = ['reported','under_review','repair_booked','repaired','signed_off'];
+        const currentIdx = statuses.indexOf(defect.status);
+        const isDone = i <= currentIdx;
+        const isCurrent = i === currentIdx;
+        const labels = { reported:'Reported', under_review:'Under Review', repair_booked:'Repair Booked', repaired:'Repaired', signed_off:'Signed Off' };
+        return `
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:${i < 4 ? '12px' : '0'}">
+            <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+              background:${isDone ? (isCurrent ? '#3b82f6' : '#10b981') : '#f1f5f9'};
+              color:${isDone ? '#fff' : '#94a3b8'};font-size:12px;font-weight:700">
+              ${isDone && !isCurrent ? '✓' : i + 1}
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:${isCurrent ? '700' : '500'};color:${isDone ? '#0f172a' : '#94a3b8'}">${labels[s]}</div>
+              ${isCurrent && defect.reviewedAt ? `<div style="font-size:11px;color:#64748b">${formatDate(defect.reviewedAt)}</div>` : ''}
+            </div>
+          </div>
+          ${i < 4 ? '<div style="width:2px;height:16px;background:#e2e8f0;margin-left:13px;margin-bottom:0"></div>' : ''}
+        `;
+      }).join('')}
+
+      ${defect.repairGarage ? `
+        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:13px">
+          <strong>Repair Garage:</strong> ${defect.repairGarage}<br>
+          ${defect.repairAction ? `<strong>Action:</strong> ${defect.repairAction}` : ''}
+          ${defect.dateRepaired ? `<br><strong>Date Repaired:</strong> ${formatDate(defect.dateRepaired)}` : ''}
+        </div>
+      ` : ''}
+
+      ${defect.status === 'repaired' && user.role === 'transport_manager' || user.role === 'director' ? `
+        <form action="/api/v1/defects/${defect.id}/signoff" method="POST" id="signoffForm" style="margin-top:16px">
+          <button type="button" onclick="signOff()" class="btn btn-success" style="width:100%">Final Sign-Off & Close</button>
+        </form>
+      ` : ''}
+    </div>
+  </div>
+</div>
+
+${defect.photos?.length > 0 ? `
+<div class="card">
+  <div class="card-header"><h3>Photos (${defect.photos.length})</h3></div>
+  <div class="card-body" style="display:flex;flex-wrap:wrap;gap:12px">
+    ${defect.photos.map(p => `<img src="/${p.storageKey}" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" onerror="this.style.display='none'">`).join('')}
+  </div>
+</div>
+` : ''}
+
+<script>
+async function signOff() {
+  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  const res = await fetch('/api/v1/defects/${defect.id}/signoff', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+    body: JSON.stringify({ signoffNotes: 'Signed off via dashboard' })
+  });
+  if (res.ok) { showToast('Defect case closed successfully','success'); setTimeout(()=>location.reload(),1200); }
+  else { showToast('Sign-off failed','error'); }
+}
+</script>
+` }) %>

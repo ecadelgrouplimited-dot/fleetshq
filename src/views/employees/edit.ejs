@@ -1,0 +1,118 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/employees/${emp.id}" class="btn btn-ghost btn-sm">← Back to Profile</a>
+  <span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Editing Record</span>
+</div>
+
+<form id="editForm">
+<div class="grid-2 mb-4">
+  <!-- Personal Info -->
+  <div class="card">
+    <div class="card-header"><h3>Personal Information</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Full Name <span class="required">*</span></label>
+        <input class="form-control" name="fullName" required value="${emp.fullName}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input class="form-control" name="phone" value="${emp.phone || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-control" name="email" type="email" value="${emp.email || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Home Address</label>
+        <input class="form-control" name="homeAddress" value="${emp.homeAddress || ''}">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Emergency Contact Name</label>
+          <input class="form-control" name="emergencyContactName" value="${emp.emergencyContactName || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Emergency Contact Phone</label>
+          <input class="form-control" name="emergencyContactPhone" value="${emp.emergencyContactPhone || ''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Next of Kin</label>
+        <input class="form-control" name="nextOfKin" value="${emp.nextOfKin || ''}">
+      </div>
+    </div>
+  </div>
+
+  <!-- Employment Details -->
+  <div class="card">
+    <div class="card-header"><h3>Employment Details</h3></div>
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">Job Title</label>
+        <input class="form-control" name="jobTitle" value="${emp.jobTitle}">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Department</label>
+          <select class="form-control" name="department">
+            ${['Drivers','Management','HR','Operations','Admin'].map(d => `<option value="${d}" ${emp.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employment Status</label>
+          <select class="form-control" name="employmentStatus">
+            ${[['active','Active'],['on_leave','On Leave'],['suspended','Suspended'],['terminated','Terminated']].map(([v,l]) => `<option value="${v}" ${emp.employmentStatus === v ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Contracted Hours/Week</label>
+          <input class="form-control" type="number" step="0.5" name="contractedHours" value="${emp.contractedHours}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Annual Salary (£)</label>
+          <input class="form-control" type="number" name="salary" value="${emp.salary}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Work Location</label>
+        <input class="form-control" name="workLocation" value="${emp.workLocation || ''}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Line Manager</label>
+        <select class="form-control" name="lineManagerId">
+          <option value="">— No Manager —</option>
+          ${managers.map(m => `<option value="${m.id}" ${emp.lineManagerId === m.id ? 'selected' : ''}>${m.fullName} (${m.jobTitle})</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flex justify-between">
+  <a href="/employees/${emp.id}" class="btn btn-ghost">Cancel</a>
+  <button type="button" onclick="saveEmployee()" class="btn btn-primary" style="padding:10px 32px">Save Changes</button>
+</div>
+</form>
+
+<script>
+async function saveEmployee() {
+  const form = document.getElementById('editForm');
+  const fd = new FormData(form);
+  const body = Object.fromEntries(fd.entries());
+  const token = (document.cookie.match(/token=([^;]+)/)||[])[1];
+  const res = await fetch('/api/v1/employees/${emp.id}', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+    body: JSON.stringify(body),
+  });
+  if (res.ok) {
+    showToast('Employee record updated', 'success');
+    setTimeout(() => window.location.href = '/employees/${emp.id}', 1200);
+  } else {
+    const err = await res.json();
+    showToast(err.error?.message || 'Update failed', 'error');
+  }
+}
+</script>
+` }) %>

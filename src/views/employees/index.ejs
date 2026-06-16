@@ -1,0 +1,109 @@
+<%- include('../layouts/main', { body: `
+<!-- Page header -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <p class="text-sm text-muted">${employees.length} employee${employees.length !== 1 ? 's' : ''} · filtered results</p>
+  </div>
+  <a href="/employees/new" class="btn btn-primary">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    Add Employee
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body" style="padding:14px 20px">
+    <form method="GET" action="/employees" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <label class="form-label">Search employees</label>
+        <input class="form-control" name="search" placeholder="Name or job title…" value="${filters.search || ''}">
+      </div>
+      <div style="min-width:140px">
+        <label class="form-label">Status</label>
+        <select class="form-control" name="status">
+          <option value="active" ${filters.status === 'active' ? 'selected' : ''}>Active</option>
+          <option value="" ${!filters.status ? 'selected' : ''}>All statuses</option>
+          <option value="terminated" ${filters.status === 'terminated' ? 'selected' : ''}>Terminated</option>
+          <option value="on_leave" ${filters.status === 'on_leave' ? 'selected' : ''}>On Leave</option>
+        </select>
+      </div>
+      <div style="min-width:160px">
+        <label class="form-label">Department</label>
+        <select class="form-control" name="department">
+          <option value="">All Departments</option>
+          ${departments.map(d => `<option value="${d}" ${filters.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filter</button>
+      <a href="/employees" class="btn btn-ghost">Reset</a>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Role</th>
+          <th>Department</th>
+          <th>Start Date</th>
+          <th>Vehicle</th>
+          <th>Documents</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${employees.length === 0 ? `
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+                <p>No employees found</p>
+                <div class="empty-hint">Try adjusting your search or filters</div>
+              </div>
+            </td>
+          </tr>
+        ` : employees.map(e => `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${e.fullName.charAt(0)}</div>
+                <div>
+                  <a href="/employees/${e.id}" style="font-weight:700;font-size:13.5px">${e.fullName}</a>
+                  <div style="margin-top:3px;display:flex;gap:4px">
+                    ${e.isSponsored ? '<span class="badge badge-purple" style="font-size:10px">Sponsored</span>' : ''}
+                    ${e.isDriver ? '<span class="badge badge-blue" style="font-size:10px">Driver</span>' : ''}
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="cell-muted">${e.jobTitle}</td>
+            <td>
+              <span class="badge badge-slate" style="font-size:11px">${e.department}</span>
+            </td>
+            <td class="cell-muted">${formatDate(e.startDate)}</td>
+            <td>
+              ${e.drivingVehicle
+                ? `<span class="badge badge-cyan" style="font-family:monospace;font-size:11px">${e.drivingVehicle.registration}</span>`
+                : '<span style="color:#cbd5e1">—</span>'}
+            </td>
+            <td>
+              ${e.missingDocs > 0
+                ? `<span class="badge badge-red"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>${e.missingDocs} missing</span>`
+                : `<span class="badge badge-green">✓ Complete</span>`}
+            </td>
+            <td>
+              <span class="badge ${e.employmentStatus === 'active' ? 'badge-green' : e.employmentStatus === 'terminated' ? 'badge-red' : 'badge-amber'}">
+                ${e.employmentStatus === 'active' ? '● ' : ''}${e.employmentStatus.replace('_',' ')}
+              </span>
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+` }) %>

@@ -1,0 +1,203 @@
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-6">
+  <a href="/employees" class="btn btn-ghost btn-sm">← Back to Employees</a>
+  <div class="flex gap-2">
+    <span class="badge ${emp.employmentStatus === 'active' ? 'badge-green' : emp.employmentStatus === 'terminated' ? 'badge-red' : 'badge-amber'}" style="font-size:13px;padding:6px 12px">
+      ${emp.employmentStatus.replace('_',' ')}
+    </span>
+    ${emp.isSponsored ? '<span class="badge badge-purple" style="font-size:13px;padding:6px 12px">Sponsored Worker</span>' : ''}
+    ${emp.isDriver ? '<span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Driver</span>' : ''}
+    <a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <!-- Profile Card -->
+  <div class="card">
+    <div class="card-header"><h3>Employee Profile</h3></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        ${[
+          ['Full Name', emp.fullName],
+          ['Date of Birth', formatDate(emp.dateOfBirth)],
+          ['Job Title', emp.jobTitle],
+          ['Department', emp.department],
+          ['Start Date', formatDate(emp.startDate)],
+          ['Work Location', emp.workLocation],
+          ['Contracted Hours', emp.contractedHours + ' hrs/week'],
+          ['Phone', emp.phone],
+          ['Email', emp.email],
+          ['Line Manager', emp.lineManager?.fullName || '—'],
+          ['Assigned Vehicle', emp.drivingVehicle?.registration || '—'],
+        ].map(([k, v]) => `
+          <div>
+            <div class="text-sm text-muted" style="margin-bottom:2px">${k}</div>
+            <div style="font-weight:500;font-size:13.5px">${v || '—'}</div>
+          </div>
+        `).join('')}
+      </div>
+      <hr class="divider">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:2px">Emergency Contact</div>
+          <div style="font-weight:500;font-size:13.5px">${emp.emergencyContactName || '—'}</div>
+          <div style="font-size:12px;color:#64748b">${emp.emergencyContactPhone || ''}</div>
+        </div>
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:2px">Next of Kin</div>
+          <div style="font-weight:500;font-size:13.5px">${emp.nextOfKin || '—'}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Completion Card -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Training Completion</h3>
+      <span style="font-size:22px;font-weight:800;color:${completionPercent >= 80 ? '#10b981' : completionPercent >= 60 ? '#f59e0b' : '#ef4444'}">${completionPercent}%</span>
+    </div>
+    <div class="card-body">
+      <div class="progress-bar mb-4" style="height:10px">
+        <div class="progress-bar-fill ${completionPercent >= 80 ? 'green' : completionPercent >= 60 ? 'amber' : 'red'}" style="width:${completionPercent}%"></div>
+      </div>
+      <div class="training-grid">
+        ${trainingMatrix.map(t => `
+          <div class="training-item ${t.status}">
+            <div class="ti-label">${t.label}</div>
+            ${t.completedDate ? `<div class="ti-date">${formatDate(t.completedDate)}</div>` : ''}
+            ${t.expiryDate ? `<div class="ti-date" style="color:${daysUntil(t.expiryDate) <= 30 ? '#dc2626' : '#64748b'}">Exp: ${formatDate(t.expiryDate)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Documents -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Employment Documents</h3>
+    <button class="btn btn-primary btn-sm" onclick="document.getElementById('uploadModal').style.display='flex'">
+      + Upload Document
+    </button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Document Type</th><th>File</th><th>Expiry Date</th><th>Uploaded</th><th>Status</th></tr></thead>
+      <tbody>
+        ${emp.documents.length === 0
+          ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:#64748b">No documents uploaded yet</td></tr>`
+          : emp.documents.map(d => {
+              const days = d.expiryDate ? daysUntil(d.expiryDate) : null;
+              const status = !d.expiryDate ? 'badge-green' : days < 0 ? 'badge-red' : days <= 30 ? 'badge-amber' : 'badge-green';
+              const statusText = !d.expiryDate ? 'Present' : days < 0 ? 'Expired' : days <= 30 ? `${days}d remaining` : 'Valid';
+              return `<tr>
+                <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
+                <td style="color:#64748b;font-size:12px">${d.fileName}</td>
+                <td>${d.expiryDate ? formatDate(d.expiryDate) : '—'}</td>
+                <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
+                <td><span class="badge ${status}">${statusText}</span></td>
+              </tr>`;
+            }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+${emp.sponsoredWorker ? `
+<!-- Sponsored Worker Details -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Home Office Sponsor Details</h3>
+    <span class="badge badge-purple">Sponsored Worker</span>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+      ${[
+        ['CoS Number', emp.sponsoredWorker.cosNumber],
+        ['SOC Code', emp.sponsoredWorker.socCode],
+        ['Sponsored Job Title', emp.sponsoredWorker.sponsoredJobTitle],
+        ['Salary on CoS', '£' + Number(emp.sponsoredWorker.salaryOnCos).toLocaleString()],
+        ['Actual Salary', '£' + Number(emp.sponsoredWorker.actualSalary).toLocaleString()],
+        ['Work Location', emp.sponsoredWorker.workLocation],
+        ['Visa Expiry', formatDate(emp.sponsoredWorker.visaExpiryDate)],
+        ['RTW Check Date', formatDate(emp.sponsoredWorker.rightToWorkCheckDate)],
+        ['RTW Follow-Up', formatDate(emp.sponsoredWorker.rightToWorkFollowupDate)],
+      ].map(([k, v]) => `
+        <div>
+          <div class="text-sm text-muted" style="margin-bottom:2px">${k}</div>
+          <div style="font-weight:600;font-size:13.5px">${v || '—'}</div>
+        </div>
+      `).join('')}
+    </div>
+    ${emp.sponsoredWorker.changes.length > 0 ? `
+      <hr class="divider">
+      <div class="section-title">Change Log</div>
+      <table>
+        <thead><tr><th>Change Type</th><th>From</th><th>To</th><th>Effective Date</th><th>Reported to HO</th></tr></thead>
+        <tbody>
+          ${emp.sponsoredWorker.changes.map(c => `
+            <tr>
+              <td style="font-weight:600;text-transform:capitalize">${c.changeType.replace(/_/g,' ')}</td>
+              <td>${c.previousValue}</td>
+              <td>${c.newValue}</td>
+              <td>${formatDate(c.effectiveDate)}</td>
+              <td>${c.reportedToHomeOffice ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-red">No</span>'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    ` : ''}
+  </div>
+</div>
+` : ''}
+
+<!-- Upload Document Modal -->
+<div id="uploadModal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Upload Document</h3>
+      <button onclick="document.getElementById('uploadModal').style.display='none'" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <form action="/api/v1/employees/${emp.id}/documents" method="POST" enctype="multipart/form-data" id="uploadForm">
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Document Type <span class="required">*</span></label>
+          <select class="form-control" name="documentType" required>
+            <option value="">Select type...</option>
+            ${['contract','offer_letter','job_description','passport','right_to_work','driving_licence',
+               'cpc_card','tacho_card','proof_of_address','national_insurance','payroll','disciplinary',
+               'appraisal','resignation_termination','other'].map(t =>
+               `<option value="${t}">${t.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Expiry Date (if applicable)</label>
+          <input class="form-control" type="date" name="expiryDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">File <span class="required">*</span></label>
+          <input class="form-control" type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.docx" required>
+          <div class="form-hint">PDF, JPG, PNG or DOCX · Max 20 MB</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" onclick="document.getElementById('uploadModal').style.display='none'" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await fetch(e.target.action, { method:'POST', body: fd,
+    headers: { 'Authorization': 'Bearer ' + (document.cookie.match(/token=([^;]+)/)||[])[1] }});
+  if (res.ok) { showToast('Document uploaded successfully','success'); document.getElementById('uploadModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
+  else { showToast('Upload failed','error'); }
+});
+</script>
+` }) %>
