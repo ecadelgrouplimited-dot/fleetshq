@@ -254,7 +254,14 @@ async function toggleUser(id, active) {
 }
 
 async function confirmDeleteUser(id, name) {
-  if (!window.confirm('Delete the user account for ' + name + '? This only works when the user has no audit-owned records.')) return;
+  const confirmed = await showConfirmDialog({
+    title: 'Delete User Account',
+    message: 'Delete the user account for ' + name + '? This only works when the user has no audit-owned records.',
+    confirmLabel: 'Delete User',
+    cancelLabel: 'Cancel',
+    tone: 'danger'
+  });
+  if (!confirmed) return;
   const res = await fetch('/api/v1/users/' + id, {
     method: 'DELETE', credentials: 'same-origin',
   });

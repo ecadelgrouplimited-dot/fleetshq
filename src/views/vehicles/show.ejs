@@ -181,7 +181,14 @@ async function updateVehicleStatus(status) {
 }
 
 async function deleteVehicleRecord() {
-  if (!window.confirm('Delete vehicle ${vehicle.registration}? This only works when there are no linked documents, checks, defects or VOR records.')) return;
+  const confirmed = await showConfirmDialog({
+    title: 'Delete Vehicle Record',
+    message: 'Delete vehicle ${vehicle.registration}? This only works when there are no linked documents, checks, defects or VOR records.',
+    confirmLabel: 'Delete Vehicle',
+    cancelLabel: 'Cancel',
+    tone: 'danger'
+  });
+  if (!confirmed) return;
   const res = await fetch('/api/v1/vehicles/${vehicle.id}', {
     method: 'DELETE',
     credentials: 'same-origin',

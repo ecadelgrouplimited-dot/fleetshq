@@ -223,7 +223,14 @@ async function updateEmployeeStatus(status) {
 }
 
 async function deleteEmployeeRecord() {
-  if (!window.confirm('Delete employee record for ${emp.fullName}? This only works when there are no linked compliance records.')) return;
+  const confirmed = await showConfirmDialog({
+    title: 'Delete Employee Record',
+    message: 'Delete employee record for ${emp.fullName}? This only works when there are no linked compliance records.',
+    confirmLabel: 'Delete Employee',
+    cancelLabel: 'Cancel',
+    tone: 'danger'
+  });
+  if (!confirmed) return;
   const res = await fetch('/api/v1/employees/${emp.id}', {
     method: 'DELETE',
     credentials: 'same-origin',

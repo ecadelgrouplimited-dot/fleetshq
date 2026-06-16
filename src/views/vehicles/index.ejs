@@ -136,7 +136,14 @@
 
 <script>
 async function deleteVehicle(id, registration) {
-  if (!window.confirm('Delete vehicle ' + registration + '? This only works when there are no linked documents, checks, defects or VOR records.')) return;
+  const confirmed = await showConfirmDialog({
+    title: 'Delete Vehicle Record',
+    message: 'Delete vehicle ' + registration + '? This only works when there are no linked documents, checks, defects or VOR records.',
+    confirmLabel: 'Delete Vehicle',
+    cancelLabel: 'Cancel',
+    tone: 'danger'
+  });
+  if (!confirmed) return;
   const res = await fetch('/api/v1/vehicles/' + id, {
     method: 'DELETE',
     credentials: 'same-origin',

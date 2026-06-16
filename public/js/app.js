@@ -42,8 +42,82 @@ function apiCall(method, url, body) {
 }
 
 // ── Confirm helper ────────────────────────────────────────────────────
-function confirmAction(message, fn) {
-  if (window.confirm(message)) fn();
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showConfirmDialog(options) {
+  options = options || {};
+  var host = document.getElementById('confirmDialogHost');
+  if (!host) return Promise.resolve(window.confirm(options.message || 'Are you sure?'));
+
+  return new Promise(function(resolve) {
+    var title = escapeHtml(options.title || 'Confirm Action');
+    var message = escapeHtml(options.message || 'Are you sure you want to continue?').replace(/\n/g, '<br>');
+    var confirmLabel = escapeHtml(options.confirmLabel || 'Confirm');
+    var cancelLabel = escapeHtml(options.cancelLabel || 'Cancel');
+    var toneClass = options.tone === 'danger' ? 'btn-danger' : 'btn-primary';
+
+    host.innerHTML =
+      '<div class="modal-overlay modal-confirm-overlay">' +
+        '<div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmDialogTitle">' +
+          '<div class="modal-header">' +
+            '<h3 id="confirmDialogTitle">' + title + '</h3>' +
+            '<button type="button" class="btn btn-ghost btn-sm" data-confirm-close>Close</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<p class="confirm-dialog-message">' + message + '</p>' +
+          '</div>' +
+          '<div class="modal-footer">' +
+            '<button type="button" class="btn btn-ghost" data-confirm-cancel>' + cancelLabel + '</button>' +
+            '<button type="button" class="btn ' + toneClass + '" data-confirm-ok>' + confirmLabel + '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    var overlay = host.querySelector('.modal-confirm-overlay');
+    var confirmButton = host.querySelector('[data-confirm-ok]');
+    var cancelButton = host.querySelector('[data-confirm-cancel]');
+    var closeButton = host.querySelector('[data-confirm-close]');
+    var previousOverflow = document.body.style.overflow;
+
+    function teardown(result) {
+      document.removeEventListener('keydown', onKeydown);
+      document.body.style.overflow = previousOverflow;
+      host.innerHTML = '';
+      resolve(result);
+    }
+
+    function onKeydown(event) {
+      if (event.key === 'Escape') teardown(false);
+      if (event.key === 'Enter') teardown(true);
+    }
+
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeydown);
+
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) teardown(false);
+    });
+    cancelButton.addEventListener('click', function() { teardown(false); });
+    closeButton.addEventListener('click', function() { teardown(false); });
+    confirmButton.addEventListener('click', function() { teardown(true); });
+    confirmButton.focus();
+  });
+}
+
+function confirmAction(message, fn, options) {
+  options = options || {};
+  options.message = message;
+  return showConfirmDialog(options).then(function(confirmed) {
+    if (confirmed && typeof fn === 'function') return fn();
+    return confirmed;
+  });
 }
 
 // ── Active nav highlight ──────────────────────────────────────────────
