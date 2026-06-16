@@ -1,7 +1,10 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <div>
-    <span class="text-sm text-muted">${workers.length} sponsored worker${workers.length !== 1 ? 's' : ''}</span>
+    <span class="text-sm text-muted"><span id="visibleSponsoredCount">${workers.length}</span> of ${workers.length} sponsored worker${workers.length !== 1 ? 's' : ''}</span>
+  </div>
+  <div style="width:320px;max-width:100%">
+    <input class="form-control" data-live-search="#sponsoredTableBody" data-live-count="#visibleSponsoredCount" data-live-empty="#noSponsoredFound" placeholder="Search name, CoS, job, status...">
   </div>
 </div>
 
@@ -20,13 +23,13 @@
           <th>Status</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="sponsoredTableBody">
         ${workers.length === 0 ? `<tr><td colspan="8" style="text-align:center;padding:32px;color:#64748b">No sponsored workers found</td></tr>` :
         workers.map(w => {
           const visaDays = daysUntil(w.visaExpiryDate);
           const rtwDays = daysUntil(w.rightToWorkFollowupDate);
           const salaryMatch = Number(w.salaryOnCos) === Number(w.actualSalary);
-          return `<tr>
+          return `<tr data-search-row data-search-text="${`${w.employee.fullName} ${w.employee.department} ${w.employee.jobTitle} ${w.cosNumber} ${w.socCode} ${w.sponsoredJobTitle} ${w.employee.employmentStatus} ${salaryMatch ? 'salary match' : 'salary mismatch'}`.toLowerCase()}">
             <td>
               <a href="/employees/${w.employee.id}" style="font-weight:600">${w.employee.fullName}</a>
               <div style="font-size:11px;color:#64748b">${w.employee.department}</div>
@@ -58,6 +61,7 @@
             </td>
           </tr>`;
         }).join('')}
+        <tr id="noSponsoredFound" style="display:none"><td colspan="8" style="text-align:center;padding:32px;color:#64748b">No sponsored workers match your search</td></tr>
       </tbody>
     </table>
   </div>

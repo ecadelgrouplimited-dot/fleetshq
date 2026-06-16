@@ -21,13 +21,16 @@
 <div class="grid-2">
   <!-- Driver Training -->
   <div class="card">
-    <div class="card-header"><h3>Driver Training Matrix</h3></div>
+    <div class="card-header">
+      <h3>Driver Training Matrix</h3>
+      <input class="form-control" style="max-width:280px" data-live-search="#trainingTableBody" data-live-count="#visibleTrainingCount" data-live-empty="#noTrainingFound" placeholder="Search drivers, role, progress...">
+    </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Driver</th><th>Completion</th><th>Progress</th></tr></thead>
-        <tbody>
+        <tbody id="trainingTableBody">
           ${drivers.map(d => `
-            <tr>
+            <tr data-search-row data-search-text="${`${d.fullName} ${d.jobTitle} ${d.completionPercent}% ${d.completionPercent === 100 ? 'fully inducted' : d.completionPercent > 0 ? 'in progress' : 'not started'}`.toLowerCase()}">
               <td><a href="/employees/${d.id}" style="font-weight:600">${d.fullName}</a><div style="font-size:11px;color:#64748b">${d.jobTitle}</div></td>
               <td style="font-weight:700;color:${d.completionPercent >= 80 ? '#10b981' : d.completionPercent >= 60 ? '#f59e0b' : '#ef4444'}">${d.completionPercent}%</td>
               <td style="width:160px">
@@ -38,6 +41,7 @@
             </tr>
           `).join('')}
           ${drivers.length === 0 ? '<tr><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No drivers found</td></tr>' : ''}
+          <tr id="noTrainingFound" style="display:none"><td colspan="3" style="text-align:center;padding:24px;color:#64748b">No drivers match your search</td></tr>
         </tbody>
       </table>
     </div>
@@ -47,13 +51,14 @@
   <div class="card">
     <div class="card-header">
       <h3>Toolbox Talks</h3>
+      <input class="form-control" style="max-width:280px" data-live-search="#toolboxTableBody" data-live-empty="#noToolboxFound" placeholder="Search talks, dates, sign-off...">
     </div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Topic</th><th>Date</th><th>Signed</th><th>Manager Sign-Off</th></tr></thead>
-        <tbody>
+        <tbody id="toolboxTableBody">
           ${talks.map(t => `
-            <tr>
+            <tr data-search-row data-search-text="${`${t.topic} ${formatDate(t.dateIssued)} ${t.managerSignedOff ? 'signed off' : 'pending'} ${t.totalSigned}/${t.assignments.length}`.toLowerCase()}">
               <td style="font-weight:600">${t.topic}</td>
               <td style="font-size:12px;color:#64748b">${formatDate(t.dateIssued)}</td>
               <td>
@@ -69,6 +74,7 @@
             </tr>
           `).join('')}
           ${talks.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No toolbox talks yet</td></tr>' : ''}
+          <tr id="noToolboxFound" style="display:none"><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No toolbox talks match your search</td></tr>
         </tbody>
       </table>
     </div>

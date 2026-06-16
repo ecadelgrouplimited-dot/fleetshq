@@ -1,11 +1,23 @@
 <%- include('layouts/main', { body: `
+<div class="card mb-4">
+  <div class="card-body" style="padding:14px 20px">
+    <div style="display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap">
+      <div style="flex:1;min-width:260px">
+        <label class="form-label">Search driver risk</label>
+        <input class="form-control" data-live-search="#driverRiskTableBody" data-live-count="#visibleDriverRiskCount" data-live-empty="#noDriverRiskFound" placeholder="Driver, vehicle, department, CPC, risk...">
+      </div>
+      <p class="text-sm text-muted" style="margin-bottom:10px"><span id="visibleDriverRiskCount">${drivers.length}</span> active drivers</p>
+    </div>
+  </div>
+</div>
+
 <div class="card">
   <div class="table-wrap">
     <table>
       <thead><tr><th>Driver</th><th>Vehicle</th><th>CPC Expiry</th><th>Missed Checks</th><th>Risk Level</th></tr></thead>
-      <tbody>
+      <tbody id="driverRiskTableBody">
         ${drivers.map(d => `
-          <tr>
+          <tr data-search-row data-search-text="${`${d.fullName} ${d.department} ${d.drivingVehicle?.registration || ''} ${d.cpcExpiry ? formatDate(d.cpcExpiry) : 'not recorded'} ${d.missedChecks} ${d.riskLevel}`.toLowerCase()}">
             <td>
               <a href="/employees/${d.id}" style="font-weight:600">${d.fullName}</a>
               <div style="font-size:11px;color:#64748b">${d.department}</div>
@@ -28,6 +40,7 @@
           </tr>
         `).join('')}
         ${drivers.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:#64748b">No drivers found</td></tr>' : ''}
+        <tr id="noDriverRiskFound" style="display:none"><td colspan="5" style="text-align:center;padding:32px;color:#64748b">No drivers match your search</td></tr>
       </tbody>
     </table>
   </div>

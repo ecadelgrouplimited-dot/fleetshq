@@ -27,12 +27,18 @@
     ${[
       ['Staff List', 'Employee, role, department, status and contact details.', '/reports/export/staff', 'Home Office'],
       ['Sponsored Workers', 'CoS, SOC, salary, visa and Right to Work follow-up dates.', '/reports/export/sponsored', 'Home Office'],
+      ['Right to Work', 'RTW documents, visa expiry dates and follow-up actions.', '/reports/export/right-to-work', 'Home Office'],
+      ['Document Expiry', 'Expiring passports, contracts, licences and compliance documents.', '/reports/export/document-expiry', 'Home Office'],
       ['Fleet Register', 'Vehicle, driver, MOT, insurance, PMI and status records.', '/reports/export/fleet', 'DVSA'],
-      ['Defect Register', 'Defect references, vehicles, severity, status and descriptions.', '/reports/export/defects', 'DVSA']
+      ['PMI Planner', 'Maintenance intervals, overdue PMI records and brake test evidence.', '/reports/export/pmi', 'DVSA'],
+      ['Defect Register', 'Defect references, vehicles, severity, status and descriptions.', '/reports/export/defects', 'DVSA'],
+      ['VOR History', 'Off-road dates, repair garages, return-to-service and sign-off records.', '/reports/export/vor', 'DVSA'],
+      ['Daily Checks', 'Walk-around checks, nil defects, mileage and reported defect counts.', '/reports/export/daily-checks', 'DVSA'],
+      ['Training Records', 'Driver induction, CPC, toolbox talk and expiry tracking exports.', '/reports/export/training', 'People']
     ].map(([name, desc, href, pack]) => `
       <div class="report-tile">
         <div>
-          <span class="badge ${pack === 'DVSA' ? 'badge-amber' : 'badge-purple'}">${pack}</span>
+          <span class="badge ${pack === 'DVSA' ? 'badge-amber' : pack === 'People' ? 'badge-blue' : 'badge-purple'}">${pack}</span>
           <h4>${name}</h4>
           <p>${desc}</p>
         </div>

@@ -1,0 +1,85 @@
+<%- include('../layouts/main', { body: `
+<div class="stat-grid mb-4">
+  <div class="stat-card purple"><div class="stat-icon purple"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M5 7h14M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2z"/></svg></div><div><div class="stat-value">${stats.criticalAlerts}</div><div class="stat-label">Critical Alerts</div><div class="stat-sub">Need evidence or sign-off</div></div></div>
+  <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857"/></svg></div><div><div class="stat-value">${stats.sponsored}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.missingRtw} RTW gaps</div></div></div>
+  <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3"/></svg></div><div><div class="stat-value">${stats.activeVor}</div><div class="stat-label">Active VOR</div><div class="stat-sub">${stats.pmiOverdue} PMI overdue</div></div></div>
+  <div class="stat-card red"><div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/></svg></div><div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">Open Defects</div><div class="stat-sub">${stats.unsignedToolbox} sign-offs pending</div></div></div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Evidence Folders</h3>
+    <input class="form-control" style="max-width:320px" data-live-search="#evidenceFolders" data-live-empty="#noEvidenceFolders" placeholder="Search folders, owners, exports...">
+  </div>
+  <div class="card-body evidence-grid" id="evidenceFolders">
+    ${folders.map(folder => `
+      <div class="evidence-folder" data-search-row data-search-text="${`${folder.name} ${folder.owner} ${folder.exports.join(' ')}`.toLowerCase()}">
+        <div class="folder-head">
+          <div>
+            <h4>${folder.name}</h4>
+            <p>${folder.owner}</p>
+          </div>
+          <span class="badge ${folder.score >= 90 ? 'badge-green' : folder.score >= 75 ? 'badge-amber' : 'badge-red'}">${folder.score}% ready</span>
+        </div>
+        <div class="progress-bar" style="height:8px;margin:14px 0">
+          <div class="progress-bar-fill ${folder.score >= 90 ? 'green' : folder.score >= 75 ? 'amber' : 'red'}" style="width:${folder.score}%"></div>
+        </div>
+        <div class="folder-meta">${folder.actions} action${folder.actions === 1 ? '' : 's'} outstanding</div>
+        <div class="folder-actions">
+          ${folder.exports.map((href, i) => `<a href="${href}" class="btn btn-ghost btn-sm">Export ${i + 1}</a>`).join('')}
+        </div>
+      </div>
+    `).join('')}
+    <div id="noEvidenceFolders" class="empty-state" style="display:none"><p>No evidence folders match your search</p></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Outstanding Evidence Actions</h3></div>
+    <div class="card-body action-list">
+      ${[
+        ['Missing Right to Work evidence', stats.missingRtw, '/employees?type=missing_docs'],
+        ['Missing employment contracts', stats.missingContracts, '/employees?type=missing_docs'],
+        ['Open defects requiring closure', stats.openDefects, '/defects'],
+        ['Vehicles currently VOR', stats.activeVor, '/vor'],
+        ['PMI overdue', stats.pmiOverdue, '/fleet?due=pmi_overdue'],
+        ['Manager sign-offs pending', stats.unsignedToolbox, '/training']
+      ].map(([label, value, href]) => `<a class="action-row" href="${href}"><span>${label}</span><strong>${value}</strong></a>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Recent Audit Trail</h3></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th></tr></thead>
+        <tbody>
+          ${recentAudit.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No audit events yet</td></tr>' : recentAudit.map(log => `
+            <tr>
+              <td class="cell-muted">${formatDate(log.createdAt)}</td>
+              <td>${log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}</td>
+              <td><span class="badge badge-blue">${log.action}</span></td>
+              <td class="cell-muted">${log.entityType} / ${log.entityId}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<style>
+  .evidence-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px; }
+  .evidence-folder { border:1px solid var(--border);border-radius:8px;padding:16px;background:#fff; }
+  .folder-head { display:flex;justify-content:space-between;gap:12px;align-items:flex-start; }
+  .folder-head h4 { font-size:15px;font-weight:800;margin-bottom:4px; }
+  .folder-head p,.folder-meta { color:var(--text-muted);font-size:12px;font-weight:600; }
+  .folder-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:14px; }
+  .action-list { display:flex;flex-direction:column;gap:10px; }
+  .action-row { display:flex;justify-content:space-between;align-items:center;text-decoration:none;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:12px 14px; }
+  .action-row:hover { border-color:var(--primary);background:#eff6ff; }
+  .action-row span { font-weight:700; }
+  .action-row strong { color:var(--primary);font-size:18px; }
+  @media (max-width:900px){ .evidence-grid { grid-template-columns:1fr; } }
+</style>
+` }) %>

@@ -12,6 +12,7 @@ ${active.length > 0 ? `
 <div class="card mb-6">
   <div class="card-header" style="background:#fef2f2">
     <h3 style="color:#dc2626">Active VOR Records</h3>
+    <input class="form-control" style="max-width:300px" data-live-search="#activeVorTableBody" data-live-empty="#noActiveVorFound" placeholder="Search active VOR...">
   </div>
   <div class="table-wrap">
     <table>
@@ -27,9 +28,9 @@ ${active.length > 0 ? `
           <th>Action</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="activeVorTableBody">
         ${active.map(r => `
-          <tr>
+          <tr data-search-row data-search-text="${`${r.vehicle?.registration || ''} ${r.vehicle?.make || ''} ${r.vehicle?.model || ''} ${r.reason} ${r.repairGarage || ''} ${r.authorisedBy?.firstName || ''} ${r.authorisedBy?.lastName || ''}`.toLowerCase()}">
             <td style="font-weight:700">${r.vehicle?.registration}</td>
             <td>${formatDate(r.takenOffRoadDate)}</td>
             <td>
@@ -44,6 +45,7 @@ ${active.length > 0 ? `
             </td>
           </tr>
         `).join('')}
+        <tr id="noActiveVorFound" style="display:none"><td colspan="8" style="text-align:center;padding:24px;color:#64748b">No active VOR records match your search</td></tr>
       </tbody>
     </table>
   </div>
@@ -58,15 +60,18 @@ ${active.length > 0 ? `
 `}
 
 <div class="card">
-  <div class="card-header"><h3>VOR History (Last 15 Records)</h3></div>
+  <div class="card-header">
+    <h3>VOR History (Last 15 Records)</h3>
+    <input class="form-control" style="max-width:300px" data-live-search="#vorHistoryTableBody" data-live-empty="#noVorHistoryFound" placeholder="Search VOR history...">
+  </div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Vehicle</th><th>Off Road Date</th><th>Return Date</th><th>Duration</th><th>Authorised By</th></tr></thead>
-      <tbody>
+      <tbody id="vorHistoryTableBody">
         ${history.length === 0 ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:#64748b">No history</td></tr>` :
         history.map(r => {
           const days = r.actualReturnDate ? Math.floor((new Date(r.actualReturnDate) - new Date(r.takenOffRoadDate)) / 86400000) : '—';
-          return `<tr>
+          return `<tr data-search-row data-search-text="${`${r.vehicle?.registration || ''} ${formatDate(r.takenOffRoadDate)} ${formatDate(r.actualReturnDate)} ${r.authorisedBy?.firstName || ''} ${r.authorisedBy?.lastName || ''}`.toLowerCase()}">
             <td style="font-weight:600">${r.vehicle?.registration}</td>
             <td>${formatDate(r.takenOffRoadDate)}</td>
             <td>${formatDate(r.actualReturnDate)}</td>
@@ -74,6 +79,7 @@ ${active.length > 0 ? `
             <td>${r.authorisedBy?.firstName} ${r.authorisedBy?.lastName}</td>
           </tr>`;
         }).join('')}
+        <tr id="noVorHistoryFound" style="display:none"><td colspan="5" style="text-align:center;padding:24px;color:#64748b">No VOR history matches your search</td></tr>
       </tbody>
     </table>
   </div>

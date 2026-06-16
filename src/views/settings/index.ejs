@@ -1,0 +1,72 @@
+<%- include('../layouts/main', { body: `
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Company & System</h3></div>
+    <div class="card-body">
+      <div class="info-row">
+        ${[
+          ['Domain', config.domain],
+          ['Database', config.database],
+          ['Storage', config.storage],
+          ['Upload folder', config.uploads],
+          ['Alert sender', config.alertFrom]
+        ].map(([k,v]) => `<div class="info-item"><div class="info-key">${k}</div><div class="info-val">${v}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Alert Thresholds</h3></div>
+    <div class="card-body">
+      <div class="info-row">
+        ${[
+          ['Critical window', config.criticalDays + ' days'],
+          ['Warning window', config.warningDays + ' days'],
+          ['Notice window', config.noticeDays + ' days'],
+          ['Daily job', '06:00 UTC']
+        ].map(([k,v]) => `<div class="info-item"><div class="info-key">${k}</div><div class="info-val">${v}</div></div>`).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-header"><h3>Role Access Matrix</h3></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Role</th><th>Primary Access</th><th>Operational Focus</th></tr></thead>
+      <tbody>
+        ${[
+          ['Director', 'All modules, reports, users, settings', 'Overall compliance control and sign-off'],
+          ['Transport Manager', 'Fleet, PMI, defects, VOR, driver risk, training', 'DVSA and roadworthiness evidence'],
+          ['HR Manager', 'Employees, Right to Work, sponsor compliance, training', 'Home Office and workforce compliance'],
+          ['Operations Manager', 'Driver allocation, vehicle status, checks, risk', 'Daily operational control'],
+          ['Driver', 'Own profile, checks, defects, training tasks', 'Accountability and evidence capture'],
+          ['Garage', 'Assigned repairs, PMI uploads, invoices', 'Maintenance evidence']
+        ].map(([role, access, focus]) => `<tr><td><span class="badge badge-blue">${role}</span></td><td>${access}</td><td class="cell-muted">${focus}</td></tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Production Checklist</h3></div>
+  <div class="card-body checklist-grid">
+    ${[
+      ['Rotate demo passwords', 'Replace seeded demo credentials before live operation.'],
+      ['Set JWT secret', 'Use a long unique production JWT_SECRET.'],
+      ['Configure SMTP', 'Add real mailbox credentials for alert email delivery.'],
+      ['Configure backups', 'Schedule PostgreSQL backup and restore verification.'],
+      ['Configure file storage', 'Use S3 or a backed-up volume for production documents.'],
+      ['Review role assignments', 'Limit director access to trusted administrators.']
+    ].map(([title, desc]) => `<div class="check-card"><strong>${title}</strong><p>${desc}</p></div>`).join('')}
+  </div>
+</div>
+
+<style>
+  .checklist-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px; }
+  .check-card { border:1px solid var(--border);border-radius:8px;padding:14px;background:#fff; }
+  .check-card strong { display:block;margin-bottom:6px;font-size:13.5px; }
+  .check-card p { color:var(--text-muted);font-size:12.5px;line-height:1.5; }
+  @media (max-width:900px){ .checklist-grid { grid-template-columns:1fr; } }
+</style>
+` }) %>
