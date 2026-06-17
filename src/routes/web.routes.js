@@ -1735,4 +1735,70 @@ router.get('/migration', webAuth, requireRoles('director'), async (req, res) => 
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
+// ── Privacy / GDPR ────────────────────────────────────────────────────────────
+
+router.get('/privacy', (req, res) => {
+  res.render('privacy/index', { title: 'Privacy Policy' });
+});
+
+// Data subject access request (DSAR) — director-only: export all data for one employee
+router.get('/privacy/dsar', webAuth, requireRoles('director', 'hr_manager'), async (req, res) => {
+  try {
+    const { employeeId } = req.query;
+    if (!employeeId) {
+      const employees = await prisma.employee.findMany({ select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } });
+      return res.render('privacy/dsar', { title: 'Data Subject Access Request', employees, query: req.query });
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        documents: true,
+        trainingRecords: true,
+        dailyChecks: true,
+        defects: true,
+        user: { select: { id: true, email: true, role: true, createdAt: true, lastLoginAt: true } },
+        sponsorship: true,
+      },
+    });
+    if (!employee) return res.render('error', { title: 'Not Found', message: 'Employee not found.', code: 404 });
+
+    res.setHeader('Content-Disposition', `attachment; filename="dsar-${employee.id}.json"`);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ exportedAt: new Date(), employee });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// Right to erasure — director only: anonymise a leaver's personal data, preserving operational records
+router.post('/privacy/erase', webAuth, requireRoles('director'), async (req, res) => {
+  try {
+    const { employeeId } = req.body;
+    if (!employeeId) return res.status(400).render('error', { title: 'Bad Request', message: 'employeeId is required', code: 400 });
+
+    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee) return res.status(404).render('error', { title: 'Not Found', message: 'Employee not found.', code: 404 });
+
+    const anon = `[erased-${Date.now()}]`;
+    await prisma.employee.update({
+      where: { id: employeeId },
+      data: {
+        fullName: anon,
+        email: null,
+        phone: null,
+        homeAddress: anon,
+        dateOfBirth: new Date('1900-01-01'),
+        nationalInsuranceNumber: null,
+        passportNumber: null,
+        visaNumber: null,
+      },
+    });
+
+    // Remove the linked login account (no longer needed after erasure)
+    await prisma.user.deleteMany({ where: { employeeId } });
+
+    const employees = await prisma.employee.findMany({ select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } });
+    res.render('privacy/dsar', { title: 'Data Subject Access Request', employees, query: { erased: '1' } });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 module.exports = router;

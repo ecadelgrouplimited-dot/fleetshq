@@ -162,6 +162,10 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10m16-10v10M8 5h8m-8 14h8M7 9h10M7 15h10"/></svg>
         Migration Center
       </a>
+      <a href="/privacy/dsar" class="<%= title === 'Data Subject Access Request' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Privacy / GDPR
+      </a>
       <a href="/settings" class="<%= title === 'Settings' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 2.34l-1.56-.9a7.8 7.8 0 00-.72-1.74l.48-1.74-2.1-2.1-1.74.48a7.8 7.8 0 00-1.74-.72L12.66 2h-2.98l-.9 1.56a7.8 7.8 0 00-1.74.72L5.3 3.8 3.2 5.9l.48 1.74a7.8 7.8 0 00-.72 1.74l-1.56.9v2.98l1.56.9c.18.62.42 1.2.72 1.74L3.2 17.64l2.1 2.1 1.74-.48c.54.3 1.12.54 1.74.72l.9 1.56h2.98l.9-1.56c.62-.18 1.2-.42 1.74-.72l1.74.48 2.1-2.1-.48-1.74c.3-.54.54-1.12.72-1.74l1.56-.9v-2.92z"/></svg>
         Settings
@@ -184,6 +188,7 @@
   <% } %>
 
   <div class="sidebar-footer">
+    <a href="/privacy" style="font-size:11px;color:#94a3b8;text-decoration:none;display:block;text-align:center;padding:4px 0 8px;line-height:1">Privacy Policy</a>
     <a href="/account" class="user-card" style="text-decoration:none;color:inherit" title="My account">
       <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></div>
       <div class="user-info">

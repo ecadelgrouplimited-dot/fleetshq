@@ -1,0 +1,71 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      GDPR
+    </div>
+    <h1>Data Subject Requests</h1>
+    <p class="page-sub">Export or erase an individual's personal data in response to a UK GDPR request.</p>
+  </div>
+</div>
+
+${typeof query !== 'undefined' && query.erased ? '<div class="alert alert-success" style="margin-bottom:16px">Personal data has been anonymised successfully. Operational records (checks, defects, training) are retained for legal compliance.</div>' : ''}
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h3>Data Subject Access Request (DSAR)</h3></div>
+    <div class="card-body">
+      <p style="font-size:14px;color:#64748b;margin-bottom:16px">Download a JSON export of all personal data held for an employee. Share with the data subject to fulfil a SAR within the 30-day deadline.</p>
+      <form method="GET" action="/privacy/dsar">
+        <div class="form-group">
+          <label class="form-label">Select employee</label>
+          <select name="employeeId" class="form-control" required>
+            <option value="">— Choose employee —</option>
+            ${(employees || []).map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Download data export</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="border-color:#fca5a5">
+    <div class="card-header" style="background:#fef2f2"><h3 style="color:#b91c1c">Right to Erasure</h3></div>
+    <div class="card-body">
+      <p style="font-size:14px;color:#64748b;margin-bottom:16px">Anonymises the individual's personal identifiers (name, DOB, address, NI, passport, visa, phone, email) and removes their login account. <strong>Operational records (checks, defects, training) are retained to meet DVSA legal obligations.</strong></p>
+      <p style="font-size:13px;color:#b91c1c;margin-bottom:16px;font-weight:600">This action is irreversible.</p>
+      <form method="POST" action="/privacy/erase" onsubmit="return confirm('Are you sure? This will permanently anonymise the employee\'s personal data and cannot be undone.')">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-group">
+          <label class="form-label">Select employee to erase</label>
+          <select name="employeeId" class="form-control" required>
+            <option value="">— Choose employee —</option>
+            ${(employees || []).map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}
+          </select>
+        </div>
+        <button type="submit" class="btn" style="background:#dc2626;color:#fff">Erase personal data</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<div class="card" style="margin-top:16px">
+  <div class="card-header"><h3>Data Retention Reference</h3></div>
+  <div class="card-body" style="padding:0">
+    <table class="data-table">
+      <thead><tr><th>Category</th><th>Retention period</th><th>Legal basis</th></tr></thead>
+      <tbody>
+        <tr><td>Employment records</td><td>Employment + 6 years</td><td>HMRC / Employment law</td></tr>
+        <tr><td>Right-to-Work documents</td><td>Employment + 2 years</td><td>Immigration Act 2014</td></tr>
+        <tr><td>Tachograph / daily check records</td><td>1 year</td><td>DVSA Operator compliance</td></tr>
+        <tr><td>Defect reports</td><td>15 months</td><td>DVSA Guide to Maintaining Roadworthiness</td></tr>
+        <tr><td>Audit logs</td><td>3 years</td><td>Legitimate interests</td></tr>
+        <tr><td>Database backups</td><td>30 days</td><td>Operational continuity</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+` }) %>
