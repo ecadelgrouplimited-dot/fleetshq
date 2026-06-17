@@ -3,7 +3,7 @@
 **Audited:** 2026-06-17 · **Reviewer:** Engineering (Claude) · **App version:** 1.0.0
 **Environment:** Live at https://256logisticsltd.com (Ubuntu 24.04 VPS, Node 20, PostgreSQL 16, nginx, pm2)
 
-> **Update 2026-06-17 — Phase 0 hardening COMPLETE.** Resolved: daily DB backups (C1), login throttle + per-account lockout (H1), Secure cookie (H2), `trust proxy` (H3), pm2 log rotation (M3), swap (L1). Details inline below, marked ✅ **RESOLVED**. Readiness moved from ~65% → **~74%**.
+> **Update 2026-06-17 — Phase 0 hardening + stored-XSS fix COMPLETE.** Resolved: daily DB backups (C1), **stored XSS (C2)**, login throttle + per-account lockout (H1), Secure cookie (H2), `trust proxy` (H3), pm2 log rotation (M3), swap (L1). Details inline below, marked ✅ **RESOLVED**. Readiness moved from ~65% → **~80%**.
 
 ---
 
@@ -13,16 +13,15 @@ The system is **deployed, served over HTTPS, and functional**. The codebase is i
 
 The **remaining** gating items before this can be considered production-complete are, in order:
 
-1. **Output escaping / stored-XSS fix** across server-rendered views *(still open — highest remaining risk)*.
-2. **CSRF protection** on state-changing requests.
-3. **Compliance-alert delivery** (email/SMS) — currently alerts are in-app only.
-4. **GDPR / UK-DPA controls** — privacy policy, retention, erasure, DPA register.
+1. **CSRF protection** on state-changing requests *(highest remaining risk)*.
+2. **Compliance-alert delivery** (email/SMS) — currently alerts are in-app only.
+3. **GDPR / UK-DPA controls** — privacy policy, retention, erasure, DPA register.
 
-*(Backups, login brute-force protection, and cookie/proxy hardening were completed in Phase 0 — see ✅ markers below.)*
+*(Backups, stored-XSS output escaping, login brute-force protection, and cookie/proxy hardening were completed in Phase 0 + the XSS pass — see ✅ markers below.)*
 
 Sections 4–6 give the full findings, the must-have feature checklist, and a phased roadmap.
 
-**Overall readiness: ~74%.** Infrastructure, core app, and baseline hardening are solid; the XSS fix, CSRF, alerting, and data-protection controls remain before it carries real operational and legal weight.
+**Overall readiness: ~80%.** Infrastructure, core app, baseline hardening, and XSS output-escaping are solid; CSRF, alerting, and data-protection controls remain before it carries real operational and legal weight.
 
 ---
 
