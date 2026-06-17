@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>256 Logistics Compliance Hub — Two licences. Zero surprises.</title>
+  <meta name="description" content="Purpose-built compliance for UK HGV operators. Keep your DVSA Operator's Licence and Home Office Sponsor Licence audit-ready, every single day.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #0a1628;
+      --navy-2: #0c1a30;
+      --navy-3: #0f2042;
+      --blue: #2563eb;
+      --blue-light: #3b82f6;
+      --blue-200: #93c5fd;
+      --cyan: #06b6d4;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --ink-100: #f1f5f9;
+      --ink-300: #cbd5e1;
+      --ink-400: #94a3b8;
+      --ink-500: #64748b;
+      --line: rgba(148,163,184,0.12);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--navy);
+      color: var(--ink-300);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+
+    /* ── Ambient background ─────────────────────────────── */
+    .bg-field { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .bg-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.035) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 30%, transparent 100%);
+    }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; }
+    .orb-a { width: 560px; height: 560px; background: rgba(37,99,235,0.28); top: -180px; right: -120px; }
+    .orb-b { width: 420px; height: 420px; background: rgba(6,182,212,0.14); top: 40%; left: -160px; }
+    .orb-c { width: 380px; height: 380px; background: rgba(16,185,129,0.10); bottom: -120px; right: 10%; }
+
+    main { position: relative; z-index: 1; }
+
+    /* ── Top bar ────────────────────────────────────────── */
+    .nav {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(14px);
+      background: rgba(10,22,40,0.72);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .brand .dots { display: flex; gap: 4px; }
+    .brand .dots i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+    .brand .dots .r { background: var(--red); }
+    .brand .dots .y { background: var(--amber); }
+    .brand .dots .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .brand small { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-400); letter-spacing: 1px; text-transform: uppercase; }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--blue); color: #fff; font-weight: 600; font-size: 14px;
+      padding: 9px 18px; border-radius: 10px; transition: all .2s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.5); }
+
+    /* ── Reveal on scroll ───────────────────────────────── */
+    .reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+    .reveal.in { opacity: 1; transform: none; }
+    .reveal.d1 { transition-delay: .08s; } .reveal.d2 { transition-delay: .16s; }
+    .reveal.d3 { transition-delay: .24s; } .reveal.d4 { transition-delay: .32s; }
+
+    /* ── Section scaffolding ────────────────────────────── */
+    section { padding: 104px 0; position: relative; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 9px;
+      font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase;
+      color: var(--blue-200);
+      background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.22);
+      padding: 7px 14px; border-radius: 100px; margin-bottom: 22px;
+    }
+    .eyebrow .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--blue-light); box-shadow: 0 0 8px var(--blue-light); animation: pip 2s infinite; }
+    @keyframes pip { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+    h2.section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 800; color: #fff; letter-spacing: -1px; line-height: 1.1; }
+    .section-lead { font-size: 17px; color: var(--ink-400); max-width: 560px; margin-top: 18px; }
+    .muted { color: var(--ink-500); }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero { padding: 80px 0 60px; }
+    .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 40px; align-items: center; }
+    .hero h1 {
+      font-size: clamp(38px, 6vw, 68px); font-weight: 900; color: #fff;
+      letter-spacing: -2.5px; line-height: 1.02;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(120deg, #60a5fa, #22d3ee 60%, #34d399);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p.lead { font-size: 19px; color: var(--ink-300); max-width: 520px; margin: 26px 0 0; line-height: 1.65; }
+    .hero-actions { display: flex; gap: 14px; margin-top: 36px; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px;
+      padding: 14px 26px; border-radius: 12px; transition: all .2s; cursor: pointer; border: none;
+    }
+    .btn-primary { background: linear-gradient(135deg, var(--blue), #1d4ed8); color: #fff; box-shadow: 0 8px 24px rgba(37,99,235,0.4); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,99,235,0.55); }
+    .btn-ghost { background: rgba(255,255,255,0.04); color: var(--ink-100); border: 1px solid var(--line); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); border-color: rgba(148,163,184,0.25); }
+
+    .hero-stage { position: relative; display: flex; justify-content: center; align-items: center; min-height: 420px; }
+    .hero-signal { width: 220px; filter: drop-shadow(0 20px 50px rgba(16,185,129,0.25)); animation: rise 1.1s cubic-bezier(.2,.8,.2,1) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(30px) scale(.96); } to { opacity: 1; transform: none; } }
+    .hero-chip {
+      position: absolute; display: flex; align-items: center; gap: 9px;
+      background: rgba(12,26,48,0.9); border: 1px solid var(--line); backdrop-filter: blur(8px);
+      padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; color: var(--ink-100);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4); animation: floaty 5s ease-in-out infinite;
+    }
+    .hero-chip .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; }
+    .hero-chip small { display: block; font-size: 11px; font-weight: 500; color: var(--ink-400); }
+    .chip-1 { top: 40px; left: -8px; animation-delay: 0s; }
+    .chip-2 { bottom: 70px; right: -16px; animation-delay: -2.5s; }
+    @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+    .hero-trust { display: flex; gap: 28px; margin-top: 44px; padding-top: 28px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .hero-trust .it .n { font-size: 24px; font-weight: 800; color: #fff; }
+    .hero-trust .it .l { font-size: 12.5px; color: var(--ink-500); margin-top: 2px; }
+
+    /* ── STAKES (two licences) ──────────────────────────── */
+    .stakes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 50px; }
+    .stake {
+      position: relative; background: linear-gradient(180deg, rgba(20,35,60,0.7), rgba(13,26,46,0.7));
+      border: 1px solid var(--line); border-radius: 20px; padding: 34px 30px; overflow: hidden;
+    }
+    .stake::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .stake.dvsa::before { background: linear-gradient(90deg, var(--blue), var(--cyan)); }
+    .stake.ho::before { background: linear-gradient(90deg, #8b5cf6, var(--blue-light)); }
+    .stake-ic { width: 54px; height: 54px; border-radius: 14px; display: grid; place-items: center; margin-bottom: 20px; }
+    .stake.dvsa .stake-ic { background: rgba(37,99,235,0.14); border: 1px solid rgba(59,130,246,0.3); }
+    .stake.ho .stake-ic { background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.32); }
+    .stake h3 { font-size: 20px; color: #fff; font-weight: 700; margin-bottom: 6px; }
+    .stake .auth { font-size: 12.5px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; margin-bottom: 16px; }
+    .stake.dvsa .auth { color: var(--blue-200); }
+    .stake.ho .auth { color: #c4b5fd; }
+    .stake p { font-size: 15px; color: var(--ink-400); }
+    .stake .risk { display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: #fca5a5; font-weight: 600; }
+
+    /* ── PROBLEM → SHIFT split ──────────────────────────── */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--line); border-radius: 22px; overflow: hidden; margin-top: 50px; }
+    .split .col { padding: 44px 40px; }
+    .split .before { background: linear-gradient(180deg, rgba(40,20,20,0.35), rgba(13,26,46,0.2)); border-right: 1px solid var(--line); }
+    .split .after { background: linear-gradient(180deg, rgba(16,40,30,0.32), rgba(13,26,46,0.2)); }
+    .split h4 { font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 22px; display: flex; align-items: center; gap: 9px; }
+    .split .before h4 { color: #fca5a5; }
+    .split .after h4 { color: #6ee7b7; }
+    .pt { display: flex; gap: 13px; padding: 13px 0; border-bottom: 1px dashed var(--line); }
+    .pt:last-child { border-bottom: none; }
+    .pt .mk { width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; display: grid; place-items: center; margin-top: 1px; }
+    .before .mk { background: rgba(239,68,68,0.14); }
+    .after .mk { background: rgba(16,185,129,0.16); }
+    .pt span { font-size: 14.5px; color: var(--ink-300); }
+    .pt .muted2 { color: var(--ink-500); }
+
+    /* ── SYSTEM (network) ───────────────────────────────── */
+    .sys-grid { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 50px; align-items: center; }
+    .sys-art { width: 100%; }
+
+    /* ── PILLARS ────────────────────────────────────────── */
+    .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 52px; }
+    .pillar {
+      background: linear-gradient(180deg, rgba(18,32,56,0.6), rgba(12,24,44,0.6));
+      border: 1px solid var(--line); border-radius: 18px; padding: 28px 26px; transition: all .25s;
+    }
+    .pillar:hover { transform: translateY(-4px); border-color: rgba(59,130,246,0.35); box-shadow: 0 18px 40px rgba(0,0,0,0.35); }
+    .pillar .p-ic { width: 50px; height: 50px; border-radius: 13px; background: rgba(37,99,235,0.12); border: 1px solid rgba(59,130,246,0.25); display: grid; place-items: center; margin-bottom: 18px; }
+    .pillar .p-num { font-size: 12px; font-weight: 700; color: var(--blue-200); letter-spacing: 1px; }
+    .pillar h3 { font-size: 18px; color: #fff; font-weight: 700; margin: 8px 0 9px; }
+    .pillar p { font-size: 14px; color: var(--ink-400); }
+
+    /* ── MOMENT OF TRUTH ────────────────────────────────── */
+    .truth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .truth-steps { margin-top: 26px; display: flex; flex-direction: column; gap: 16px; }
+    .tstep { display: flex; gap: 15px; align-items: flex-start; }
+    .tstep .tn { width: 30px; height: 30px; border-radius: 9px; background: rgba(16,185,129,0.14); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; font-weight: 800; font-size: 14px; display: grid; place-items: center; flex-shrink: 0; }
+    .tstep .tt { font-size: 15px; color: var(--ink-300); }
+    .tstep .tt b { color: #fff; font-weight: 600; }
+
+    /* ── SCORE ──────────────────────────────────────────── */
+    .score { text-align: center; }
+    .gauge-wrap { display: flex; justify-content: center; margin: 42px 0 8px; }
+    .gauge { position: relative; width: 260px; height: 260px; }
+    .gauge svg { transform: rotate(-90deg); }
+    .gauge .ring-bg { stroke: rgba(148,163,184,0.12); }
+    .gauge .ring-fg { stroke: url(#g-grad); stroke-linecap: round; transition: stroke-dashoffset 2s cubic-bezier(.2,.8,.2,1); }
+    .gauge .val { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+    .gauge .val .num { font-size: 58px; font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1; }
+    .gauge .val .lbl { font-size: 12.5px; color: var(--ink-400); letter-spacing: 1px; text-transform: uppercase; margin-top: 6px; }
+    .score-legend { display: flex; justify-content: center; gap: 26px; margin-top: 18px; flex-wrap: wrap; }
+    .score-legend .lg { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-400); }
+    .score-legend .lg i { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ── FINAL CTA ──────────────────────────────────────── */
+    .cta {
+      text-align: center; border: 1px solid rgba(59,130,246,0.25); border-radius: 28px;
+      padding: 72px 40px; position: relative; overflow: hidden;
+      background: radial-gradient(ellipse 80% 120% at 50% -20%, rgba(37,99,235,0.25), transparent 70%), linear-gradient(180deg, rgba(15,32,66,0.6), rgba(10,22,40,0.6));
+    }
+    .cta h2 { font-size: clamp(30px, 4.5vw, 50px); font-weight: 900; color: #fff; letter-spacing: -1.5px; line-height: 1.05; }
+    .cta p { font-size: 18px; color: var(--ink-300); max-width: 540px; margin: 20px auto 36px; }
+
+    /* ── Footer ─────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--line); padding: 40px 0; }
+    .foot-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .foot-links { display: flex; gap: 24px; font-size: 14px; color: var(--ink-400); }
+    .foot-links a:hover { color: #fff; }
+    .foot-copy { font-size: 13px; color: var(--ink-500); }
+
+    /* ── Responsive ─────────────────────────────────────── */
+    @media (max-width: 920px) {
+      .hero-grid, .sys-grid, .truth-grid { grid-template-columns: 1fr; }
+      .hero-stage { min-height: 340px; order: -1; }
+      .stakes-grid, .split, .pillars { grid-template-columns: 1fr; }
+      .split .before { border-right: none; border-bottom: 1px solid var(--line); }
+      section { padding: 76px 0; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 0 18px; }
+      .brand small { display: none; }
+      .hero-trust { gap: 20px; }
+      .nav-cta span.full { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      * { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-field">
+    <div class="bg-grid"></div>
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="orb orb-c"></div>
+  </div>
+
+  <!-- ── Nav ──────────────────────────────────────────── -->
+  <div class="nav">
+    <div class="wrap nav-inner">
+      <a href="/welcome" class="brand">
+        <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+        <span>256 Logistics<small>Compliance Hub</small></span>
+      </a>
+      <a href="/login" class="nav-cta">
+        <span class="full">Sign in</span>
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14M3 12a9 9 0 1118 0 9 9 0 01-18 0z"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ── HERO ───────────────────────────────────────── -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow reveal in"><span class="pip"></span>UK HGV Operator Compliance</div>
+          <h1 class="reveal in d1">Two licences.<br><span class="grad">Zero surprises.</span></h1>
+          <p class="lead reveal in d2">
+            A UK haulier runs on two government licences — and a single expired document can take both away.
+            256 Logistics watches every driver, vehicle, and certificate, every day, so the audit never catches you off guard.
+          </p>
+          <div class="hero-actions reveal in d3">
+            <a href="/login" class="btn btn-primary">
+              Enter the platform
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+            <a href="#stakes" class="btn btn-ghost">See how it works</a>
+          </div>
+          <div class="hero-trust reveal in d4">
+            <div class="it"><div class="n">5</div><div class="l">Compliance modules</div></div>
+            <div class="it"><div class="n">2</div><div class="l">Licences protected</div></div>
+            <div class="it"><div class="n">1-click</div><div class="l">Audit evidence packs</div></div>
+          </div>
+        </div>
+
+        <div class="hero-stage">
+          <img class="hero-signal" src="/img/landing/signal.svg" alt="Compliance status signal resting on green">
+          <div class="hero-chip chip-1">
+            <span class="ic" style="background:rgba(16,185,129,0.16)">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#34d399"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            </span>
+            <div>Fleet compliant<small>38 / 38 vehicles</small></div>
+          </div>
+          <div class="hero-chip chip-2">
+            <span class="ic" style="background:rgba(245,158,11,0.16)">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="#fbbf24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+            </span>
+            <div>Visa expiring<small>Flagged · 14 days left</small></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── STAKES ─────────────────────────────────────── -->
+    <section id="stakes">
+      <div class="wrap">
+        <div class="reveal"><div class="eyebrow"><span class="pip"></span>The Stakes</div></div>
+        <h2 class="section-title reveal d1">Everything rides on two pieces of paper.</h2>
+        <p class="section-lead reveal d2">Lose either licence and the wheels stop turning. Both are judged the same way — by the evidence you can produce on the day an inspector asks.</p>
+
+        <div class="stakes-grid">
+          <div class="stake dvsa reveal d1">
+            <div class="stake-ic">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+            </div>
+            <div class="auth">Driver &amp; Vehicle Standards Agency</div>
+            <h3>Operator's Licence</h3>
+            <p>Roadworthy vehicles, on-time PMI inspections, daily walk-around checks, defect rectification — proven with records. Gaps put your O-licence in front of a Traffic Commissioner.</p>
+            <div class="risk">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+              Curtailment · suspension · revocation
+            </div>
+          </div>
+
+          <div class="stake ho reveal d2">
+            <div class="stake-ic">
+              <svg width="26" height="26" fill="none" viewBox="0 0 24 24" stroke="#a78bfa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l8 4v6c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+            </div>
+            <div class="auth">Home Office · UKVI</div>
+            <h3>Sponsor Licence</h3>
+            <p>Right-to-Work checks, visa validity, reporting duties for every sponsored driver. Miss a renewal and you risk illegal-working penalties and your sponsorship status.</p>
+            <div class="risk">
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
+              Civil penalties · licence downgrade
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PROBLEM → SHIFT ────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <div class="reveal"><div class="eyebrow"><span class="pip"></span>The Problem</div></div>
+        <h2 class="section-title reveal d1">Compliance hides in the gaps.</h2>
+        <p class="section-lead reveal d2">Spreadsheets, paper folders, and someone's memory don't send reminders. The risk isn't bad intent — it's the renewal nobody saw coming.</p>
+
+        <div class="split reveal d1">
+          <div class="col before">
+            <h4>
+              <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              Without a system
+            </h4>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#fca5a5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></span><span>An MOT or visa lapses because <span class="muted2">no one was watching the date</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#fca5a5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></span><span>Daily checks live on paper in a cab — <span class="muted2">unsearchable, easily lost</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#fca5a5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></span><span>An audit means <span class="muted2">days of frantic folder-hunting</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#fca5a5"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg></span><span>Everyone sees everything — <span class="muted2">no access boundaries</span>.</span></div>
+          </div>
+          <div class="col after">
+            <h4>
+              <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              With 256 Logistics
+            </h4>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#6ee7b7"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></span><span>Every expiry is tracked and <span class="muted2">flagged weeks ahead</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#6ee7b7"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></span><span>Checks &amp; defects captured digitally, <span class="muted2">searchable in seconds</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#6ee7b7"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></span><span>Audit evidence is <span class="muted2">assembled in one click</span>.</span></div>
+            <div class="pt"><span class="mk"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="#6ee7b7"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></span><span>Role-based access — <span class="muted2">people see only what they should</span>.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SYSTEM (network) ───────────────────────────── -->
+    <section>
+      <div class="wrap sys-grid">
+        <div class="sys-copy">
+          <div class="reveal"><div class="eyebrow"><span class="pip"></span>The System</div></div>
+          <h2 class="section-title reveal d1">One platform watching everything, every day.</h2>
+          <p class="section-lead reveal d2">People, fleet, training, daily checks and audit evidence stop being separate piles. They become one connected record — each feeding a live picture of where you stand.</p>
+          <p class="section-lead reveal d3" style="margin-top:14px">A scheduled job sweeps the whole operation each morning, surfaces what's about to lapse, and pushes it to the people who can act — before it ever becomes a breach.</p>
+        </div>
+        <div class="reveal d2"><img class="sys-art" src="/img/landing/watch.svg" alt="The platform scans every record daily and catches an expiring document"></div>
+      </div>
+    </section>
+
+    <!-- ── PILLARS ────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <div class="reveal"><div class="eyebrow"><span class="pip"></span>Five Pillars</div></div>
+        <h2 class="section-title reveal d1">Built for how a transport office actually runs.</h2>
+        <p class="section-lead reveal d2">Not a generic CRM bent into shape — every module maps to a real DVSA or Home Office obligation.</p>
+
+        <div class="pillars">
+          <div class="pillar reveal d1">
+            <div class="p-ic"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+            <div class="p-num">01 · PEOPLE</div>
+            <h3>HR &amp; Sponsorship</h3>
+            <p>Employee records, Right-to-Work, visa tracking and sponsored-worker duties — kept current and Home-Office-ready.</p>
+          </div>
+          <div class="pillar reveal d2">
+            <div class="p-ic"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4"/></svg></div>
+            <div class="p-num">02 · FLEET</div>
+            <h3>Roadworthiness</h3>
+            <p>MOT, insurance, PMI intervals and VOR status per vehicle — every DVSA date watched and surfaced before it's due.</p>
+          </div>
+          <div class="pillar reveal d3">
+            <div class="p-ic"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div>
+            <div class="p-num">03 · TRAINING</div>
+            <h3>Driver Competence</h3>
+            <p>CPC, licences and training records with digital sign-off — proof that every driver is qualified for the road.</p>
+          </div>
+          <div class="pillar reveal d1">
+            <div class="p-ic"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
+            <div class="p-num">04 · OPERATIONS</div>
+            <h3>Checks &amp; Defects</h3>
+            <p>Daily walk-around checks, defect cases and VOR workflow — captured digitally, timestamped, never lost in a cab.</p>
+          </div>
+          <div class="pillar reveal d2">
+            <div class="p-ic"><svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+            <div class="p-num">05 · INSIGHT</div>
+            <h3>Score &amp; Evidence</h3>
+            <p>A live compliance score and one-click audit packs for DVSA and the Home Office — your whole position, on demand.</p>
+          </div>
+          <div class="pillar reveal d3" style="display:flex;flex-direction:column;justify-content:center;background:linear-gradient(135deg,rgba(37,99,235,0.18),rgba(13,26,46,0.5));border-color:rgba(59,130,246,0.3)">
+            <h3 style="margin-top:0">All five, one login.</h3>
+            <p style="margin-bottom:18px">Role-based access keeps each team in its lane while the director sees the whole board.</p>
+            <a href="/login" class="btn btn-primary" style="align-self:flex-start;padding:11px 20px;font-size:14px">Open the dashboard
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MOMENT OF TRUTH ────────────────────────────── -->
+    <section>
+      <div class="wrap truth-grid">
+        <div class="reveal d1"><img src="/img/landing/evidence.svg" alt="A complete audit evidence pack assembled in one click" style="width:100%"></div>
+        <div>
+          <div class="reveal"><div class="eyebrow"><span class="pip"></span>The Moment of Truth</div></div>
+          <h2 class="section-title reveal d1">When the inspector knocks, you're already ready.</h2>
+          <p class="section-lead reveal d2">The day an audit lands is the day everything you've tracked pays off. No scramble — just a complete, organised pack.</p>
+          <div class="truth-steps">
+            <div class="tstep reveal d2"><div class="tn">1</div><div class="tt">Pick the scope — <b>a vehicle, a driver, or the whole operation</b>.</div></div>
+            <div class="tstep reveal d3"><div class="tn">2</div><div class="tt">The system gathers every record, document and check into <b>one evidence pack</b>.</div></div>
+            <div class="tstep reveal d4"><div class="tn">3</div><div class="tt">Hand it over — <b>DVSA and Home Office, ready in minutes, not days</b>.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SCORE ──────────────────────────────────────── -->
+    <section>
+      <div class="wrap score">
+        <div class="reveal"><div class="eyebrow" style="margin-left:auto;margin-right:auto"><span class="pip"></span>Always-On Confidence</div></div>
+        <h2 class="section-title reveal d1">Know exactly where you stand — right now.</h2>
+        <p class="section-lead reveal d2" style="margin-left:auto;margin-right:auto;text-align:center">A single weighted score across people, fleet and drivers. Watch it climb as gaps close, and never wonder if you're audit-ready.</p>
+
+        <div class="gauge-wrap reveal d1">
+          <div class="gauge" id="gauge">
+            <svg width="260" height="260" viewBox="0 0 260 260">
+              <defs>
+                <linearGradient id="g-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#22d3ee"/>
+                  <stop offset="0.5" stop-color="#3b82f6"/>
+                  <stop offset="1" stop-color="#10b981"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="130" cy="130" r="112" fill="none" stroke-width="18"/>
+              <circle class="ring-fg" id="ring" cx="130" cy="130" r="112" fill="none" stroke-width="18"
+                stroke-dasharray="703.7" stroke-dashoffset="703.7"/>
+            </svg>
+            <div class="val">
+              <div class="num"><span id="scoreNum">0</span><span style="font-size:28px;font-weight:700;color:#94a3b8">%</span></div>
+              <div class="lbl">Compliance Score</div>
+            </div>
+          </div>
+        </div>
+        <div class="score-legend reveal d2">
+          <div class="lg"><i style="background:#ef4444"></i> Breach — act now</div>
+          <div class="lg"><i style="background:#f59e0b"></i> Expiring — plan ahead</div>
+          <div class="lg"><i style="background:#10b981"></i> Compliant — stay there</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FINAL CTA ──────────────────────────────────── -->
+    <section style="padding-top:40px">
+      <div class="wrap">
+        <div class="cta reveal">
+          <img src="/img/landing/truck.svg" alt="" style="width:min(480px,82%);margin:0 auto 28px;display:block;opacity:.95">
+          <h2>Keep the wheels turning.<br>Keep both licences safe.</h2>
+          <p>Step into a compliance operation that never sleeps on a deadline.</p>
+          <a href="/login" class="btn btn-primary" style="font-size:16px;padding:16px 32px">
+            Enter the Compliance Hub
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap foot-inner">
+        <a href="/welcome" class="brand">
+          <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+          <span>256 Logistics<small>Compliance Hub</small></span>
+        </a>
+        <div class="foot-links">
+          <a href="/login">Sign in</a>
+          <a href="/privacy">Privacy</a>
+          <a href="#stakes">How it works</a>
+        </div>
+        <div class="foot-copy">© <%= new Date().getFullYear() %> 256 Logistics Ltd · UK HGV Compliance</div>
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // Scroll reveal
+    (function(){
+      var els = document.querySelectorAll('.reveal:not(.in)');
+      if (!('IntersectionObserver' in window)) { els.forEach(function(e){e.classList.add('in');}); return; }
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){ if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+      }, { threshold: 0.16 });
+      els.forEach(function(e){ io.observe(e); });
+    })();
+
+    // Animated compliance gauge — fills when scrolled into view
+    (function(){
+      var target = 94, R = 112, C = 2 * Math.PI * R;
+      var ring = document.getElementById('ring');
+      var num = document.getElementById('scoreNum');
+      var gauge = document.getElementById('gauge');
+      var done = false;
+      function run(){
+        if (done) return; done = true;
+        ring.style.strokeDashoffset = C * (1 - target/100);
+        var t0 = performance.now(), dur = 1900;
+        function tick(now){
+          var p = Math.min((now - t0)/dur, 1);
+          var eased = 1 - Math.pow(1 - p, 3);
+          num.textContent = Math.round(eased * target);
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+      if (!('IntersectionObserver' in window)) { run(); return; }
+      var io = new IntersectionObserver(function(e){ if (e[0].isIntersecting) run(); }, { threshold: 0.5 });
+      io.observe(gauge);
+    })();
+  </script>
+</body>
+</html>

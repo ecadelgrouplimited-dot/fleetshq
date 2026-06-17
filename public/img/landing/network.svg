@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 380" fill="none" role="img" aria-label="One platform unifying people, fleet, training, checks and audit evidence">
+  <defs>
+    <radialGradient id="n-core" cx="0.5" cy="0.4" r="0.7">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </radialGradient>
+    <linearGradient id="n-node" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#16263f"/>
+      <stop offset="1" stop-color="#0d1a2e"/>
+    </linearGradient>
+    <filter id="n-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- connective links -->
+  <g stroke="#2563eb" stroke-width="1.5" stroke-opacity="0.35">
+    <line x1="240" y1="190" x2="92"  y2="78"/>
+    <line x1="240" y1="190" x2="388" y2="78"/>
+    <line x1="240" y1="190" x2="44"  y2="232"/>
+    <line x1="240" y1="190" x2="436" y2="232"/>
+    <line x1="240" y1="190" x2="240" y2="330"/>
+  </g>
+  <!-- travelling data pulses along the links -->
+  <g fill="#60a5fa">
+    <circle r="3"><animateMotion path="M240 190 L92 78"  dur="2.6s" repeatCount="indefinite"/></circle>
+    <circle r="3"><animateMotion path="M240 190 L388 78" dur="3.1s" repeatCount="indefinite"/></circle>
+    <circle r="3"><animateMotion path="M240 190 L44 232"  dur="2.9s" repeatCount="indefinite"/></circle>
+    <circle r="3"><animateMotion path="M240 190 L436 232" dur="3.4s" repeatCount="indefinite"/></circle>
+    <circle r="3"><animateMotion path="M240 190 L240 330" dur="2.4s" repeatCount="indefinite"/></circle>
+  </g>
+
+  <!-- orbit ring -->
+  <circle cx="240" cy="190" r="150" fill="none" stroke="#1e3354" stroke-width="1" stroke-dasharray="2 6" opacity="0.5"/>
+
+  <!-- central hub -->
+  <circle cx="240" cy="190" r="52" fill="url(#n-core)" filter="url(#n-glow)"/>
+  <circle cx="240" cy="190" r="52" fill="none" stroke="#93c5fd" stroke-opacity="0.5" stroke-width="1.5"/>
+  <!-- shield mark in the hub -->
+  <path d="M240 162l22 8v14c0 13-9 22-22 27-13-5-22-14-22-27v-14z" fill="#0a1628" stroke="#bfdbfe" stroke-width="2"/>
+  <path d="M231 191l6 6 12-13" stroke="#34d399" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- NODE: People -->
+  <g transform="translate(64 50)">
+    <rect width="56" height="56" rx="14" fill="url(#n-node)" stroke="#3b82f6" stroke-opacity="0.4"/>
+    <path d="M28 27a7 7 0 100-14 7 7 0 000 14zm-12 17a12 12 0 0124 0z" fill="#93c5fd"/>
+    <text x="28" y="76" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1" text-anchor="middle">People</text>
+  </g>
+
+  <!-- NODE: Fleet -->
+  <g transform="translate(360 50)">
+    <rect width="56" height="56" rx="14" fill="url(#n-node)" stroke="#3b82f6" stroke-opacity="0.4"/>
+    <path d="M12 22h18v14H12zM30 26h8l6 6v4H30z" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="19" cy="38" r="3.5" fill="#0d1a2e" stroke="#93c5fd" stroke-width="2"/>
+    <circle cx="37" cy="38" r="3.5" fill="#0d1a2e" stroke="#93c5fd" stroke-width="2"/>
+    <text x="28" y="76" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1" text-anchor="middle">Fleet</text>
+  </g>
+
+  <!-- NODE: Training -->
+  <g transform="translate(16 204)">
+    <rect width="56" height="56" rx="14" fill="url(#n-node)" stroke="#3b82f6" stroke-opacity="0.4"/>
+    <path d="M14 24l14-7 14 7-14 7z" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M20 30v7c0 2 4 4 8 4s8-2 8-4v-7" fill="none" stroke="#93c5fd" stroke-width="2"/>
+    <text x="28" y="76" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1" text-anchor="middle">Training</text>
+  </g>
+
+  <!-- NODE: Checks -->
+  <g transform="translate(408 204)">
+    <rect width="56" height="56" rx="14" fill="url(#n-node)" stroke="#3b82f6" stroke-opacity="0.4"/>
+    <rect x="16" y="14" width="24" height="28" rx="3" fill="none" stroke="#93c5fd" stroke-width="2"/>
+    <path d="M21 24l3 3 6-7" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <line x1="21" y1="34" x2="35" y2="34" stroke="#93c5fd" stroke-width="2" stroke-linecap="round"/>
+    <text x="28" y="76" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1" text-anchor="middle">Checks</text>
+  </g>
+
+  <!-- NODE: Evidence -->
+  <g transform="translate(212 302)">
+    <rect width="56" height="56" rx="14" fill="url(#n-node)" stroke="#3b82f6" stroke-opacity="0.4"/>
+    <path d="M15 18h12l4 4h10v18H15z" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linejoin="round"/>
+    <text x="28" y="76" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#cbd5e1" text-anchor="middle">Evidence</text>
+  </g>
+</svg>

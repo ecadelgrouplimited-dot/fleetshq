@@ -474,8 +474,20 @@ router.get('/documents/:kind/:id/download', webAuth, async (req, res) => {
   }
 });
 
+// ── Public landing page ────────────────────────────────
+router.get('/welcome', (req, res) => {
+  res.render('landing/index', { title: 'Welcome' });
+});
+
+// Front door: unauthenticated visitors meet the landing page, not the login wall.
+const landingGate = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token || !verify(token)) return res.redirect('/welcome');
+  return next();
+};
+
 // ── Dashboard ──────────────────────────────────────────
-router.get('/', webAuth, async (req, res) => {
+router.get('/', landingGate, webAuth, async (req, res) => {
   try {
     if (req.user.role === 'driver') {
       const employeeId = req.user.employeeId;

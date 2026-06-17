@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 340" fill="none" role="img" aria-label="Compliance traffic signal">
+  <defs>
+    <linearGradient id="sig-housing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2c4a"/>
+      <stop offset="1" stop-color="#0b1729"/>
+    </linearGradient>
+    <radialGradient id="sig-red" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#fecaca"/>
+      <stop offset="0.4" stop-color="#ef4444"/>
+      <stop offset="1" stop-color="#7f1d1d"/>
+    </radialGradient>
+    <radialGradient id="sig-amber" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="0.4" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#78350f"/>
+    </radialGradient>
+    <radialGradient id="sig-green" cx="0.5" cy="0.45" r="0.6">
+      <stop offset="0" stop-color="#bbf7d0"/>
+      <stop offset="0.4" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#065f46"/>
+    </radialGradient>
+    <filter id="sig-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="9" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- pole -->
+  <rect x="103" y="250" width="14" height="80" rx="4" fill="#16243d"/>
+  <rect x="86" y="326" width="48" height="10" rx="5" fill="#0d1a2e"/>
+
+  <!-- housing -->
+  <rect x="62" y="14" width="96" height="248" rx="26" fill="url(#sig-housing)" stroke="#243a5e" stroke-width="2"/>
+  <rect x="62" y="14" width="96" height="248" rx="26" fill="none" stroke="#3b82f6" stroke-opacity="0.12" stroke-width="1"/>
+
+  <!-- RED lamp -->
+  <g>
+    <circle cx="110" cy="64" r="30" fill="url(#sig-red)" opacity="0.28"/>
+    <circle cx="110" cy="64" r="30" fill="url(#sig-red)" filter="url(#sig-glow)" opacity="0.28">
+      <animate attributeName="opacity" values="0.28;0.95;0.28" dur="6s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="110" cy="64" r="30" fill="none" stroke="#ef4444" stroke-opacity="0.5" stroke-width="1.5"/>
+  </g>
+
+  <!-- AMBER lamp -->
+  <g>
+    <circle cx="110" cy="138" r="30" fill="url(#sig-amber)" opacity="0.28"/>
+    <circle cx="110" cy="138" r="30" fill="url(#sig-amber)" filter="url(#sig-glow)" opacity="0.28">
+      <animate attributeName="opacity" values="0.28;0.95;0.28" dur="6s" begin="2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="110" cy="138" r="30" fill="none" stroke="#f59e0b" stroke-opacity="0.5" stroke-width="1.5"/>
+  </g>
+
+  <!-- GREEN lamp — the resting state -->
+  <g>
+    <circle cx="110" cy="212" r="30" fill="url(#sig-green)" filter="url(#sig-glow)">
+      <animate attributeName="opacity" values="0.85;1;0.85" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="110" cy="212" r="30" fill="none" stroke="#34d399" stroke-opacity="0.7" stroke-width="1.5"/>
+    <path d="M99 212l8 8 16-17" stroke="#ecfdf5" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>
