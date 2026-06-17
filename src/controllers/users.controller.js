@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const prisma = require('../config/database');
 const { ok, created } = require('../utils/responseHelper');
 const { NotFoundError, ConflictError, ValidationError } = require('../utils/errors');
+const { checkPassword } = require('../utils/passwordPolicy');
 
 const VALID_ROLES = ['director', 'transport_manager', 'hr_manager', 'operations_manager', 'driver', 'garage'];
 const genTempPassword = () => {
@@ -30,7 +31,8 @@ exports.create = async (req, res, next) => {
   try {
     const { email, password, role, firstName, lastName, phone } = req.body;
     if (!email || !password || !role) throw new ValidationError('email, password and role are required');
-    if (password.length < 8) throw new ValidationError('Password must be at least 8 characters');
+    const pwError = checkPassword(password);
+    if (pwError) throw new ValidationError(pwError);
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (existing) throw new ConflictError('A user with this email already exists');
@@ -101,7 +103,8 @@ exports.update = async (req, res, next) => {
 exports.resetPassword = async (req, res, next) => {
   try {
     const { newPassword } = req.body;
-    if (!newPassword || newPassword.length < 8) throw new ValidationError('Password must be at least 8 characters');
+    const pwError = checkPassword(newPassword);
+    if (pwError) throw new ValidationError(pwError);
 
     await prisma.user.update({
       where: { id: req.params.id },

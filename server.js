@@ -19,9 +19,28 @@ const app = express();
 // keys / secure-cookie detection use the real client IP (X-Forwarded-For).
 app.set('trust proxy', 1);
 
-// Security headers (relaxed for demo — allows CDN scripts)
+// Security headers. CSP allows the CDNs the app loads (Chart.js via jsDelivr,
+// Google Fonts) and inline scripts/styles (the views use them heavily), while
+// still blocking external script injection, framing (clickjacking), and
+// object/base-uri hijacking.
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      connectSrc: ["'self'"],
+      frameSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: null, // nginx already redirects http→https; avoids breaking non-TLS local
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }));
 
