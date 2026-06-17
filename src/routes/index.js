@@ -114,4 +114,10 @@ router.delete('/users/:id',       authenticate, authorize('users:manage'), users
 // ── Migration Center ───────────────────────────────────────────────
 router.post('/migration/import', authenticate, authorize('users:manage'), migrationCtrl.importCsv);
 
+// ── Import Wizard (vehicles / employees) ────────────────────────────
+const importCtrl = require('../controllers/import.controller');
+router.post('/import/analyze', authenticate, authorize('users:manage'), importCtrl.analyze);
+router.post('/import/preview', authenticate, authorize('users:manage'), importCtrl.preview);
+router.post('/import/commit', authenticate, authorize('users:manage'), auditLog('import'), importCtrl.commit);
+
 module.exports = router;

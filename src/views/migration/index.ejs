@@ -1,112 +1,324 @@
 <%- include('../layouts/main', { body: `
-<div class="flex items-center justify-between mb-6">
-  <p class="text-sm text-muted">Import spreadsheet rows into the system without developer help</p>
-  <button class="btn btn-ghost" type="button" onclick="downloadTemplate()">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M4 4h16v4H4zM4 16h16v4H4z"/></svg>
-    Download Template
-  </button>
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>
+      Admin / Import
+    </div>
+    <h1>Import Center</h1>
+    <p class="page-sub">Bring in vehicles and employees from a spreadsheet — upload Excel, CSV or JSON, we match the columns, clean the data and skip duplicates.</p>
+  </div>
 </div>
 
 <div class="stat-grid mb-4">
-  <div class="stat-card blue">
-    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-    <div><div class="stat-value">${counts.employees}</div><div class="stat-label">Employees</div><div class="stat-sub">Current records</div></div>
+  <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div><div><div class="stat-value">${counts.employees}</div><div class="stat-label">Employees</div><div class="stat-sub">Current records</div></div></div>
+  <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7"/></svg></div><div><div class="stat-value">${counts.vehicles}</div><div class="stat-label">Vehicles</div><div class="stat-sub">Fleet records</div></div></div>
+  <div class="stat-card green"><div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><div><div class="stat-value">${counts.users}</div><div class="stat-label">Users</div><div class="stat-sub">System accounts</div></div></div>
+</div>
+
+<div class="mac-window">
+  <div class="mac-titlebar">
+    <div class="mac-traffic"><i class="r"></i><i class="y"></i><i class="g"></i></div>
+    <div class="mac-title">Import Wizard</div>
   </div>
-  <div class="stat-card green">
-    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0A1.724 1.724 0 0015.248 5.6l1.182-.682c1.543-.94 3.31.826 2.37 2.37l-.682 1.182a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.065 2.572l.682 1.182c.94 1.543-.827 3.31-2.37 2.37l-1.182-.682a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.572-1.065l-1.182.682c-1.543.94-3.31-.827-2.37-2.37l.682-1.182a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35A1.724 1.724 0 005.6 8.47l-.682-1.182c-.94-1.543.827-3.31 2.37-2.37l1.182.682a1.724 1.724 0 002.572-1.065z"/></svg></div>
-    <div><div class="stat-value">${counts.users}</div><div class="stat-label">Users</div><div class="stat-sub">System accounts</div></div>
+
+  <div class="wiz-steps" id="wizSteps">
+    <div class="wiz-step active" data-step="1"><span class="wiz-num">1</span>Upload</div>
+    <div class="wiz-step" data-step="2"><span class="wiz-num">2</span>Match columns</div>
+    <div class="wiz-step" data-step="3"><span class="wiz-num">3</span>Review</div>
+    <div class="wiz-step" data-step="4"><span class="wiz-num">4</span>Done</div>
   </div>
-  <div class="stat-card amber">
-    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7"/></svg></div>
-    <div><div class="stat-value">${counts.vehicles}</div><div class="stat-label">Vehicles</div><div class="stat-sub">Fleet records</div></div>
+
+  <!-- STEP 1 — Upload -->
+  <div class="wiz-panel" data-panel="1">
+    <label class="form-label">What are you importing?</label>
+    <div class="entity-toggle" id="entityToggle">
+      <button type="button" data-entity="vehicles" class="active">🚛 Vehicles</button>
+      <button type="button" data-entity="employees">👤 Employees</button>
+    </div>
+
+    <div class="dropzone" id="dropzone" tabindex="0">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv,.json" hidden>
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 13l3-3m0 0l3 3m-3-3v9"/></svg>
+      <div class="dz-title">Drop your file here, or <span class="dz-link">browse</span></div>
+      <div class="dz-hint">Excel (.xlsx, .xls), CSV or JSON · up to 5000 rows</div>
+    </div>
+    <div id="fileInfo" class="file-info" hidden></div>
+    <div class="wiz-foot">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="downloadTemplate()">Download a template</button>
+      <a class="adv-link" id="advToggle">Need to import users? Use CSV paste →</a>
+    </div>
+  </div>
+
+  <!-- STEP 2 — Mapping -->
+  <div class="wiz-panel" data-panel="2" hidden>
+    <p class="wiz-lead">We matched your spreadsheet columns to the fields below. Adjust any that look wrong — required fields are marked <span class="req">*</span>.</p>
+    <div class="table-wrap"><table class="map-table"><thead><tr><th>System field</th><th>Your column</th><th>Sample</th></tr></thead><tbody id="mapBody"></tbody></table></div>
+    <div class="wiz-actions">
+      <button type="button" class="btn btn-ghost" data-goto="1">Back</button>
+      <button type="button" class="btn btn-primary" id="toReviewBtn">Review import →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 — Review -->
+  <div class="wiz-panel" data-panel="3" hidden>
+    <div class="preview-chips" id="previewChips"></div>
+    <div class="dedup-row" id="dedupRow">
+      <span>When a record already exists:</span>
+      <label class="radio-pill"><input type="radio" name="dedup" value="skip" checked> Skip it (keep current)</label>
+      <label class="radio-pill"><input type="radio" name="dedup" value="update"> Update it with the file</label>
+    </div>
+    <div class="table-wrap preview-wrap"><table class="preview-table"><thead><tr><th>Row</th><th>Status</th><th>Key</th><th>Notes</th></tr></thead><tbody id="previewBody"></tbody></table></div>
+    <div class="wiz-actions">
+      <button type="button" class="btn btn-ghost" data-goto="2">Back</button>
+      <button type="button" class="btn btn-primary" id="commitBtn">Import</button>
+    </div>
+  </div>
+
+  <!-- STEP 4 — Done -->
+  <div class="wiz-panel" data-panel="4" hidden>
+    <div id="donePanel"></div>
+    <div class="wiz-actions">
+      <button type="button" class="btn btn-primary" onclick="location.reload()">Import another file</button>
+    </div>
   </div>
 </div>
 
-<div class="grid-2">
-  <div class="card">
-    <div class="card-header">
-      <h3>Import Data</h3>
-      <span class="badge badge-blue" id="rowCount">0 rows</span>
+<!-- Advanced: Users CSV paste -->
+<div class="card mt-4" id="advCard" hidden>
+  <div class="card-header"><h3>Advanced — paste CSV (incl. Users)</h3><span class="badge badge-slate" id="rowCount">0 rows</span></div>
+  <div class="card-body">
+    <div class="form-group">
+      <label class="form-label">Record Type</label>
+      <select class="form-control" id="entityType" onchange="loadTemplate()">
+        <option value="users">Users</option>
+        <option value="employees">Employees</option>
+        <option value="vehicles">Vehicles</option>
+      </select>
     </div>
-    <div class="card-body">
-      <div class="form-group">
-        <label class="form-label">Record Type</label>
-        <select class="form-control" id="entityType" onchange="loadTemplate()">
-          <option value="employees">Employees</option>
-          <option value="users">Users</option>
-          <option value="vehicles">Vehicles</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">CSV Rows</label>
-        <textarea class="form-control" id="csvInput" rows="16" spellcheck="false" style="font-family:ui-monospace,monospace;font-size:12px;line-height:1.5"></textarea>
-        <div class="form-hint">Paste from Excel or Google Sheets after saving/copying as CSV. Existing users are matched by email; existing vehicles are matched by registration.</div>
-      </div>
-      <div class="flex gap-2">
-        <button class="btn btn-primary" type="button" onclick="runImport()">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 4v12m0 0l4-4m-4 4l-4-4"/></svg>
-          Import Rows
-        </button>
-        <button class="btn btn-ghost" type="button" onclick="loadTemplate()">Reset Template</button>
-      </div>
+    <div class="form-group">
+      <label class="form-label">CSV Rows</label>
+      <textarea class="form-control" id="csvInput" rows="8" spellcheck="false" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <h3>Import Results</h3>
-      <span class="badge badge-slate" id="resultSummary">Ready</span>
-    </div>
-    <div class="card-body" id="resultPanel">
-      <div class="empty-state">
-        <p>No import has run yet</p>
-        <div class="empty-hint">Choose a record type, paste rows, then import</div>
-      </div>
-    </div>
+    <div class="flex gap-2"><button class="btn btn-primary" type="button" onclick="runImport()">Import Rows</button><button class="btn btn-ghost" type="button" onclick="loadTemplate()">Reset Template</button></div>
+    <div id="resultPanel" class="mt-3"></div>
   </div>
 </div>
 
+<style>
+  .wiz-steps { display:flex; gap:6px; padding:16px 20px; border-bottom:1px solid var(--mac-hairline); flex-wrap:wrap; }
+  .wiz-step { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text-light); padding:6px 12px; border-radius:999px; }
+  .wiz-step .wiz-num { width:22px; height:22px; border-radius:50%; background:#e2e8f0; color:#64748b; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; }
+  .wiz-step.active { color:var(--primary); background:#eff6ff; }
+  .wiz-step.active .wiz-num { background:var(--primary); color:#fff; }
+  .wiz-step.done .wiz-num { background:#10b981; color:#fff; }
+  .wiz-panel { padding:22px 20px; }
+  .wiz-lead, .wiz-foot { color:var(--text-muted); font-size:13px; }
+  .entity-toggle { display:flex; gap:8px; margin:8px 0 18px; }
+  .entity-toggle button { flex:0 0 auto; padding:9px 18px; border-radius:10px; border:1.5px solid var(--border); background:#fff; font-weight:600; font-size:14px; cursor:pointer; }
+  .entity-toggle button.active { border-color:var(--primary); background:#eff6ff; color:var(--primary); }
+  .dropzone { border:2px dashed #cbd5e1; border-radius:16px; padding:40px 20px; text-align:center; cursor:pointer; transition:all .15s; background:#f8fafc; }
+  .dropzone:hover, .dropzone.drag { border-color:var(--primary); background:#eff6ff; }
+  .dropzone svg { width:42px; height:42px; color:#94a3b8; margin-bottom:10px; }
+  .dz-title { font-weight:600; font-size:15px; }
+  .dz-link { color:var(--primary); text-decoration:underline; }
+  .dz-hint { color:var(--text-light); font-size:12px; margin-top:5px; }
+  .file-info { margin-top:14px; padding:12px 16px; border-radius:12px; background:#f0f9ff; border:1px solid #bae6fd; font-size:13px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .wiz-foot { display:flex; align-items:center; justify-content:space-between; margin-top:16px; gap:12px; flex-wrap:wrap; }
+  .adv-link { color:var(--text-muted); font-size:12px; cursor:pointer; text-decoration:underline; }
+  .wiz-actions { display:flex; justify-content:space-between; gap:10px; margin-top:20px; }
+  .map-table th, .preview-table th { font-size:11px; }
+  .map-table td { padding:8px 12px; vertical-align:middle; }
+  .map-table .fld { font-weight:600; } .map-table .req { color:var(--danger); }
+  .map-table select { width:100%; }
+  .map-sample { color:var(--text-light); font-size:12px; font-family:ui-monospace,monospace; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preview-chips { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+  .pchip { padding:8px 14px; border-radius:12px; font-size:13px; font-weight:700; border:1px solid var(--border); }
+  .pchip b { font-size:18px; display:block; }
+  .pchip.new { background:#ecfdf5; border-color:#a7f3d0; color:#047857; }
+  .pchip.update { background:#eff6ff; border-color:#bfdbfe; color:#1d4ed8; }
+  .pchip.dupe { background:#fffbeb; border-color:#fde68a; color:#b45309; }
+  .pchip.error { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
+  .dedup-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:13px; color:var(--text-muted); margin-bottom:14px; }
+  .radio-pill { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:999px; cursor:pointer; }
+  .preview-wrap { max-height:340px; overflow:auto; }
+  .preview-table td { padding:8px 12px; font-size:12.5px; }
+  @media (max-width:640px){ .wiz-step span:not(.wiz-num){ display:none; } .entity-toggle button{ flex:1; } }
+</style>
+
+<script src="/js/xlsx.full.min.js"></script>
 <script>
-const templates = {
-  users: 'email,firstName,lastName,role,phone,password\\ndispatch@256logisticsltd.com,Dispatch,Desk,operations_manager,07700900111,ChangeMe2026!',
-  employees: 'fullName,email,dateOfBirth,homeAddress,phone,jobTitle,department,startDate,contractedHours,salary,workLocation,isDriver,isSponsored\\nJane Driver,jane.driver@256logisticsltd.com,1991-05-20,12 Example Street,07700900112,HGV Driver,Drivers,2026-06-16,45,34000,Main Depot,true,false',
-  vehicles: 'registration,vinNumber,make,model,year,motExpiryDate,insuranceExpiryDate,pmiIntervalWeeks,lastPmiDate,currentMileage,status\\nAB26 CDE,VIN00000000000001,Volvo,FH,2024,2027-06-16,2027-06-16,6,2026-06-01,12500,active'
-};
+(function(){
+  var S = { entity:'vehicles', headers:[], rows:[], fields:[], mapping:{} };
+  var esc = function(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
+  var $ = function(s){ return document.querySelector(s); };
+  var panels = document.querySelectorAll('.wiz-panel');
+  var steps = document.querySelectorAll('.wiz-step');
 
-function countRows() {
-  const rows = document.getElementById('csvInput').value.split(/\\r?\\n/).map(r => r.trim()).filter(Boolean);
-  document.getElementById('rowCount').textContent = Math.max(rows.length - 1, 0) + ' rows';
-}
+  function goStep(n){
+    panels.forEach(function(p){ p.hidden = (+p.dataset.panel !== n); });
+    steps.forEach(function(s){ var k=+s.dataset.step; s.classList.toggle('active', k===n); s.classList.toggle('done', k<n); });
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
 
-function loadTemplate() {
-  document.getElementById('csvInput').value = templates[document.getElementById('entityType').value];
-  countRows();
-}
+  // Entity toggle
+  document.getElementById('entityToggle').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-entity]'); if(!b) return;
+    S.entity = b.dataset.entity;
+    document.querySelectorAll('#entityToggle button').forEach(function(x){ x.classList.toggle('active', x===b); });
+  });
 
-function downloadTemplate() {
-  const entity = document.getElementById('entityType').value;
-  const blob = new Blob([templates[entity]], { type: 'text/csv;charset=utf-8' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = '256-logistics-' + entity + '-template.csv';
-  link.click();
-  URL.revokeObjectURL(link.href);
-}
+  // Dropzone
+  var dz = document.getElementById('dropzone'), fi = document.getElementById('fileInput');
+  dz.addEventListener('click', function(){ fi.click(); });
+  dz.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fi.click(); } });
+  ['dragover','dragenter'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.add('drag'); }); });
+  ['dragleave','drop'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.remove('drag'); }); });
+  dz.addEventListener('drop', function(e){ if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fi.addEventListener('change', function(){ if(fi.files[0]) handleFile(fi.files[0]); });
 
-async function runImport() {
-  const entity = document.getElementById('entityType').value;
-  const csv = document.getElementById('csvInput').value;
-  const res = await apiCall('POST', '/api/v1/migration/import', { entity, csv });
-  const summary = res.data.summary;
-  const results = res.data.results;
-  document.getElementById('resultSummary').textContent = summary.created + ' created, ' + summary.updated + ' updated, ' + summary.failed + ' failed';
-  document.getElementById('resultPanel').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Line</th><th>Status</th><th>Record</th><th>Message</th></tr></thead><tbody>' +
-    results.map(r => '<tr><td>' + r.line + '</td><td><span class="badge ' + (r.status === 'failed' ? 'badge-red' : r.status === 'updated' ? 'badge-blue' : 'badge-green') + '">' + r.status + '</span></td><td class="fw-600">' + (r.key || '-') + '</td><td class="cell-muted">' + (r.message || '-') + '</td></tr>').join('') +
-    '</tbody></table></div>';
-  showToast('Import complete: ' + summary.created + ' created, ' + summary.updated + ' updated, ' + summary.failed + ' failed', summary.failed ? 'warning' : 'success');
-}
+  function handleFile(file){
+    var ext = (file.name.split('.').pop()||'').toLowerCase();
+    var reader = new FileReader();
+    reader.onerror = function(){ showToast('Could not read that file', 'error'); };
+    if (ext === 'json') {
+      reader.onload = function(e){ try {
+        var arr = JSON.parse(e.target.result); if(!Array.isArray(arr)) arr = arr.data || arr.rows || [];
+        finishParse(file, arr);
+      } catch(err){ showToast('Invalid JSON file', 'error'); } };
+      reader.readAsText(file);
+    } else {
+      reader.onload = function(e){ try {
+        var wb = XLSX.read(e.target.result, { type:'array', cellDates:true });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var hdr = (XLSX.utils.sheet_to_json(ws, { header:1 })[0]) || [];
+        var arr = XLSX.utils.sheet_to_json(ws, { defval:'' });
+        S.headers = hdr.map(function(h){ return String(h).trim(); }).filter(Boolean);
+        finishParse(file, arr, true);
+      } catch(err){ showToast('Could not parse spreadsheet: ' + err.message, 'error'); } };
+      reader.readAsArrayBuffer(file);
+    }
+  }
 
-document.getElementById('csvInput').addEventListener('input', countRows);
-loadTemplate();
+  function finishParse(file, arr, headersSet){
+    if (!arr || !arr.length) { showToast('That file has no rows', 'error'); return; }
+    S.rows = arr;
+    if (!headersSet) { var set = {}; arr.forEach(function(r){ Object.keys(r).forEach(function(k){ set[k]=1; }); }); S.headers = Object.keys(set); }
+    var info = document.getElementById('fileInfo');
+    info.hidden = false;
+    info.innerHTML = '<span>📄 <b>' + esc(file.name) + '</b> · ' + S.rows.length + ' rows · ' + S.headers.length + ' columns</span><button class="btn btn-ghost btn-sm" type="button" id="reParseBtn">Change file</button>';
+    document.getElementById('reParseBtn').addEventListener('click', function(){ fi.value=''; fi.click(); });
+    analyze();
+  }
+
+  async function analyze(){
+    try {
+      var res = await apiCall('POST', '/api/v1/import/analyze', { entity:S.entity, headers:S.headers });
+      S.fields = res.data.fields; S.mapping = res.data.mapping;
+      renderMapping();
+      goStep(2);
+    } catch(e){ showToast(e.message || 'Could not analyse file', 'error'); }
+  }
+
+  function renderMapping(){
+    var sample = S.rows[0] || {};
+    var opts = function(sel){ return '<option value="">— not mapped —</option>' + S.headers.map(function(h){ return '<option value="'+esc(h)+'"'+(h===sel?' selected':'')+'>'+esc(h)+'</option>'; }).join(''); };
+    document.getElementById('mapBody').innerHTML = S.fields.map(function(f){
+      var sel = S.mapping[f.key] || '';
+      var sampleVal = sel ? sample[sel] : '';
+      return '<tr><td class="fld">'+esc(f.label)+(f.required?' <span class="req">*</span>':'')+'</td>'+
+        '<td><select class="form-control" data-field="'+esc(f.key)+'">'+opts(sel)+'</select></td>'+
+        '<td class="map-sample" data-sample="'+esc(f.key)+'">'+esc(sampleVal)+'</td></tr>';
+    }).join('');
+    document.getElementById('mapBody').addEventListener('change', function(e){
+      var s = e.target.closest('select[data-field]'); if(!s) return;
+      S.mapping[s.dataset.field] = s.value || null;
+      var cell = document.querySelector('[data-sample="'+s.dataset.field+'"]');
+      if (cell) cell.textContent = s.value ? (S.rows[0]||{})[s.value] || '' : '';
+    });
+  }
+
+  document.getElementById('toReviewBtn').addEventListener('click', preview);
+
+  async function preview(){
+    // collect mapping from selects
+    document.querySelectorAll('#mapBody select[data-field]').forEach(function(s){ S.mapping[s.dataset.field] = s.value || null; });
+    var missing = S.fields.filter(function(f){ return f.required && !S.mapping[f.key]; });
+    if (missing.length) { showToast('Map the required fields: ' + missing.map(function(f){return f.label;}).join(', '), 'error'); return; }
+    try {
+      var res = await apiCall('POST', '/api/v1/import/preview', { entity:S.entity, mapping:S.mapping, rows:S.rows });
+      renderPreview(res.data);
+      goStep(3);
+    } catch(e){ showToast(e.message || 'Preview failed', 'error'); }
+  }
+
+  function renderPreview(d){
+    var s = d.summary;
+    document.getElementById('previewChips').innerHTML =
+      '<div class="pchip new"><b>'+s.new+'</b>New</div>'+
+      '<div class="pchip update"><b>'+s.update+'</b>Update existing</div>'+
+      '<div class="pchip dupe"><b>'+s.dupe_file+'</b>Duplicate in file</div>'+
+      '<div class="pchip error"><b>'+s.error+'</b>Errors (skipped)</div>';
+    document.getElementById('dedupRow').style.display = s.update ? 'flex' : 'none';
+    var badge = { new:'badge-green', update:'badge-blue', dupe_file:'badge-amber', error:'badge-red' };
+    var label = { new:'New', update:'Update', dupe_file:'Duplicate', error:'Error' };
+    document.getElementById('previewBody').innerHTML = d.rows.map(function(r){
+      var notes = r.errors.concat(r.warnings||[]).map(esc).join('<br>') || '<span class="cell-muted">—</span>';
+      return '<tr><td>'+r.line+'</td><td><span class="badge '+badge[r.status]+'">'+label[r.status]+'</span></td>'+
+        '<td class="fw-600">'+esc(r.key||'—')+'</td><td style="font-size:12px">'+notes+'</td></tr>';
+    }).join('');
+    var importable = s.new + s.update;
+    var btn = document.getElementById('commitBtn');
+    btn.textContent = 'Import ' + importable + ' record' + (importable===1?'':'s');
+    btn.disabled = importable === 0;
+  }
+
+  document.getElementById('commitBtn').addEventListener('click', doImport);
+
+  async function doImport(){
+    var dedup = (document.querySelector('input[name=dedup]:checked')||{}).value || 'skip';
+    var btn = document.getElementById('commitBtn'); btn.disabled = true; btn.textContent = 'Importing…';
+    try {
+      var res = await apiCall('POST', '/api/v1/import/commit', { entity:S.entity, mapping:S.mapping, rows:S.rows, dedup:dedup });
+      var s = res.data.summary;
+      document.getElementById('donePanel').innerHTML =
+        '<div class="empty-state" style="padding:24px"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>'+
+        '<p>Import complete</p><div class="empty-hint">'+s.created+' created · '+s.updated+' updated · '+s.skipped+' skipped · '+s.failed+' failed</div></div>';
+      goStep(4);
+      showToast(s.created+' created, '+s.updated+' updated', s.failed ? 'warning' : 'success');
+    } catch(e){ showToast(e.message || 'Import failed', 'error'); btn.disabled=false; }
+  }
+
+  document.querySelectorAll('[data-goto]').forEach(function(b){ b.addEventListener('click', function(){ goStep(+b.dataset.goto); }); });
+
+  // Templates (download + advanced users paste)
+  var templates = {
+    users: 'email,firstName,lastName,role,phone,password\\ndispatch@256logisticsltd.com,Dispatch,Desk,operations_manager,07700900111,ChangeMe2026!',
+    employees: 'fullName,email,dateOfBirth,homeAddress,phone,jobTitle,department,startDate,contractedHours,salary,workLocation,isDriver,isSponsored\\nJane Driver,jane.driver@256logisticsltd.com,1991-05-20,12 Example Street,07700900112,HGV Driver,Drivers,2026-06-16,45,34000,Main Depot,true,false',
+    vehicles: 'registration,vinNumber,make,model,year,motExpiryDate,insuranceExpiryDate,pmiIntervalWeeks,lastPmiDate,currentMileage,status\\nAB26 CDE,VIN00000000000001,Volvo,FH,2024,2027-06-16,2027-06-16,6,2026-06-01,12500,active'
+  };
+  window.downloadTemplate = function(){
+    var blob = new Blob([templates[S.entity]], { type:'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '256-logistics-'+S.entity+'-template.csv'; a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  // Advanced users CSV paste (reuses /migration/import)
+  document.getElementById('advToggle').addEventListener('click', function(){
+    var c = document.getElementById('advCard'); c.hidden = !c.hidden; if(!c.hidden){ loadTemplate(); c.scrollIntoView({behavior:'smooth'}); }
+  });
+  function countRows(){ var r = document.getElementById('csvInput').value.split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean); document.getElementById('rowCount').textContent = Math.max(r.length-1,0)+' rows'; }
+  window.loadTemplate = function(){ document.getElementById('csvInput').value = templates[document.getElementById('entityType').value]; countRows(); };
+  window.runImport = async function(){
+    try {
+      var entity = document.getElementById('entityType').value;
+      var res = await apiCall('POST', '/api/v1/migration/import', { entity:entity, csv:document.getElementById('csvInput').value });
+      var s = res.data.summary;
+      document.getElementById('resultPanel').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Line</th><th>Status</th><th>Record</th><th>Message</th></tr></thead><tbody>'+
+        res.data.results.map(function(r){ return '<tr><td>'+r.line+'</td><td><span class="badge '+(r.status==='failed'?'badge-red':r.status==='updated'?'badge-blue':'badge-green')+'">'+esc(r.status)+'</span></td><td class="fw-600">'+esc(r.key||'-')+'</td><td class="cell-muted">'+esc(r.message||'-')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+      showToast(s.created+' created, '+s.updated+' updated, '+s.failed+' failed', s.failed?'warning':'success');
+    } catch(e){ showToast(e.message||'Import failed','error'); }
+  };
+  var csvEl = document.getElementById('csvInput'); if (csvEl) csvEl.addEventListener('input', countRows);
+})();
 </script>
 ` }) %>
