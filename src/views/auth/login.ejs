@@ -34,7 +34,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: 60px 64px;
+      padding: 44px 64px;
       overflow: hidden;
     }
 
@@ -80,7 +80,7 @@
     .logo-badge {
       display: inline-flex; align-items: center; gap: 10px;
       background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25);
-      border-radius: 100px; padding: 8px 16px; margin-bottom: 36px;
+      border-radius: 100px; padding: 8px 16px; margin-bottom: 22px;
       backdrop-filter: blur(8px);
     }
     .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue-light); box-shadow: 0 0 8px var(--blue-light); animation: pulse 2s ease-in-out infinite; }
@@ -89,13 +89,13 @@
 
     .brand-title {
       font-size: 48px; font-weight: 900; color: #fff;
-      line-height: 1.05; margin-bottom: 20px; letter-spacing: -1.5px;
+      line-height: 1.05; margin-bottom: 16px; letter-spacing: -1.5px;
     }
     .brand-title .accent { color: var(--blue-light); }
 
     .brand-sub {
-      font-size: 16px; color: #94a3b8; line-height: 1.7;
-      max-width: 380px; margin-bottom: 52px; font-weight: 400;
+      font-size: 16px; color: #94a3b8; line-height: 1.6;
+      max-width: 380px; margin-bottom: 32px; font-weight: 400;
     }
 
     /* Feature list */
@@ -123,7 +123,7 @@
 
     /* Stats strip */
     .stats-strip {
-      display: flex; gap: 32px; margin-top: 52px; padding-top: 36px;
+      display: flex; gap: 32px; margin-top: 30px; padding-top: 24px;
       border-top: 1px solid rgba(255,255,255,0.07);
     }
     .stat-item .num { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
@@ -201,6 +201,36 @@
     .trust-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
     .trust-text { font-size: 11px; color: #94a3b8; font-weight: 500; }
 
+    /* Brand lockup with traffic dots (matches landing) */
+    .brand-row { display: flex; align-items: center; gap: 11px; margin-bottom: 22px; }
+    .brand-row .dots { display: flex; gap: 5px; }
+    .brand-row .dots i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+    .brand-row .dots .r { background: #ef4444; }
+    .brand-row .dots .y { background: #f59e0b; }
+    .brand-row .dots .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .brand-row .bt { font-weight: 800; color: #fff; font-size: 16px; letter-spacing: -0.2px; line-height: 1.1; }
+    .brand-row .bt small { display: block; font-size: 10px; font-weight: 500; color: #64748b; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; }
+
+    /* ECADEL credit — left panel */
+    .ecadel-credit {
+      display: inline-flex; align-items: center; gap: 13px; margin-top: 26px;
+      padding: 12px 18px 12px 13px; border-radius: 14px;
+      background: radial-gradient(ellipse 90% 160% at 0% 0%, rgba(245,158,11,0.14), transparent 60%), rgba(255,255,255,0.025);
+      border: 1px solid rgba(245,158,11,0.22); transition: all .2s;
+    }
+    .ecadel-credit:hover { border-color: rgba(245,158,11,0.45); transform: translateY(-1px); }
+    .ecadel-credit img { width: 40px; height: 40px; filter: drop-shadow(0 4px 12px rgba(245,158,11,0.4)); }
+    .ecadel-credit small { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: #fcd34d; margin-bottom: 3px; }
+    .ecadel-credit .en { font-size: 15px; font-weight: 800; line-height: 1; background: linear-gradient(100deg, #fffbeb, #fcd34d 60%, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* Back-to-home + ECADEL mini on the right panel */
+    .back-home { position: absolute; top: 22px; left: 24px; display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: #94a3b8; transition: color .2s; }
+    .back-home:hover { color: #2563eb; }
+    .ecadel-mini { margin-top: 22px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11.5px; color: #94a3b8; }
+    .ecadel-mini img { width: 18px; height: 18px; }
+    .ecadel-mini a { color: #b45309; font-weight: 700; text-decoration: none; }
+    .ecadel-mini a:hover { color: #f59e0b; }
+
     @media (max-width: 900px) {
       .left { display: none; }
       .right { width: 100%; box-shadow: none; }
@@ -217,6 +247,10 @@
     <div class="grid-overlay"></div>
 
     <div class="left-content">
+      <div class="brand-row">
+        <span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+        <span class="bt">256 Logistics<small>Compliance Hub</small></span>
+      </div>
       <div class="logo-badge">
         <div class="logo-dot"></div>
         <span>COMPLIANCE PLATFORM</span>
@@ -275,11 +309,23 @@
         <div class="stat-item"><div class="num">6</div><div class="lbl">User Role Levels</div></div>
         <div class="stat-item"><div class="num">100%</div><div class="lbl">Audit-Ready</div></div>
       </div>
+
+      <a class="ecadel-credit" href="https://ecadelgroup.com" target="_blank" rel="noopener">
+        <img src="/img/ecadel-mark.svg" alt="ECADEL Group emblem">
+        <span>
+          <small>Developed &amp; Managed by</small>
+          <span class="en">ECADEL GROUP LIMITED</span>
+        </span>
+      </a>
     </div>
   </div>
 
   <!-- ── Right Panel ─────────────────────────────────── -->
   <div class="right">
+    <a class="back-home" href="/welcome">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+      Home
+    </a>
     <div class="form-box">
       <div class="form-eyebrow">Secure Access</div>
       <h2 class="form-title">Welcome back</h2>
@@ -319,6 +365,11 @@
       <div class="trust">
         <div class="trust-dot"></div>
         <span class="trust-text">Secure session · JWT authenticated · All data encrypted at rest</span>
+      </div>
+
+      <div class="ecadel-mini">
+        <img src="/img/ecadel-mark.svg" alt="">
+        Crafted &amp; managed by <a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL GROUP LIMITED</a>
       </div>
     </div>
   </div>

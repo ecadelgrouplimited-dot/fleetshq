@@ -1,102 +1,282 @@
-<%
-  // Privacy policy is public — render without auth wrapper if user not set
-  const isAuthenticated = typeof user !== 'undefined' && user;
-  const content = `
-<div class="page-head">
-  <div class="page-head-main">
-    <div class="page-eyebrow">
-      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-      Legal
-    </div>
-    <h1>Privacy Policy</h1>
-    <p class="page-sub">How 256 Logistics Compliance Hub collects, stores, and processes personal data under UK GDPR and the Data Protection Act 2018.</p>
-  </div>
-</div>
-
-<div class="card" style="max-width:820px">
-  <div class="card-body" style="line-height:1.75;color:#334155">
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">1. Who we are</h2>
-    <p style="margin:0 0 20px">256 Logistics Ltd ("we", "us", "our") is the data controller for the personal data processed through this compliance platform. Registered in England and Wales. Contact: <a href="mailto:director@256logisticsltd.com">director@256logisticsltd.com</a>.</p>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">2. What data we collect</h2>
-    <ul style="margin:0 0 20px;padding-left:20px">
-      <li>Employee records: full name, date of birth, home address, phone, email, NI number, passport/visa details, salary, contract hours, job title, department.</li>
-      <li>Compliance documents: Right-to-Work, driving licences, tachograph cards, training certificates, vehicle documents (MOT, insurance, VOR).</li>
-      <li>Operational records: daily walk-around checks, defect reports, driver check-ins, PMI schedules.</li>
-      <li>System access logs: login timestamps, audit trail of data mutations.</li>
-    </ul>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">3. Lawful basis for processing</h2>
-    <ul style="margin:0 0 20px;padding-left:20px">
-      <li><strong>Legal obligation</strong> (Article 6(1)(c)) — compliance with the Operator's Licence conditions, Driver and Vehicle Standards Agency (DVSA) requirements, Right-to-Work checking duties under the Immigration Act.</li>
-      <li><strong>Legitimate interests</strong> (Article 6(1)(f)) — maintaining fleet safety records, tachograph compliance, and audit readiness.</li>
-      <li><strong>Contract</strong> (Article 6(1)(b)) — employment and contractor agreements.</li>
-    </ul>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">4. Data retention</h2>
-    <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 20px">
-      <thead><tr style="background:#f1f5f9">
-        <th style="text-align:left;padding:8px 12px;border:1px solid #e2e8f0">Category</th>
-        <th style="text-align:left;padding:8px 12px;border:1px solid #e2e8f0">Retention period</th>
-        <th style="text-align:left;padding:8px 12px;border:1px solid #e2e8f0">Basis</th>
-      </tr></thead>
-      <tbody>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">Employment records (active staff)</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Duration of employment + 6 years</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Legal obligation (HMRC, employment law)</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">Right-to-Work documents</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Duration of employment + 2 years</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Immigration Act 2014</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">Tachograph / daily check records</td><td style="padding:8px 12px;border:1px solid #e2e8f0">1 year (EU/GB Regulation)</td><td style="padding:8px 12px;border:1px solid #e2e8f0">DVSA Operator compliance</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">Defect reports</td><td style="padding:8px 12px;border:1px solid #e2e8f0">15 months</td><td style="padding:8px 12px;border:1px solid #e2e8f0">DVSA Guide to Maintaining Roadworthiness</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">Audit logs (access/mutation)</td><td style="padding:8px 12px;border:1px solid #e2e8f0">3 years</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Legitimate interests (audit trail)</td></tr>
-        <tr><td style="padding:8px 12px;border:1px solid #e2e8f0">System backups</td><td style="padding:8px 12px;border:1px solid #e2e8f0">30 days</td><td style="padding:8px 12px;border:1px solid #e2e8f0">Operational continuity</td></tr>
-      </tbody>
-    </table>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">5. Your rights</h2>
-    <p style="margin:0 0 8px">Under UK GDPR you have the right to:</p>
-    <ul style="margin:0 0 20px;padding-left:20px">
-      <li><strong>Access</strong> — request a copy of the personal data we hold about you (Data Subject Access Request).</li>
-      <li><strong>Rectification</strong> — ask us to correct inaccurate data.</li>
-      <li><strong>Erasure</strong> — request deletion of your personal data where we no longer have a legal obligation to retain it.</li>
-      <li><strong>Restriction</strong> — ask us to restrict processing while a dispute is resolved.</li>
-      <li><strong>Objection</strong> — object to processing based on legitimate interests.</li>
-    </ul>
-    <p style="margin:0 0 20px">Submit requests to: <a href="mailto:director@256logisticsltd.com">director@256logisticsltd.com</a>. We will respond within 30 days.</p>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">6. Data security</h2>
-    <ul style="margin:0 0 20px;padding-left:20px">
-      <li>All data is transmitted over HTTPS (TLS 1.2+).</li>
-      <li>Passwords are hashed with bcrypt (cost 10).</li>
-      <li>Documents are stored on the server filesystem, not publicly accessible — served only to authenticated, authorised users.</li>
-      <li>Daily encrypted database backups with 30-day retention.</li>
-      <li>Access is role-restricted: not all staff can see all data.</li>
-    </ul>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">7. Third parties</h2>
-    <p style="margin:0 0 20px">We do not sell or share personal data with third parties for marketing. Hosting is provided by Hostinger — we recommend reviewing <a href="https://www.hostinger.com/privacy-policy" target="_blank" rel="noopener">their privacy policy</a>. Where email alerts are configured, mail is sent via the configured SMTP provider.</p>
-
-    <h2 style="font-size:16px;font-weight:700;margin:0 0 8px">8. Complaints</h2>
-    <p style="margin:0 0 0">You have the right to lodge a complaint with the Information Commissioner's Office (ICO): <a href="https://ico.org.uk/make-a-complaint" target="_blank" rel="noopener">ico.org.uk/make-a-complaint</a>.</p>
-
-  </div>
-  <div class="card-footer" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-    <span style="font-size:13px;color:#94a3b8">Last reviewed: June 2026</span>
-    ${isAuthenticated ? '<a class="btn btn-secondary" href="/">Back to dashboard</a>' : '<a class="btn btn-secondary" href="/login">Sign in</a>'}
-  </div>
-</div>
-`;
-%>
-<% if (isAuthenticated) { %>
-  <%- include('../layouts/main', { body: content }) %>
-<% } else { %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Privacy Policy — 256 Logistics</title>
-  <link rel="stylesheet" href="/css/app.css">
-  <style>body{padding:24px;max-width:900px;margin:0 auto}</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — 256 Logistics Compliance Hub</title>
+  <meta name="description" content="How 256 Logistics Compliance Hub collects, stores and protects personal data under UK GDPR and the Data Protection Act 2018.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0a1628; --blue: #2563eb; --blue-light: #3b82f6; --blue-200: #93c5fd;
+      --cyan: #06b6d4; --green: #10b981; --amber: #f59e0b; --red: #ef4444;
+      --ink-100: #f1f5f9; --ink-300: #cbd5e1; --ink-400: #94a3b8; --ink-500: #64748b;
+      --line: rgba(148,163,184,0.12);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--navy); color: var(--ink-300); -webkit-font-smoothing: antialiased; overflow-x: hidden; line-height: 1.7; }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 920px; margin: 0 auto; padding: 0 28px; }
+
+    .bg-field { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .bg-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(59,130,246,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.035) 1px, transparent 1px); background-size: 54px 54px; mask-image: radial-gradient(ellipse 90% 50% at 50% 0%, #000 30%, transparent 100%); }
+    .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.45; }
+    .orb-a { width: 520px; height: 520px; background: rgba(37,99,235,0.26); top: -180px; right: -120px; }
+    .orb-b { width: 360px; height: 360px; background: rgba(6,182,212,0.12); top: 50%; left: -160px; }
+    main { position: relative; z-index: 1; }
+
+    /* nav */
+    .nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px); background: rgba(10,22,40,0.72); border-bottom: 1px solid var(--line); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+    .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
+    .brand .dots { display: flex; gap: 4px; }
+    .brand .dots i { width: 9px; height: 9px; border-radius: 50%; display: block; }
+    .brand .dots .r { background: var(--red); } .brand .dots .y { background: var(--amber); } .brand .dots .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .brand small { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-400); letter-spacing: 1px; text-transform: uppercase; }
+    .nav-back { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink-300); padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); transition: all .2s; }
+    .nav-back:hover { color: #fff; background: rgba(255,255,255,0.05); }
+
+    /* hero */
+    .p-hero { padding: 80px 0 36px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--blue-200); background: rgba(59,130,246,0.10); border: 1px solid rgba(59,130,246,0.22); padding: 7px 14px; border-radius: 100px; margin-bottom: 22px; }
+    .eyebrow .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--blue-light); box-shadow: 0 0 8px var(--blue-light); }
+    .p-hero h1 { font-size: clamp(34px, 5vw, 52px); font-weight: 900; color: #fff; letter-spacing: -1.5px; line-height: 1.05; }
+    .p-hero h1 .grad { background: linear-gradient(120deg, #60a5fa, #22d3ee 70%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .p-hero p { font-size: 17px; color: var(--ink-400); max-width: 620px; margin-top: 18px; }
+    .p-meta { display: flex; gap: 22px; margin-top: 26px; flex-wrap: wrap; align-items: center; }
+    .p-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-400); }
+    .p-badge svg { color: var(--green); }
+
+    /* sections */
+    .doc { padding: 18px 0 40px; }
+    .sec { display: grid; grid-template-columns: 56px 1fr; gap: 22px; padding: 30px 0; border-top: 1px solid var(--line); }
+    .sec:first-child { border-top: none; }
+    .sec-num { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font-weight: 800; font-size: 16px; color: var(--blue-200); background: rgba(37,99,235,0.12); border: 1px solid rgba(59,130,246,0.25); }
+    .sec h2 { font-size: 21px; color: #fff; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+    .sec p { font-size: 15.5px; color: var(--ink-300); margin-bottom: 12px; }
+    .sec ul { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 6px 0; }
+    .sec ul li { position: relative; padding-left: 26px; font-size: 15px; color: var(--ink-300); }
+    .sec ul li::before { content: ''; position: absolute; left: 4px; top: 9px; width: 7px; height: 7px; border-radius: 2px; background: linear-gradient(135deg, var(--blue-light), var(--cyan)); }
+    .sec a.ext { color: var(--blue-light); font-weight: 600; }
+    .sec a.ext:hover { text-decoration: underline; }
+    .sec strong { color: #fff; font-weight: 600; }
+
+    /* rights grid */
+    .rights { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 6px; }
+    .right-card { background: linear-gradient(180deg, rgba(18,32,56,0.5), rgba(12,24,44,0.5)); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+    .right-card .rc-h { display: flex; align-items: center; gap: 10px; font-size: 15px; color: #fff; font-weight: 700; margin-bottom: 5px; }
+    .right-card .rc-h svg { color: #6ee7b7; flex-shrink: 0; }
+    .right-card p { font-size: 13.5px; color: var(--ink-400); margin: 0; }
+
+    /* retention table */
+    .ret-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 8px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 14px; }
+    .ret-table thead th { text-align: left; padding: 13px 16px; background: rgba(37,99,235,0.10); color: var(--blue-200); font-weight: 700; font-size: 12px; letter-spacing: 0.6px; text-transform: uppercase; border-bottom: 1px solid var(--line); }
+    .ret-table td { padding: 13px 16px; border-bottom: 1px solid var(--line); color: var(--ink-300); vertical-align: top; }
+    .ret-table tr:last-child td { border-bottom: none; }
+    .ret-table td:first-child { color: #fff; font-weight: 600; }
+    .ret-pill { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; background: rgba(16,185,129,0.14); color: #6ee7b7; border: 1px solid rgba(16,185,129,0.25); }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* contact strip */
+    .contact { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 26px 28px; border-radius: 18px; margin-top: 12px; background: radial-gradient(ellipse 80% 140% at 0% 0%, rgba(37,99,235,0.16), transparent 60%), linear-gradient(180deg, rgba(18,32,56,0.6), rgba(12,24,44,0.6)); border: 1px solid rgba(59,130,246,0.22); }
+    .contact .ct h3 { color: #fff; font-size: 17px; font-weight: 700; }
+    .contact .ct p { color: var(--ink-400); font-size: 14px; margin-top: 4px; }
+    .btn-primary { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14.5px; color: #fff; background: linear-gradient(135deg, var(--blue), #1d4ed8); padding: 13px 22px; border-radius: 12px; box-shadow: 0 8px 24px rgba(37,99,235,0.4); transition: all .2s; white-space: nowrap; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,99,235,0.55); }
+
+    /* ECADEL credit */
+    .credit { padding: 64px 0 40px; }
+    .credit-card { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; gap: 30px; align-items: center; padding: 36px 40px; border-radius: 24px; background: radial-gradient(ellipse 70% 140% at 12% 0%, rgba(245,158,11,0.12), transparent 60%), linear-gradient(180deg, rgba(22,36,61,0.7), rgba(10,20,36,0.7)); border: 1px solid rgba(245,158,11,0.22); box-shadow: 0 24px 60px rgba(0,0,0,0.4); }
+    .credit-seal { width: 82px; height: 82px; filter: drop-shadow(0 8px 24px rgba(245,158,11,0.4)); }
+    .credit-eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: #fcd34d; margin-bottom: 10px; }
+    .credit-eyebrow .ln { width: 24px; height: 1px; background: linear-gradient(90deg, #f59e0b, transparent); }
+    .credit-name { font-size: clamp(22px, 3vw, 30px); font-weight: 900; letter-spacing: -0.5px; line-height: 1.05; background: linear-gradient(100deg, #fffbeb, #fcd34d 55%, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .credit-tag { font-size: 14.5px; color: var(--ink-300); max-width: 520px; margin-top: 10px; }
+    .credit-cta { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; font-weight: 700; font-size: 14px; color: #1a1205; background: linear-gradient(135deg, #fde68a, #f59e0b); padding: 12px 20px; border-radius: 12px; box-shadow: 0 10px 28px rgba(245,158,11,0.35); transition: all .2s; }
+    .credit-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(245,158,11,0.5); }
+
+    footer { border-top: 1px solid var(--line); padding: 34px 0; }
+    .foot-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+    .foot-links { display: flex; gap: 22px; font-size: 14px; color: var(--ink-400); }
+    .foot-links a:hover { color: #fff; }
+    .foot-copy { font-size: 13px; color: var(--ink-500); }
+    .foot-copy b { color: #fcd34d; font-weight: 600; }
+
+    @media (max-width: 720px) {
+      .sec { grid-template-columns: 1fr; gap: 14px; }
+      .sec-num { width: 42px; height: 42px; }
+      .rights { grid-template-columns: 1fr; }
+      .credit-card { grid-template-columns: 1fr; text-align: center; gap: 20px; padding: 32px 24px; }
+      .credit-seal { margin: 0 auto; }
+      .credit-eyebrow { justify-content: center; }
+      .credit-tag { margin-left: auto; margin-right: auto; }
+    }
+  </style>
 </head>
-<body><%- content %></body>
+<body>
+  <div class="bg-field"><div class="bg-grid"></div><div class="orb orb-a"></div><div class="orb orb-b"></div></div>
+
+  <div class="nav">
+    <div class="nav-inner">
+      <a href="/welcome" class="brand"><span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><span>256 Logistics<small>Compliance Hub</small></span></a>
+      <a href="<%= authed ? '/' : '/welcome' %>" class="nav-back">
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+        <%= authed ? 'Back to dashboard' : 'Back to home' %>
+      </a>
+    </div>
+  </div>
+
+  <main>
+    <section class="p-hero">
+      <div class="wrap">
+        <div class="eyebrow"><span class="pip"></span>Legal · UK GDPR &amp; DPA 2018</div>
+        <h1>Privacy <span class="grad">Policy</span></h1>
+        <p>256 Logistics Compliance Hub handles legally-sensitive personal data — passports, Right-to-Work, visas, salaries. Here is exactly how we collect it, why, how long we keep it, and the rights you hold over it.</p>
+        <div class="p-meta">
+          <span class="p-badge"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>UK GDPR aligned</span>
+          <span class="p-badge"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Last reviewed June 2026</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="doc">
+      <div class="wrap">
+
+        <div class="sec">
+          <div class="sec-num">1</div>
+          <div>
+            <h2>Who we are</h2>
+            <p>256 Logistics Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is the data controller for personal data processed through this platform. Registered in England &amp; Wales. For any privacy matter, contact <a class="ext" href="mailto:director@256logisticsltd.com">director@256logisticsltd.com</a>.</p>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">2</div>
+          <div>
+            <h2>What data we collect</h2>
+            <ul>
+              <li><strong>Employee records</strong> — name, date of birth, home address, phone, email, National Insurance number, passport/visa details, salary, contracted hours, job title and department.</li>
+              <li><strong>Compliance documents</strong> — Right-to-Work, driving licences, tachograph cards, training certificates, and vehicle documents (MOT, insurance, VOR).</li>
+              <li><strong>Operational records</strong> — daily walk-around checks, defect reports, driver check-ins and PMI schedules.</li>
+              <li><strong>System access logs</strong> — login timestamps and an audit trail of every data change.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">3</div>
+          <div>
+            <h2>Lawful basis for processing</h2>
+            <ul>
+              <li><strong>Legal obligation</strong> (Art. 6(1)(c)) — Operator&rsquo;s Licence conditions, DVSA requirements, and Right-to-Work duties under the Immigration Act.</li>
+              <li><strong>Legitimate interests</strong> (Art. 6(1)(f)) — fleet safety records, tachograph compliance and audit readiness.</li>
+              <li><strong>Contract</strong> (Art. 6(1)(b)) — employment and contractor agreements.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">4</div>
+          <div>
+            <h2>Data retention</h2>
+            <p>We keep each category only as long as the law or sound operation requires, then dispose of it securely.</p>
+            <div class="table-scroll">
+              <table class="ret-table">
+                <thead><tr><th>Category</th><th>Retention</th><th>Basis</th></tr></thead>
+                <tbody>
+                  <tr><td>Employment records</td><td><span class="ret-pill">Employment + 6 yrs</span></td><td>HMRC / employment law</td></tr>
+                  <tr><td>Right-to-Work documents</td><td><span class="ret-pill">Employment + 2 yrs</span></td><td>Immigration Act 2014</td></tr>
+                  <tr><td>Tachograph / daily checks</td><td><span class="ret-pill">1 year</span></td><td>DVSA operator compliance</td></tr>
+                  <tr><td>Defect reports</td><td><span class="ret-pill">15 months</span></td><td>DVSA Maintaining Roadworthiness</td></tr>
+                  <tr><td>Audit logs</td><td><span class="ret-pill">3 years</span></td><td>Legitimate interests</td></tr>
+                  <tr><td>Database backups</td><td><span class="ret-pill">30 days</span></td><td>Operational continuity</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">5</div>
+          <div>
+            <h2>Your rights</h2>
+            <p>Under UK GDPR you can exercise any of the following — we respond within 30 days.</p>
+            <div class="rights">
+              <div class="right-card"><div class="rc-h"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>Access</div><p>Request a copy of the data we hold about you.</p></div>
+              <div class="right-card"><div class="rc-h"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828z"/></svg>Rectification</div><p>Ask us to correct inaccurate data.</p></div>
+              <div class="right-card"><div class="rc-h"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Erasure</div><p>Request deletion where no legal duty to retain applies.</p></div>
+              <div class="right-card"><div class="rc-h"><svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Restriction &amp; objection</div><p>Pause processing during a dispute, or object to legitimate-interest use.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">6</div>
+          <div>
+            <h2>How we keep it safe</h2>
+            <ul>
+              <li>All data travels over <strong>HTTPS (TLS 1.2+)</strong>; passwords are hashed with bcrypt.</li>
+              <li>Documents are stored privately and served only to <strong>authenticated, authorised</strong> users — never publicly.</li>
+              <li><strong>Daily encrypted backups</strong> with 30-day retention.</li>
+              <li><strong>Role-based access</strong> — staff see only what their role allows. CSRF protection and a strict Content-Security-Policy guard every request.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="sec">
+          <div class="sec-num">7</div>
+          <div>
+            <h2>Third parties &amp; complaints</h2>
+            <p>We never sell personal data. Hosting is provided by Hostinger (<a class="ext" href="https://www.hostinger.com/privacy-policy" target="_blank" rel="noopener">their policy</a>); configured email alerts are sent via the chosen SMTP provider.</p>
+            <p>You may complain to the Information Commissioner&rsquo;s Office at any time: <a class="ext" href="https://ico.org.uk/make-a-complaint" target="_blank" rel="noopener">ico.org.uk/make-a-complaint</a>.</p>
+          </div>
+        </div>
+
+        <div class="contact">
+          <div class="ct">
+            <h3>Exercise a data right</h3>
+            <p>Email us and we&rsquo;ll action your request within 30 days.</p>
+          </div>
+          <a class="btn-primary" href="mailto:director@256logisticsltd.com">
+            <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            director@256logisticsltd.com
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── ECADEL credit ──────────────────────────────── -->
+    <section class="credit">
+      <div class="wrap">
+        <div class="credit-card">
+          <img class="credit-seal" src="/img/ecadel-mark.svg" alt="ECADEL Group emblem">
+          <div>
+            <div class="credit-eyebrow"><span class="ln"></span>Developed &amp; Managed by</div>
+            <div class="credit-name">ECADEL GROUP LIMITED</div>
+            <p class="credit-tag">The soul architects behind 256 Logistics — we design, engineer, and run software built to be trusted with the data that matters.</p>
+          </div>
+          <a class="credit-cta" href="https://ecadelgroup.com" target="_blank" rel="noopener">
+            ecadelgroup.com
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5h5v5m0-5L10 14M19 13v6a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h6"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="foot-inner">
+        <a href="/welcome" class="brand"><span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><span>256 Logistics<small>Compliance Hub</small></span></a>
+        <div class="foot-links">
+          <a href="/welcome">Home</a>
+          <a href="/login">Sign in</a>
+          <a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL Group</a>
+        </div>
+        <div class="foot-copy">© <%= new Date().getFullYear() %> 256 Logistics Ltd · A signature work by <b>ECADEL GROUP LIMITED</b></div>
+      </div>
+    </footer>
+  </main>
+</body>
 </html>
-<% } %>

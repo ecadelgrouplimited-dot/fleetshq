@@ -1750,7 +1750,9 @@ router.get('/migration', webAuth, requireRoles('director'), async (req, res) => 
 // ── Privacy / GDPR ────────────────────────────────────────────────────────────
 
 router.get('/privacy', (req, res) => {
-  res.render('privacy/index', { title: 'Privacy Policy' });
+  const token = req.cookies?.token;
+  const authed = !!(token && verify(token));
+  res.render('privacy/index', { title: 'Privacy Policy', authed });
 });
 
 // Data subject access request (DSAR) — director-only: export all data for one employee
