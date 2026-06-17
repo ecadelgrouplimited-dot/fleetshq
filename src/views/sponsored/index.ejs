@@ -14,15 +14,20 @@ ${(() => {
     return { w, visaDays, rtwDays, salaryMatch, unreported, flags, atRisk };
   });
 
+  const incompleteList = (typeof incomplete !== 'undefined' && incomplete) ? incomplete : [];
+  const eligible = (typeof eligibleEmployees !== 'undefined' && eligibleEmployees) ? eligibleEmployees : [];
   const stats = {
     total: rows.length,
+    incomplete: incompleteList.length,
     visa: rows.filter(r => r.flags.includes('visa')).length,
     rtw: rows.filter(r => r.flags.includes('rtw')).length,
     salary: rows.filter(r => r.flags.includes('salary')).length,
     changes: rows.filter(r => r.flags.includes('changes')).length,
     clear: rows.filter(r => !r.atRisk).length,
   };
-  const compliancePct = stats.total ? Math.round((stats.clear / stats.total) * 100) : 100;
+  // Sponsored employees missing their compliance record are NOT compliant — count them in the roster total.
+  const grandTotal = stats.total + stats.incomplete;
+  const compliancePct = grandTotal ? Math.round((stats.clear / grandTotal) * 100) : 100;
 
   const initials = (name) => name.split(' ').filter(Boolean).slice(0,2).map(p => p[0]).join('').toUpperCase();
   const avatarHue = (name) => { let h=0; for (const c of name) h=(h*31+c.charCodeAt(0))%360; return h; };
@@ -44,20 +49,46 @@ ${(() => {
         </div>
         <div>
           <div class="sponsor-readiness-label">Roster ready</div>
-          <div class="sponsor-readiness-sub">${stats.clear}/${stats.total} fully clear</div>
+          <div class="sponsor-readiness-sub">${stats.clear}/${grandTotal} fully clear</div>
         </div>
       </div>
-      <a href="/audit-evidence/sponsored" class="btn btn-primary">
+      <button type="button" class="btn btn-primary" id="addSponsoredBtn">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add sponsored worker
+      </button>
+      <a href="/audit-evidence/sponsored" class="btn btn-outline">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v12m0 0l4-4m-4 4l-4-4M4 17v1a2 2 0 002 2h12a2 2 0 002-2v-1"/></svg>
         Export pack
       </a>
     </div>
   </div>
 
+  ${incompleteList.length ? `
+  <div class="incomplete-banner">
+    <div class="incomplete-head">
+      <div class="incomplete-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+      <div>
+        <strong>${incompleteList.length} sponsored ${incompleteList.length === 1 ? 'employee needs' : 'employees need'} compliance details</strong>
+        <p>These staff are marked as sponsored but have no CoS, visa or right-to-work record yet — add their details to start tracking compliance.</p>
+      </div>
+    </div>
+    <div class="incomplete-list">
+      ${incompleteList.map(emp => `
+        <div class="incomplete-row">
+          <div class="incomplete-person">
+            <span class="mac-avatar" style="background:linear-gradient(135deg,hsl(${avatarHue(emp.fullName)},70%,58%),hsl(${(avatarHue(emp.fullName)+40)%360},68%,48%))">${esc(initials(emp.fullName))}</span>
+            <div><strong>${esc(emp.fullName)}</strong><span>${esc(emp.jobTitle || '')}${emp.department ? ' · ' + esc(emp.department) : ''}</span></div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm complete-sponsor" data-emp="${emp.id}" data-name="${esc(emp.fullName)}">Add details</button>
+        </div>
+      `).join('')}
+    </div>
+  </div>` : ''}
+
   <div class="stat-grid mb-4">
     <button type="button" class="stat-card blue sponsor-stat" data-filter="all">
       <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M9 7a3 3 0 106 0 3 3 0 00-6 0z"/></svg></div>
-      <div><div class="stat-value">${stats.total}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.clear} fully compliant</div></div>
+      <div><div class="stat-value">${grandTotal}</div><div class="stat-label">Sponsored Workers</div><div class="stat-sub">${stats.clear} fully compliant${stats.incomplete ? ` · ${stats.incomplete} need details` : ''}</div></div>
     </button>
     <button type="button" class="stat-card ${stats.visa ? 'red' : 'green'} sponsor-stat" data-filter="visa">
       <div class="stat-icon ${stats.visa ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
@@ -167,7 +198,62 @@ ${(() => {
     </div>
   </div>
 
+  <div id="sponsorModal" class="modal-overlay" style="display:none">
+    <div class="modal" style="max-width:660px">
+      <div class="modal-header">
+        <h3>Add sponsorship details</h3>
+        <button type="button" class="btn btn-ghost btn-sm" data-close-sponsor>✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Employee <span class="required">*</span></label>
+          <select class="form-control" id="spEmployee">
+            <option value="">Select employee…</option>
+            ${eligible.map(e => `<option value="${e.id}" data-jobtitle="${esc(e.jobTitle || '')}" data-loc="${esc(e.workLocation || '')}" data-hours="${e.contractedHours == null ? '' : e.contractedHours}" data-salary="${e.salary == null ? '' : e.salary}">${esc(e.fullName)}${e.jobTitle ? ' — ' + esc(e.jobTitle) : ''}</option>`).join('')}
+          </select>
+          ${eligible.length === 0 ? '<div class="form-hint">All employees already have a sponsorship record.</div>' : ''}
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">CoS number <span class="required">*</span></label><input class="form-control" id="spCos" placeholder="e.g. C2G7X12345"></div>
+          <div class="form-group"><label class="form-label">SOC code <span class="required">*</span></label><input class="form-control" id="spSoc" placeholder="e.g. 8211"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Sponsored job title <span class="required">*</span></label><input class="form-control" id="spJob" placeholder="As stated on the CoS"></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Salary on CoS (£) <span class="required">*</span></label><input class="form-control" id="spSalCos" type="number" step="0.01" placeholder="38700"></div>
+          <div class="form-group"><label class="form-label">Actual salary (£) <span class="required">*</span></label><input class="form-control" id="spSalAct" type="number" step="0.01" placeholder="38700"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Contracted hours / week <span class="required">*</span></label><input class="form-control" id="spHours" type="number" step="0.5" placeholder="39"></div>
+          <div class="form-group"><label class="form-label">Work location <span class="required">*</span></label><input class="form-control" id="spLoc" placeholder="Main Depot"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Visa expiry <span class="required">*</span></label><input class="form-control" id="spVisa" type="date"></div>
+          <div class="form-group"><label class="form-label">Right-to-work check date <span class="required">*</span></label><input class="form-control" id="spRtwCheck" type="date"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">RTW follow-up date</label><input class="form-control" id="spRtwFollow" type="date"></div>
+          <div class="form-group"><label class="form-label">RTW document type</label><input class="form-control" id="spRtwDoc" placeholder="e.g. BRP, Passport"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" data-close-sponsor>Cancel</button>
+        <button type="button" class="btn btn-primary" id="spSubmit">Save sponsorship</button>
+      </div>
+    </div>
+  </div>
+
   <style>
+    .incomplete-banner { background:#fffbeb; border:1px solid #fde68a; border-radius:16px; padding:16px 18px; margin-bottom:16px; }
+    .incomplete-head { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; }
+    .incomplete-icon { width:38px; height:38px; flex-shrink:0; border-radius:10px; background:#fef3c7; color:#b45309; display:flex; align-items:center; justify-content:center; }
+    .incomplete-icon svg { width:20px; height:20px; }
+    .incomplete-head strong { font-size:14px; color:#92400e; }
+    .incomplete-head p { font-size:12.5px; color:#a16207; margin-top:2px; line-height:1.5; }
+    .incomplete-list { display:flex; flex-direction:column; gap:8px; }
+    .incomplete-row { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#fff; border:1px solid #fde68a; border-radius:12px; padding:8px 12px; }
+    .incomplete-person { display:flex; align-items:center; gap:10px; min-width:0; }
+    .incomplete-person strong { display:block; font-size:13px; }
+    .incomplete-person span { font-size:11.5px; color:var(--text-muted); }
     .sponsor-readiness { display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--mac-hairline); border-radius:14px; padding:8px 14px 8px 8px; box-shadow:var(--mac-shadow); }
     .sponsor-readiness-ring { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
       background:conic-gradient(var(--success) calc(var(--pct)*1%), #e9eef6 0); }
@@ -247,6 +333,49 @@ ${(() => {
       card.addEventListener('click', () => setFilter(card.getAttribute('data-filter')));
     });
     apply();
+  })();
+  </script>
+
+  <script>
+  (function(){
+    var modal = document.getElementById('sponsorModal');
+    if (!modal) return;
+    var sel = document.getElementById('spEmployee');
+    function prefill(){
+      var o = sel.options[sel.selectedIndex];
+      if (!o || !o.value) return;
+      var set = function(id, v){ var el = document.getElementById(id); if (el && !el.value) el.value = v || ''; };
+      set('spJob', o.dataset.jobtitle); set('spLoc', o.dataset.loc); set('spHours', o.dataset.hours); set('spSalAct', o.dataset.salary);
+    }
+    function open(empId){ if (empId) sel.value = empId; prefill(); modal.style.display = 'flex'; }
+    function close(){ modal.style.display = 'none'; }
+    sel.addEventListener('change', prefill);
+    var addBtn = document.getElementById('addSponsoredBtn');
+    if (addBtn) addBtn.addEventListener('click', function(){ open(); });
+    document.querySelectorAll('.complete-sponsor').forEach(function(b){ b.addEventListener('click', function(){ open(b.dataset.emp); }); });
+    modal.querySelectorAll('[data-close-sponsor]').forEach(function(b){ b.addEventListener('click', close); });
+    modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+
+    document.getElementById('spSubmit').addEventListener('click', async function(){
+      var val = function(id){ return (document.getElementById(id).value || '').trim(); };
+      var body = {
+        employeeId: sel.value,
+        cosNumber: val('spCos'), socCode: val('spSoc'), sponsoredJobTitle: val('spJob'),
+        salaryOnCos: val('spSalCos'), actualSalary: val('spSalAct'), contractedHours: val('spHours'),
+        workLocation: val('spLoc'), visaExpiryDate: val('spVisa'), rightToWorkCheckDate: val('spRtwCheck'),
+        rightToWorkFollowupDate: val('spRtwFollow') || null, rightToWorkDocumentType: val('spRtwDoc') || null,
+        actualWorkingPattern: null,
+      };
+      var required = [['employeeId','Employee'],['cosNumber','CoS number'],['socCode','SOC code'],['sponsoredJobTitle','Job title'],['salaryOnCos','Salary on CoS'],['actualSalary','Actual salary'],['contractedHours','Contracted hours'],['workLocation','Work location'],['visaExpiryDate','Visa expiry'],['rightToWorkCheckDate','RTW check date']];
+      var missing = required.filter(function(r){ return !body[r[0]]; }).map(function(r){ return r[1]; });
+      if (missing.length){ showToast('Please fill: ' + missing.join(', '), 'error'); return; }
+      var btn = this; btn.disabled = true; btn.textContent = 'Saving…';
+      try {
+        await apiCall('POST', '/api/v1/sponsored-workers', body);
+        showToast('Sponsorship saved', 'success');
+        setTimeout(function(){ location.reload(); }, 700);
+      } catch(e){ showToast(e.message || 'Could not save', 'error'); btn.disabled = false; btn.textContent = 'Save sponsorship'; }
+    });
   })();
   </script>
   `;

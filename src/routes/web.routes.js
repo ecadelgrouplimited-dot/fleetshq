@@ -788,7 +788,19 @@ router.get('/sponsored-workers', webAuth, requireRoles(...evidenceRoles), async 
       },
       orderBy: { employee: { fullName: 'asc' } },
     });
-    res.render('sponsored/index', { title: 'Sponsored Workers', workers,
+    // Employees flagged as sponsored but missing their CoS/visa compliance record
+    const incomplete = await prisma.employee.findMany({
+      where: { isSponsored: true, sponsoredWorker: { is: null } },
+      select: { id: true, fullName: true, jobTitle: true, department: true, email: true },
+      orderBy: { fullName: 'asc' },
+    });
+    // Anyone without a sponsorship record yet (for the "add" picker)
+    const eligibleEmployees = await prisma.employee.findMany({
+      where: { sponsoredWorker: { is: null }, employmentStatus: { not: 'terminated' } },
+      select: { id: true, fullName: true, jobTitle: true, workLocation: true, contractedHours: true, salary: true },
+      orderBy: { fullName: 'asc' },
+    });
+    res.render('sponsored/index', { title: 'Sponsored Workers', workers, incomplete, eligibleEmployees,
       daysUntil, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
