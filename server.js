@@ -73,7 +73,15 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'src/views'));
 
 // Routes
-app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date() }));
+const prisma = require('./src/config/database');
+app.get('/health', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: 'ok', db: 'ok', timestamp: new Date() });
+  } catch {
+    res.status(503).json({ status: 'error', db: 'unreachable', timestamp: new Date() });
+  }
+});
 app.use('/api/v1', apiRoutes);
 app.use('/', webRoutes);
 

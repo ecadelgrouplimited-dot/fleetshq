@@ -1,11 +1,25 @@
 const logger = require('../utils/logger');
 
+// Capture unhandled errors in Sentry when SENTRY_DSN is configured.
+// Install @sentry/node and set SENTRY_DSN in .env to activate.
+let Sentry = null;
+if (process.env.SENTRY_DSN) {
+  try {
+    Sentry = require('@sentry/node');
+    Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV || 'production' });
+    logger.info('[sentry] Error tracking active');
+  } catch {
+    logger.warn('[sentry] SENTRY_DSN is set but @sentry/node is not installed — run: npm install @sentry/node');
+  }
+}
+
 module.exports = (err, req, res, _next) => {
   const statusCode = err.statusCode || 500;
   const isApi = req.path.startsWith('/api');
 
   if (!err.isOperational) {
     logger.error('Unhandled error:', { message: err.message, stack: err.stack, url: req.url });
+    if (Sentry) Sentry.captureException(err);
   }
 
   if (isApi) {
