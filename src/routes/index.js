@@ -107,6 +107,7 @@ router.patch('/alerts/:id/resolve', authenticate, alertsCtrl.resolve);
 // ── Users ─────────────────────────────────────────────
 router.get('/users',              authenticate, authorize('users:manage'), usersCtrl.list);
 router.post('/users',             authenticate, authorize('users:manage'), usersCtrl.create);
+router.post('/users/from-employees', authenticate, authorize('users:manage'), auditLog('user'), usersCtrl.createFromEmployees);
 router.put('/users/:id',          authenticate, authorize('users:manage'), usersCtrl.update);
 router.post('/users/:id/reset-password', authenticate, authorize('users:manage'), usersCtrl.resetPassword);
 router.delete('/users/:id',       authenticate, authorize('users:manage'), usersCtrl.remove);

@@ -1,10 +1,16 @@
 <%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <p class="text-sm text-muted"><span id="visibleUserCount">${users.length}</span> of ${users.length} system users</p>
-  <button class="btn btn-primary" onclick="document.getElementById('addUserModal').style.display='flex'">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-    Add User
-  </button>
+  <div class="flex gap-2">
+    <button class="btn btn-outline" id="fromEmployeesBtn">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      From employees
+    </button>
+    <button class="btn btn-primary" onclick="document.getElementById('addUserModal').style.display='flex'">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Add User
+    </button>
+  </div>
 </div>
 
 <div class="card mb-4">
@@ -176,6 +182,67 @@
   </div>
 </div>
 
+<!-- Create logins from employees -->
+<div id="fromEmployeesModal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <h3>Create logins from employees</h3>
+      <button onclick="closeModal('fromEmployeesModal')" class="btn btn-ghost btn-sm">✕</button>
+    </div>
+    <div class="modal-body" id="feBody">
+      ${eligibleEmployees.length === 0 ? `
+        <div class="empty-state"><p>Everyone already has an account</p><div class="empty-hint">All active employees with an email address already have a login.</div></div>
+      ` : `
+        <p class="text-sm text-muted" style="margin-bottom:12px">${eligibleEmployees.length} active employee${eligibleEmployees.length !== 1 ? 's' : ''} with an email address ${eligibleEmployees.length !== 1 ? 'have' : 'has'} no login yet. Select who should get an account — we'll link each login to their employee record and generate a temporary password.</p>
+        <div class="fe-controls">
+          <label class="fe-selectall"><input type="checkbox" id="feSelectAll"> Select all</label>
+          <div class="fe-role">
+            <label class="form-label" style="margin:0 0 0 auto">Role</label>
+            <select class="form-control" id="feRole" style="width:auto">
+              <option value="driver" selected>Driver</option>
+              <option value="operations_manager">Operations Manager</option>
+              <option value="transport_manager">Transport Manager</option>
+              <option value="hr_manager">HR Manager</option>
+              <option value="garage">Garage Provider</option>
+              <option value="director">Director</option>
+            </select>
+          </div>
+        </div>
+        <div class="fe-list">
+          ${eligibleEmployees.map(e => `
+            <label class="fe-row">
+              <input type="checkbox" class="fe-check" value="${e.id}">
+              <div class="fe-person">
+                <strong>${esc(e.fullName)}</strong>
+                <span>${esc(e.email)}${e.jobTitle ? ' · ' + esc(e.jobTitle) : ''}</span>
+              </div>
+              ${e.isDriver ? '<span class="badge badge-blue">Driver</span>' : ''}
+            </label>
+          `).join('')}
+        </div>
+      `}
+    </div>
+    <div class="modal-footer" id="feFooter">
+      <button onclick="closeModal('fromEmployeesModal')" class="btn btn-ghost">Cancel</button>
+      ${eligibleEmployees.length ? `<button class="btn btn-primary" id="feCreateBtn" disabled><span id="feCount">0</span> selected — Create logins</button>` : ''}
+    </div>
+  </div>
+</div>
+
+<style>
+  .fe-controls { display:flex; align-items:center; gap:14px; padding:8px 0 12px; border-bottom:1px solid var(--mac-hairline); margin-bottom:8px; }
+  .fe-selectall { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  .fe-role { display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .fe-list { max-height:340px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+  .fe-row { display:flex; align-items:center; gap:12px; padding:9px 12px; border:1px solid var(--border); border-radius:10px; cursor:pointer; }
+  .fe-row:hover { background:#f8fafc; }
+  .fe-person { display:flex; flex-direction:column; min-width:0; flex:1; }
+  .fe-person strong { font-size:13px; }
+  .fe-person span { font-size:11.5px; color:var(--text-muted); }
+  .fe-alert { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:12px; }
+  #feBody code { background:#f1f5f9; padding:2px 6px; border-radius:5px; font-size:12px; font-weight:700; }
+</style>
+
 <script>
 document.querySelectorAll('[data-edit-user]').forEach(b => b.addEventListener('click', () => openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true')));
 document.querySelectorAll('[data-reset-user]').forEach(b => b.addEventListener('click', () => openResetPassword(b.dataset.id, b.dataset.name)));
@@ -277,6 +344,53 @@ async function confirmDeleteUser(id, name) {
     showToast(e.error?.message || 'Delete failed', 'error');
   }
 }
+
+// ── Create logins from employees ──────────────────────────────────────
+(function(){
+  var modal = document.getElementById('fromEmployeesModal');
+  var openBtn = document.getElementById('fromEmployeesBtn');
+  if (openBtn) openBtn.addEventListener('click', function(){ modal.style.display = 'flex'; });
+  var selectAll = document.getElementById('feSelectAll');
+  var createBtn = document.getElementById('feCreateBtn');
+  function escJs(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function checks(){ return Array.prototype.slice.call(document.querySelectorAll('.fe-check')); }
+  function updateCount(){ var n = checks().filter(function(c){return c.checked;}).length; var el=document.getElementById('feCount'); if(el) el.textContent=n; if(createBtn) createBtn.disabled = n===0; }
+  if (selectAll) selectAll.addEventListener('change', function(){ checks().forEach(function(c){ c.checked = selectAll.checked; }); updateCount(); });
+  if (modal) modal.addEventListener('change', function(e){ if(e.target.classList && e.target.classList.contains('fe-check')) updateCount(); });
+  updateCount();
+
+  if (createBtn) createBtn.addEventListener('click', async function(){
+    var ids = checks().filter(function(c){return c.checked;}).map(function(c){return c.value;});
+    if (!ids.length) return;
+    var role = document.getElementById('feRole').value;
+    createBtn.disabled = true; createBtn.textContent = 'Creating…';
+    try {
+      var res = await apiCall('POST', '/api/v1/users/from-employees', { employeeIds: ids, role: role });
+      renderResults(res.data, role);
+    } catch(e){ showToast(e.message || 'Failed to create logins', 'error'); createBtn.disabled = false; updateCount(); }
+  });
+
+  function renderResults(d, role){
+    var created = d.results.filter(function(r){ return r.status === 'created'; });
+    var rows = d.results.map(function(r){
+      var badge = r.status==='created'?'badge-green':r.status==='skipped'?'badge-amber':'badge-red';
+      var pw = r.tempPassword ? '<code>'+escJs(r.tempPassword)+'</code>' : '<span class="cell-muted">'+escJs(r.message||'-')+'</span>';
+      return '<tr><td class="fw-600">'+escJs(r.name||'-')+'</td><td class="cell-muted">'+escJs(r.email||'-')+'</td><td>'+pw+'</td><td><span class="badge '+badge+'">'+r.status+'</span></td></tr>';
+    }).join('');
+    document.getElementById('feBody').innerHTML =
+      '<div class="fe-alert">'+d.summary.created+' account(s) created · '+d.summary.skipped+' skipped · '+d.summary.failed+' failed. <strong>Copy these temporary passwords now — they are shown only once.</strong> Ask each person to change theirs after first login.</div>'+
+      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Temp password</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    var footer = document.getElementById('feFooter');
+    footer.innerHTML = (created.length ? '<button class="btn btn-ghost" id="feDownload">Download credentials (CSV)</button>' : '') + '<button class="btn btn-primary" onclick="location.reload()">Done</button>';
+    var dl = document.getElementById('feDownload');
+    if (dl) dl.addEventListener('click', function(){
+      var csv = 'name,email,temp_password,role\\n' + created.map(function(r){ return '"'+String(r.name||'').replace(/"/g,'""')+'","'+r.email+'","'+r.tempPassword+'","'+role+'"'; }).join('\\n');
+      var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '256-new-logins.csv'; a.click(); URL.revokeObjectURL(a.href);
+    });
+    showToast(d.summary.created + ' login(s) created', d.summary.failed ? 'warning' : 'success');
+  }
+})();
 </script>
 
 <style>

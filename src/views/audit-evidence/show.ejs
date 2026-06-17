@@ -1,6 +1,17 @@
 <%
   const selectedExport = folder.exports[0];
   const relatedFolders = folders.filter((item) => item.slug !== folder.slug).slice(0, 3);
+  const P = (d) => `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="${d}"/>`;
+  const FOLDER_ICONS = {
+    'folder-lock': P('M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'),
+    'folder-wrench': P('M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z') + P('M15 12a3 3 0 11-6 0 3 3 0 016 0z'),
+    'folder-briefcase': P('M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'),
+    'folder-user': P('M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'),
+    'folder-shield': P('M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'),
+    'folder-docs': P('M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'),
+  };
+  const FOLDER_DEFAULT = P('M3 7.5A2.5 2.5 0 015.5 5H10l2 2h6.5A2.5 2.5 0 0121 9.5v7A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-9z');
+  const folderIconSvg = (name) => `<svg fill="none" viewBox="0 0 24 24" stroke="currentColor">${FOLDER_ICONS[name] || FOLDER_DEFAULT}</svg>`;
 %>
 <%- include('../layouts/main', { body: `
 <div class="audit-detail-shell">
@@ -37,7 +48,7 @@
     <section class="card audit-folder-pane">
       <div class="audit-pane-windowbar">
         <div class="window-dots"><span></span><span></span><span></span></div>
-        <span>${folder.icon} Folder Workspace</span>
+        <span class="audit-windowbar-title">${folderIconSvg(folder.icon)} Folder Workspace</span>
       </div>
       <div class="card-body">
         <div class="audit-summary">
@@ -169,7 +180,7 @@
           ${relatedFolders.map(item => `
             <a href="/audit-evidence/${item.slug}" class="audit-related-folder" data-loading-link data-loading-text="Opening folder...">
               <div class="audit-related-folder-main">
-                <span class="audit-related-folder-icon">${item.icon}</span>
+                <span class="audit-related-folder-icon">${folderIconSvg(item.icon)}</span>
                 <div>
                   <strong>${esc(item.name)}</strong>
                   <p>${item.owner}</p>
@@ -245,7 +256,10 @@
   .audit-related-folder { display:flex; justify-content:space-between; gap:12px; align-items:center; text-decoration:none; padding:12px 14px; border:1px solid #e2e8f0; border-radius:10px; color:#0f172a; background:#fff; }
   .audit-related-folder:hover { border-color:#93c5fd; background:#eff6ff; }
   .audit-related-folder-main { display:flex; align-items:center; gap:12px; min-width:0; }
-  .audit-related-folder-icon { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#fef3c7; font-size:18px; }
+  .audit-related-folder-icon { width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:#fef3c7; color:#b45309; flex-shrink:0; }
+  .audit-related-folder-icon svg { width:20px; height:20px; }
+  .audit-windowbar-title { display:inline-flex; align-items:center; gap:7px; }
+  .audit-windowbar-title svg { width:15px; height:15px; }
   .audit-related-folder strong { display:block; font-size:13px; margin-bottom:4px; }
   .audit-related-folder p { color:#64748b; font-size:12px; }
   @media (max-width:1200px) {

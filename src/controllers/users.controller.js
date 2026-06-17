@@ -1,7 +1,19 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const prisma = require('../config/database');
 const { ok, created } = require('../utils/responseHelper');
 const { NotFoundError, ConflictError, ValidationError } = require('../utils/errors');
+
+const VALID_ROLES = ['director', 'transport_manager', 'hr_manager', 'operations_manager', 'driver', 'garage'];
+const genTempPassword = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  const bytes = crypto.randomBytes(10);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join('') + '#7';
+};
+const splitName = (full) => {
+  const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+  return { firstName: parts.shift() || 'Staff', lastName: parts.join(' ') || '-' };
+};
 
 exports.list = async (req, res, next) => {
   try {
@@ -31,6 +43,39 @@ exports.create = async (req, res, next) => {
       },
     });
     return created(res, { id: user.id, email: user.email, role: user.role });
+  } catch (e) { next(e); }
+};
+
+// Create login accounts from existing employee records (bulk), linked via employeeId.
+exports.createFromEmployees = async (req, res, next) => {
+  try {
+    const { employeeIds, role } = req.body;
+    if (!Array.isArray(employeeIds) || employeeIds.length === 0) throw new ValidationError('Select at least one employee');
+    if (!VALID_ROLES.includes(role)) throw new ValidationError('A valid role is required');
+    if (employeeIds.length > 500) throw new ValidationError('Limit 500 at a time');
+
+    const results = [];
+    for (const employeeId of employeeIds) {
+      try {
+        const emp = await prisma.employee.findUnique({ where: { id: employeeId }, include: { userAccount: { select: { id: true } } } });
+        if (!emp) { results.push({ status: 'failed', name: '', email: '', message: 'employee not found' }); continue; }
+        const email = (emp.email || '').toLowerCase().trim();
+        if (!email) { results.push({ status: 'failed', name: emp.fullName, email: '', message: 'no email on record' }); continue; }
+        if (emp.userAccount) { results.push({ status: 'skipped', name: emp.fullName, email, message: 'already has an account' }); continue; }
+        if (await prisma.user.findUnique({ where: { email } })) { results.push({ status: 'skipped', name: emp.fullName, email, message: 'email already in use' }); continue; }
+
+        const tempPassword = genTempPassword();
+        const { firstName, lastName } = splitName(emp.fullName);
+        await prisma.user.create({
+          data: { email, passwordHash: await bcrypt.hash(tempPassword, 10), role, firstName, lastName, phone: emp.phone || null, isActive: true, employeeId: emp.id },
+        });
+        results.push({ status: 'created', name: emp.fullName, email, tempPassword });
+      } catch (e) {
+        results.push({ status: 'failed', name: '', email: '', message: e.message });
+      }
+    }
+    const summary = ['created', 'skipped', 'failed'].reduce((a, s) => { a[s] = results.filter(r => r.status === s).length; return a; }, { total: results.length });
+    return created(res, { summary, results });
   } catch (e) { next(e); }
 };
 

@@ -1652,7 +1652,16 @@ router.get('/users', webAuth, requireRoles('director'), async (req, res) => {
         isActive: true, lastLoginAt: true },
       orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
     });
-    res.render('users/index', { title: 'User Management', users, formatDate });
+    // Employees with an email but no login account yet (for "create users from employees")
+    const linkedEmployeeIds = new Set((await prisma.user.findMany({ where: { employeeId: { not: null } }, select: { employeeId: true } })).map(u => u.employeeId));
+    const takenEmails = new Set(users.map(u => u.email.toLowerCase()));
+    const emps = await prisma.employee.findMany({
+      where: { employmentStatus: { not: 'terminated' } },
+      select: { id: true, fullName: true, email: true, jobTitle: true, isDriver: true },
+      orderBy: { fullName: 'asc' },
+    });
+    const eligibleEmployees = emps.filter(e => e.email && !takenEmails.has(e.email.toLowerCase()) && !linkedEmployeeIds.has(e.id));
+    res.render('users/index', { title: 'User Management', users, eligibleEmployees, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
