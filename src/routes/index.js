@@ -22,6 +22,7 @@ const migrationCtrl = require('../controllers/migration.controller');
 router.post('/auth/login', require('../middleware/loginLimiter'), authCtrl.login);
 router.post('/auth/logout', authCtrl.logout);
 router.get('/auth/me', authenticate, authCtrl.me);
+router.post('/auth/change-password', authenticate, authCtrl.changePassword);
 
 // ── Dashboard ─────────────────────────────────────────
 router.get('/dashboard/summary', authenticate, dashCtrl.summary);

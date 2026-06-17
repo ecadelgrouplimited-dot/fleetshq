@@ -4,6 +4,7 @@ const { sign } = require('../config/jwt');
 const { ok } = require('../utils/responseHelper');
 const { AuthError, ValidationError } = require('../utils/errors');
 const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
+const { checkPassword } = require('../utils/passwordPolicy');
 
 exports.login = async (req, res, next) => {
   try {
@@ -61,6 +62,25 @@ exports.login = async (req, res, next) => {
 exports.logout = (req, res) => {
   res.clearCookie('token');
   return ok(res, { message: 'Logged out successfully' });
+};
+
+// Self-service change password (requires the current password).
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) throw new ValidationError('Current and new password are required');
+    const pwError = checkPassword(newPassword);
+    if (pwError) throw new ValidationError(pwError);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) throw new AuthError();
+    const match = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!match) throw new ValidationError('Your current password is incorrect');
+    if (await bcrypt.compare(newPassword, user.passwordHash)) throw new ValidationError('New password must be different from the current one');
+
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } });
+    return ok(res, { message: 'Password changed successfully' });
+  } catch (e) { next(e); }
 };
 
 exports.me = async (req, res, next) => {

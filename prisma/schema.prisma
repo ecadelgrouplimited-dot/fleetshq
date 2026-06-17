@@ -197,6 +197,8 @@ model User {
   lastLoginAt  DateTime?
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
+  resetTokenHash      String?
+  resetTokenExpiry    DateTime?
 
   employee   Employee? @relation("UserEmployee", fields: [employeeId], references: [id])
   employeeId String?   @unique

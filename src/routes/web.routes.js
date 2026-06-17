@@ -9,6 +9,10 @@ const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
 const loginLimiter = require('../middleware/loginLimiter');
 const { esc } = require('../utils/escapeHtml');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { checkPassword } = require('../utils/passwordPolicy');
+const { sendMail } = require('../services/mail.service');
 
 router.use(cookieParser());
 
@@ -359,6 +363,61 @@ router.post('/login', loginLimiter, async (req, res) => {
 router.get('/logout', (req, res) => {
   res.clearCookie('token');
   res.redirect('/login');
+});
+
+// ── Account / self-service security ──────────────────────────────────
+router.get('/account', webAuth, (req, res) => {
+  res.render('account/index', { title: 'My Account' });
+});
+
+// ── Forgot / reset password (public) ─────────────────────────────────
+router.get('/forgot-password', (req, res) => {
+  res.render('auth/forgot-password', { title: 'Reset password', sent: false });
+});
+
+router.post('/forgot-password', loginLimiter, async (req, res) => {
+  const email = (req.body.email || '').toLowerCase().trim();
+  try {
+    if (email) {
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (user && user.isActive) {
+        const token = crypto.randomBytes(32).toString('hex');
+        const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+        await prisma.user.update({ where: { id: user.id }, data: { resetTokenHash: tokenHash, resetTokenExpiry: new Date(Date.now() + 3600000) } });
+        const link = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
+        await sendMail({
+          to: email,
+          subject: 'Reset your 256 Logistics password',
+          text: `Reset your password using this link (valid for 1 hour):\n${link}\n\nIf you didn't request this, ignore this email.`,
+          html: `<p>Reset your 256 Logistics password using the link below (valid for 1 hour):</p><p><a href="${esc(link)}">${esc(link)}</a></p><p>If you didn't request this, you can safely ignore this email.</p>`,
+        });
+      }
+    }
+  } catch (e) { /* swallowed to avoid revealing whether the email exists */ }
+  // Always confirm, regardless of whether the email was found.
+  res.render('auth/forgot-password', { title: 'Reset password', sent: true });
+});
+
+router.get('/reset-password', (req, res) => {
+  res.render('auth/reset-password', { title: 'Set a new password', token: req.query.token || '', error: null, done: false });
+});
+
+router.post('/reset-password', loginLimiter, async (req, res) => {
+  const { token, password } = req.body;
+  const render = (error) => res.render('auth/reset-password', { title: 'Set a new password', token: token || '', error, done: false });
+  try {
+    if (!token) return render('This reset link is invalid.');
+    const pwError = checkPassword(password);
+    if (pwError) return render(pwError);
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const user = await prisma.user.findFirst({ where: { resetTokenHash: tokenHash, resetTokenExpiry: { gt: new Date() } } });
+    if (!user) return render('This reset link is invalid or has expired. Please request a new one.');
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(password, 10), resetTokenHash: null, resetTokenExpiry: null, failedLoginAttempts: 0, lockedUntil: null },
+    });
+    return res.render('auth/reset-password', { title: 'Password updated', token: '', error: null, done: true });
+  } catch (e) { return render('Something went wrong. Please request a new reset link.'); }
 });
 
 router.get('/documents/:kind/:id', webAuth, async (req, res) => {
