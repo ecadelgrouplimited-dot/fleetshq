@@ -224,6 +224,20 @@ body {
 .sidebar-footer a.signout:hover { background: rgba(239,68,68,.1); color: #f87171; }
 .sidebar-footer a.signout svg { width: 13px; height: 13px; }
 
+/* ECADEL maker's signature — shown on every app page */
+.sidebar-credit {
+  display: flex; align-items: center; gap: 9px; margin-top: 12px;
+  padding: 9px 11px; border-radius: 10px; text-decoration: none;
+  border: 1px solid rgba(245,158,11,.16);
+  background: radial-gradient(ellipse 90% 180% at 0% 0%, rgba(245,158,11,.12), transparent 62%);
+  transition: border-color .15s, transform .15s;
+}
+.sidebar-credit:hover { border-color: rgba(245,158,11,.42); transform: translateY(-1px); }
+.sidebar-credit img { width: 22px; height: 22px; flex-shrink: 0; filter: drop-shadow(0 2px 7px rgba(245,158,11,.4)); }
+.sidebar-credit .sc-text { line-height: 1.25; min-width: 0; }
+.sidebar-credit .sc-by { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #94a3b8; }
+.sidebar-credit .sc-name { font-size: 11px; font-weight: 800; letter-spacing: .2px; background: linear-gradient(100deg, #fffbeb, #fcd34d 60%, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
 /* ══════════════════════════════════════════
    MAIN LAYOUT
 ══════════════════════════════════════════ */

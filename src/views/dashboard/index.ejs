@@ -3,7 +3,7 @@
   <section class="dashboard-hero">
     <div class="dashboard-hero-main">
       <div class="dashboard-hero-copy">
-        <span class="dashboard-eyebrow">Operations command centre</span>
+        <span class="dashboard-eyebrow"><span class="pip"></span>Operations command centre</span>
         <h3>Live compliance view across people, fleet, defects, and daily controls.</h3>
         <p>Track pressure points, spot trend movement, and jump straight into the work that needs intervention.</p>
         <div class="dashboard-hero-actions">
@@ -288,15 +288,24 @@
 <style>
   .dashboard-shell { display:flex; flex-direction:column; gap:0; }
   .dashboard-hero { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.95fr); gap:16px; margin-bottom:24px; }
-  .dashboard-hero-main { background:linear-gradient(135deg,#0f172a 0%,#132a4b 50%,#123263 100%); color:#fff; border-radius:16px; padding:24px; box-shadow:0 18px 40px rgba(15,23,42,.18); display:grid; grid-template-columns:minmax(0,1.2fr) 240px; gap:20px; border:1px solid rgba(148,163,184,.18); }
-  .dashboard-eyebrow { display:inline-flex; padding:6px 10px; border-radius:999px; background:rgba(59,130,246,.18); color:#bfdbfe; font-size:11px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; margin-bottom:12px; }
+  .dashboard-hero-main { position:relative; overflow:hidden; background:linear-gradient(135deg,#0a1628 0%,#102545 48%,#123a72 100%); color:#fff; border-radius:16px; padding:26px; box-shadow:0 18px 44px rgba(10,22,40,.28); display:grid; grid-template-columns:minmax(0,1.2fr) 240px; gap:20px; border:1px solid rgba(148,163,184,.18); }
+  .dashboard-hero-main::before { content:''; position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(96,165,250,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.07) 1px,transparent 1px); background-size:38px 38px; -webkit-mask-image:radial-gradient(ellipse 75% 85% at 88% 8%,#000 18%,transparent 72%); mask-image:radial-gradient(ellipse 75% 85% at 88% 8%,#000 18%,transparent 72%); }
+  .dashboard-hero-main::after { content:''; position:absolute; width:340px; height:340px; border-radius:50%; top:-150px; right:-70px; filter:blur(72px); background:radial-gradient(circle,rgba(37,99,235,.5),rgba(6,182,212,.16) 58%,transparent 74%); pointer-events:none; }
+  .dashboard-hero-main > * { position:relative; z-index:1; }
+  .dashboard-eyebrow { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px; background:rgba(59,130,246,.14); border:1px solid rgba(59,130,246,.28); color:#bfdbfe; font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; margin-bottom:12px; }
+  .dashboard-eyebrow .pip { width:7px; height:7px; border-radius:50%; background:#3b82f6; box-shadow:0 0 8px #3b82f6; animation:dashPip 2s ease-in-out infinite; }
+  @keyframes dashPip { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
   .dashboard-hero-copy h3 { font-size:32px; line-height:1.08; margin-bottom:10px; max-width:620px; }
   .dashboard-hero-copy p { color:#bfd0ea; font-size:14px; line-height:1.7; max-width:620px; }
   .dashboard-hero-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
   .dashboard-hero-actions .btn-outline { border-color:rgba(191,219,254,.45); color:#dbeafe; }
   .dashboard-hero-actions .btn-outline:hover { background:#dbeafe; color:#123263; }
-  .dashboard-hero-scorecard { background:rgba(255,255,255,.06); border:1px solid rgba(191,219,254,.18); border-radius:14px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  .dashboard-hero-scorecard { position:relative; background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03)); border:1px solid rgba(191,219,254,.18); border-radius:14px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; backdrop-filter:blur(6px); }
+  .dashboard-hero-scorecard::before { content:''; position:absolute; top:0; left:18px; right:18px; height:1px; background:linear-gradient(90deg,transparent,rgba(96,165,250,.6),rgba(52,211,153,.55),transparent); }
   .dashboard-score-ring { position:relative; width:140px; height:140px; }
+  .dashboard-score-ring::before { content:''; position:absolute; inset:14px; border-radius:50%; background:radial-gradient(circle,rgba(96,165,250,.22),transparent 68%); filter:blur(6px); z-index:0; }
+  .dashboard-score-ring canvas { position:relative; z-index:1; }
+  .dashboard-score-value { z-index:2; }
   .dashboard-score-value { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:34px; font-weight:900; letter-spacing:-1px; }
   .dashboard-score-value sup { font-size:16px; opacity:.72; margin-left:2px; }
   .dashboard-score-copy { text-align:center; }
