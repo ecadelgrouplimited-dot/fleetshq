@@ -4,9 +4,12 @@
 set -e
 cd /var/www/256logisticsltd
 echo "→ Pulling latest…"
+# npm can rewrite the lockfile during install; discard any such drift so ff-only pulls succeed.
+git checkout -- package-lock.json package.json 2>/dev/null || true
 git pull --ff-only
 echo "→ Installing dependencies…"
-npm install --no-audit --no-fund
+# npm ci is deterministic (installs exactly from the lockfile) and does not mutate it.
+npm ci --no-audit --no-fund
 echo "→ Applying migrations…"
 npx prisma migrate deploy
 npx prisma generate >/dev/null
