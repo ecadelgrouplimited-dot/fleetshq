@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Lint + Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: logistics256
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: logistics_256_db
+        options: >-
+          --health-cmd "pg_isready -U logistics256"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://logistics256:testpassword@localhost:5432/logistics_256_db
+      JWT_SECRET: ci-test-jwt-secret-256logistics
+      SESSION_SECRET: ci-test-session-secret
+      PORT: 3000
+      MAX_LOGIN_ATTEMPTS: 5
+      LOGIN_LOCKOUT_MINUTES: 15
+      ADMIN_PASSWORD: TestAdmin2026!
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed database
+        run: node prisma/seed.js
+        env:
+          ADMIN_PASSWORD: TestAdmin2026!
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
