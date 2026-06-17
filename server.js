@@ -50,6 +50,11 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// CSRF: issue a double-submit token, then verify it on state-changing requests.
+const { issueToken, verifyToken } = require('./src/middleware/csrf');
+app.use(issueToken);
+app.use(verifyToken);
+
 // HTTP logging
 app.use(morgan('combined', {
   stream: { write: (msg) => logger.info(msg.trim()) },

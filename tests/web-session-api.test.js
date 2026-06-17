@@ -1,6 +1,6 @@
-const request = require('supertest');
 const app = require('../server');
 const prisma = require('../src/config/database');
+const { loginAgent } = require('./helpers');
 
 describe('web session API access', () => {
   afterAll(async () => {
@@ -8,14 +8,8 @@ describe('web session API access', () => {
   });
 
   it('allows a logged-in director cookie session to create a user', async () => {
-    const agent = request.agent(app);
     const email = `session-test-${Date.now()}@256logisticsltd.com`;
-
-    await agent
-      .post('/login')
-      .type('form')
-      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
-      .expect(302);
+    const agent = await loginAgent(app, 'director@256logisticsltd.com');
 
     await agent
       .post('/api/v1/users')
@@ -39,15 +33,9 @@ describe('web session API access', () => {
   });
 
   it('allows a logged-in director cookie session to create and delete clean employee and vehicle records', async () => {
-    const agent = request.agent(app);
     const employeeEmail = `employee-delete-${Date.now()}@256logisticsltd.com`;
     const registration = `DL${String(Date.now()).slice(-4)}`;
-
-    await agent
-      .post('/login')
-      .type('form')
-      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!' })
-      .expect(302);
+    const agent = await loginAgent(app, 'director@256logisticsltd.com');
 
     const employeeRes = await agent
       .post('/api/v1/employees')

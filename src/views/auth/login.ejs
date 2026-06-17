@@ -293,6 +293,7 @@
       <% } %>
 
       <form method="POST" action="/login" id="loginForm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="form-group">
           <label class="form-label">Email address</label>
           <div class="input-wrap">

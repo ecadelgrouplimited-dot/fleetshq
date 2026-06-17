@@ -1,5 +1,28 @@
 /* ── 256 Logistics Compliance Hub — Client JS ────────────────────── */
 
+// ── CSRF: auto-attach the double-submit token to same-origin mutations ──
+function getCsrfToken() {
+  var m = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+(function() {
+  var _fetch = window.fetch;
+  var MUTATING = { POST: 1, PUT: 1, PATCH: 1, DELETE: 1 };
+  window.fetch = function(input, init) {
+    init = init || {};
+    var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+    var url = typeof input === 'string' ? input : (input && input.url) || '';
+    var sameOrigin = url.indexOf('http') !== 0 || url.indexOf(window.location.origin) === 0;
+    if (sameOrigin && MUTATING[method]) {
+      var headers = new Headers(init.headers || (typeof input !== 'string' && input.headers) || {});
+      if (!headers.has('X-CSRF-Token')) headers.set('X-CSRF-Token', getCsrfToken());
+      init.headers = headers;
+      if (init.credentials === undefined) init.credentials = 'same-origin';
+    }
+    return _fetch.call(this, input, init);
+  };
+})();
+
 // ── Toast system ──────────────────────────────────────────────────────
 function showToast(message, type) {
   type = type || 'success';
