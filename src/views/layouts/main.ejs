@@ -3,11 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> — 256 Logistics Compliance Hub</title>
+  <title><%= title %> — 256 Logistics</title>
+  <script>
+    // Set theme before first paint (no flash). Order: saved pref → system → light.
+    (function(){
+      try {
+        var m = document.cookie.match(/(?:^|; )theme=(light|dark)/);
+        var t = m ? m[1] : (localStorage.getItem('theme'));
+        if (t !== 'light' && t !== 'dark') {
+          t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // Theme-aware Chart.js defaults (axis text/grid) — set before page charts render.
+    if (window.Chart) {
+      var _dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      Chart.defaults.color = _dark ? '#93a4bd' : '#64748b';
+      Chart.defaults.borderColor = _dark ? 'rgba(148,163,184,0.16)' : '#e2e8f0';
+    }
+  </script>
 </head>
 <body>
 
@@ -224,6 +245,10 @@
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
         <input id="navSpotlight" type="search" placeholder="Search menu… (/)" autocomplete="off" aria-label="Search navigation">
       </label>
+      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme" title="Toggle theme">
+        <svg class="ic-sun" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36l-1.42-1.42M6.34 6.34L4.93 4.93m12.73 0l-1.41 1.41M6.34 17.66l-1.41 1.41M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <svg class="ic-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      </button>
       <div class="topbar-time" id="currentTime"></div>
     </div>
   </div>
@@ -246,6 +271,19 @@
         + ' · ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
     }
     setTimeout(tick, 1000);
+  })();
+
+  // Theme toggle — persist to cookie (1yr) + localStorage; instant, no reload
+  (function(){
+    var btn = document.getElementById('themeToggle');
+    if (!btn) return;
+    btn.addEventListener('click', function(){
+      var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      var next = cur === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme', next); } catch (e) {}
+      document.cookie = 'theme=' + next + '; path=/; max-age=31536000; samesite=lax';
+    });
   })();
 
   // Highlight active nav by current path

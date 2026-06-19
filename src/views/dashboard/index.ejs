@@ -378,6 +378,21 @@
     .alert-side { align-items:flex-start; }
     .dashboard-hero-copy h3 { font-size:28px; }
   }
+
+  /* Dark theme patches for dashboard inline surfaces */
+  [data-theme="dark"] .dashboard-health-card { background: var(--card); }
+  [data-theme="dark"] .dashboard-health-head span { color: var(--text-2); }
+  [data-theme="dark"] .dashboard-risk-row { background: var(--card); }
+  [data-theme="dark"] .alert-item { background: var(--card); }
+  [data-theme="dark"] .alert-item:hover { background: rgba(59,130,246,.1); }
+  [data-theme="dark"] .dashboard-hotspot-rank { background: rgba(37,99,235,.2); color: #93c5fd; }
+  [data-theme="dark"] .dashboard-hotspot-row span { color: var(--text); }
+  [data-theme="dark"] .dashboard-pressure-pill span { color: var(--text-2); }
+  [data-theme="dark"] .dashboard-pressure-pill.minor,
+  [data-theme="dark"] .dashboard-pressure-pill.neutral { background: var(--surface-2); }
+  [data-theme="dark"] .dashboard-pressure-pill.danger { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.3); }
+  [data-theme="dark"] .dashboard-pressure-pill.serious { background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.3); }
+  [data-theme="dark"] .alert-preview span { background: rgba(255,255,255,.05); }
 </style>
 
 <script>
