@@ -1,125 +1,83 @@
-# 256 Logistics Compliance Hub
+# 256 Logistics
 
-> A transport-specific compliance management system for UK HGV operators.
+> A full **UK logistics operations platform** — booking, dispatch, driver delivery, fleet, HR, finance,
+> learning, and DVSA/Home-Office compliance in one role-based system, with a public marketing site and
+> light/dark theming.
 
-256 Logistics Compliance Hub combines HR, Home Office sponsor compliance, DVSA fleet compliance, driver training, maintenance records, and legal evidence into one controlled platform — replacing tools like BrightHR with something purpose-built for transport operators.
+> **⚠️ Vision update (2026-06-19).** 256 Logistics has grown from a compliance hub into a complete
+> logistics platform. **The authoritative specification now lives in [`docs/spec/`](docs/spec/README.md)** —
+> start there. The earlier compliance-only docs remain as depth references for the compliance/HR/fleet
+> domains but no longer define overall scope.
 
 ---
 
-## Positioning Statement
+## What it is
 
-**256 Logistics Compliance Hub** is a transport-focused HR, training and fleet compliance platform designed to help UK HGV operators manage staff, sponsored workers, drivers, vehicle maintenance, roadworthiness, defects, training evidence and audit readiness in one system.
+256 Logistics runs a courier/haulage business end to end. The **shipment lifecycle** is the spine
+(quote → book → allocate → pick up → deliver → invoice → settle), with fleet, people, finance, learning,
+and compliance wrapped around it. See [`docs/spec/00-product-vision-and-architecture.md`](docs/spec/00-product-vision-and-architecture.md).
 
----
+## The ten panels
 
-## Modules
+| # | Panel | What it does |
+|---|-------|--------------|
+| 1 | [Super Admin](docs/spec/05-panel-super-admin.md) | Users, company/branches, pricing, integrations, config |
+| 2 | [HR](docs/spec/06-panel-hr.md) | Employees, recruitment, onboarding (RTW), leave, payroll, performance |
+| 3 | [Client Portal](docs/spec/07-panel-client-portal.md) | Booking, quotes, tracking, invoices, support |
+| 4 | [Driver](docs/spec/08-panel-driver.md) | Jobs, routes, pickup, delivery/POD, incidents, earnings, e-learning |
+| 5 | [Dispatcher / Operations](docs/spec/09-panel-dispatcher-operations.md) | Live ops, allocation, routing, exceptions, comms |
+| 6 | [Fleet Manager](docs/spec/10-panel-fleet-manager.md) | Vehicles, maintenance, fuel, asset tracking |
+| 7 | [Finance](docs/spec/11-panel-finance.md) | Revenue, invoicing, payments, accounting |
+| 8 | [Compliance & Safety](docs/spec/12-panel-compliance-safety.md) | Driver/vehicle compliance, incidents, audit *(largely built)* |
+| 9 | [LMS](docs/spec/13-panel-lms.md) | Courses, content, assessments, certification, analytics |
+| 10 | [Executive / Director](docs/spec/14-panel-executive.md) | Cross-domain KPIs, strategic reports, BI, forecasting |
 
-| # | Module | Purpose |
-|---|--------|---------|
-| 1 | People & Compliance | Employee records, Right to Work, sponsor compliance |
-| 2 | Safety & Competency | Driver training, digital signatures, toolbox talks |
-| 3 | Fleet & Roadworthiness | Vehicle profiles, PMI planner, maintenance records |
-| 4 | Driver Risk Management | Risk scoring, debrief records, compliance alerts |
-| 5 | Audit & Legal Evidence Centre | Evidence folders, audit packs, management sign-offs |
+Plus the [public marketing site](docs/spec/04-public-site.md) (pre-login) and platform-wide
+[light/dark theming](docs/spec/03-design-system-and-theming.md).
+
+## Where the current app fits
+
+The deployed app (`256logisticsltd.com`) is a **compliance hub MVP** — it becomes the **Compliance &
+Safety** panel and seeds parts of HR, Fleet, and LMS. Roughly 40% of the platform has a head start;
+~60% (the courier operations + finance + client-facing side) is net-new. See the
+[phased roadmap](docs/spec/00-product-vision-and-architecture.md#6-phased-build-roadmap).
 
 ---
 
 ## Tech Stack
 
-- **Runtime:** Node.js 20+
-- **Framework:** Express.js
-- **Database:** PostgreSQL
-- **ORM:** Prisma
-- **Auth:** JWT + Role-Based Access Control
-- **File Storage:** Multer + AWS S3 (or local for dev)
-- **Alerts/Jobs:** node-cron
-- **Email:** Nodemailer
-- **Logging:** Winston
-
----
+- **Runtime:** Node.js 20 · **Framework:** Express · **Views:** EJS (+ richer client islands where needed)
+- **Database:** PostgreSQL 16 · **ORM:** Prisma
+- **Auth:** JWT cookie sessions, per-account lockout, CSRF, CSP (hardened — see `docs/PRODUCTION_READINESS.md`)
+- **Theming:** CSS custom properties + `data-theme` (light/dark across the whole app)
+- **Files:** private document/media store behind auth · **Jobs:** node-cron · **Email/SMS:** Nodemailer + SMS provider · **Logging:** Winston
 
 ## Quick Start
 
 ```bash
-# Install dependencies
 npm install
-
-# Set up environment
 cp .env.example .env
-
-# Run database migrations
 npx prisma migrate dev
-
-# Seed demo data
 npm run seed
-
-# Start development server
-npm run dev
-```
-
-Server runs at `http://localhost:3000`
-
----
-
-## Project Structure
-
-```
-256Logistics/
-├── src/
-│   ├── config/          # DB, JWT, storage config
-│   ├── middleware/       # Auth, RBAC, audit logging, file upload
-│   ├── models/          # Prisma schema models
-│   ├── routes/          # API route definitions
-│   ├── controllers/     # Request handlers
-│   ├── services/        # Business logic (alerts, compliance scoring)
-│   └── utils/           # Helpers, validators, date utilities
-├── prisma/
-│   ├── schema.prisma    # Database schema
-│   └── seed.js          # Demo data seeder
-├── docs/                # Full project documentation
-├── .env.example
-├── package.json
-└── README.md
+npm run dev          # http://localhost:3000
 ```
 
 ---
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Project Overview](docs/PROJECT_OVERVIEW.md) | Business context, goals, positioning |
-| [MVP Features](docs/MVP_FEATURES.md) | Demo-ready feature scope and acceptance criteria |
-| [Technical Architecture](docs/TECHNICAL_ARCHITECTURE.md) | Stack decisions, system design, folder layout |
-| [Database Schema](docs/DATABASE_SCHEMA.md) | All entities, fields, and relationships |
-| [API Specification](docs/API_SPECIFICATION.md) | All REST endpoints by module |
-| [User Roles & Permissions](docs/USER_ROLES_PERMISSIONS.md) | Role definitions and access matrix |
-| [Modules Specification](docs/MODULES_SPECIFICATION.md) | Detailed feature specs for all 5 modules |
-| [Development Roadmap](docs/DEVELOPMENT_ROADMAP.md) | Phased plan: MVP → advanced features |
+**Authoritative spec set → [`docs/spec/`](docs/spec/README.md)** (read in numbered order).
+
+| Earlier doc | Status |
+|-------------|--------|
+| `docs/PRODUCTION_READINESS.md` | ✅ Current — live-app hardening/ops posture, carries forward |
+| `docs/PROJECT_OVERVIEW.md`, `MODULES_SPECIFICATION.md`, `MVP_FEATURES.md`, `DATABASE_SCHEMA.md`, `API_SPECIFICATION.md`, `USER_ROLES_PERMISSIONS.md`, `DEVELOPMENT_ROADMAP.md`, `TECHNICAL_ARCHITECTURE.md`, `DESIGN_COVERAGE_ANALYSIS.md`, `READINESS_ANALYSIS.md` | ⚠️ Superseded for scope by `docs/spec/`; useful as compliance-domain depth |
+| `docs/256 Logistics Compliance App Design.pdf` | Initial (compliance-only) vision — depth reference |
+| `docs/UK Logistics Platform structure MVP.pdf` | Source of the current platform vision |
 
 ---
 
-## User Roles
+## Built & managed by
 
-| Role | Access Level |
-|------|-------------|
-| Director | Full access to all modules and reports |
-| Transport Manager | Fleet, PMI, defects, VOR, driver risk, training, DVSA pack |
-| HR Manager | Employee records, Right to Work, absence, Home Office pack |
-| Operations Manager | Driver allocation, vehicle status, defects, training status |
-| Driver | Own profile, walk-around checks, defect reports, training tasks |
-| Garage Provider | Assigned defects, PMI uploads, repair evidence, invoices |
-
----
-
-## MVP Scope (Demo)
-
-The 5 core areas required for the client demo:
-
-1. Employee records with document uploads
-2. Right to Work checks and sponsor compliance tracking
-3. Training records with digital signatures
-4. Vehicle profiles and PMI planner
-5. Daily walk-around checks, defect management, and VOR records
-
-See [MVP Features](docs/MVP_FEATURES.md) for full acceptance criteria.
+**ECADEL GROUP LIMITED** — [ecadelgroup.com](https://ecadelgroup.com). The soul architects behind
+256 Logistics.

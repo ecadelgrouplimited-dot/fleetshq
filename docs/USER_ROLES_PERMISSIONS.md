@@ -1,3 +1,5 @@
+> **⚠️ SUPERSEDED FOR SCOPE (2026-06-19).** 256 Logistics is now a full logistics platform. The authoritative specification lives in [`docs/spec/`](spec/README.md). This document predates the platform vision and remains only as a **depth reference** for the compliance/HR/fleet-compliance domains.
+
 # User Roles & Permissions — 256 Logistics Compliance Hub
 
 ## Role Definitions
