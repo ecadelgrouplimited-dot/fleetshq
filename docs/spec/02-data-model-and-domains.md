@@ -19,9 +19,16 @@ the **Shipments, Operations, Finance** domains and fills out **People, Fleet, Le
 
 ## 2. Domain: Identity & Tenancy
 
+> **MULTI-TENANT (decision D2, [DECISIONS.md](DECISIONS.md)).** `Tenant` is the top of the hierarchy.
+> **Every domain table carries `tenantId`** and is scoped by it in a global query layer — no query may
+> cross tenants except platform-admin tooling. Existing live rows back-fill into a **default tenant**.
+> Hierarchy: `Tenant ─< Company/Branch ─< (Users, Vehicles, Shipments, Invoices, Courses, …)`.
+> A simple operator = one Tenant with one Company.
+
 | Entity | Status | Key fields | Relationships |
 |--------|--------|-----------|----------------|
-| **Company** | 🔴 | name, legal name, O-licence number, registered address, branding (logo, colours), operating hours, timezone | has many Branch, User |
+| **Tenant** | 🔴 | name, slug, plan/subscription, status (active/suspended/trial), branding defaults, created | has many Company, User; owns ALL domain data |
+| **Company** | 🔴 | tenantId, name, legal name, O-licence number, registered address, branding (logo, colours), operating hours, timezone | belongs to Tenant; has many Branch, User |
 | **Branch** | 🔴 | name, address, service areas, hours | belongs to Company; has Users, Vehicles, Shipments |
 | **User** | 🟡 | email, passwordHash, **roles[]**, **branchIds[]**, status, lockout fields, theme preference | belongs to Company/Branch; may link to Employee/Driver/Client |
 | **Role / Permission** | 🟡 | role enum (extended), permission grants | many-to-many User↔Role |
@@ -176,8 +183,9 @@ Everything → AuditLog ; Due-dates/thresholds → Alert ; Aggregates → Compli
 
 - **Migrate additively.** Keep existing tables; add new domains as new tables/migrations. Don't
   rename/repurpose live tables under load.
-- **Introduce `Company`/`Branch` early** (P0) so new data is tenant/branch-scoped from day one;
-  back-fill existing rows to a default company/branch.
+- **Introduce `Tenant` + `Company`/`Branch` first** (P0). Add `tenantId` to existing tables, back-fill
+  every live row into a **default tenant**, then enforce tenant scoping in middleware/Prisma. Tenant
+  isolation is a hard security boundary — add tests that prove one tenant cannot read another's data.
 - **Driver identity:** a Driver is an `Employee` with a `User` login and driver-specific fields; jobs
   reference the user. Avoid a separate parallel "driver" table.
 - **POD/media** reuse the existing private document pipeline.

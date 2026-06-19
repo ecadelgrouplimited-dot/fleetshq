@@ -206,19 +206,20 @@ vehicle profiles+PMI, daily checks/defects/VOR) all live in **P2–P3** and are 
 
 ---
 
-## 8. Open decisions for the client (surface, don't assume)
+## 8. Decisions (see [DECISIONS.md](DECISIONS.md))
 
-These genuinely change the build and should be confirmed as specs are turned into work:
+Resolved 2026-06-19:
 
-- **Single-tenant vs. multi-tenant.** Super Admin's "Company Settings / Branch Management" implies one
-  operator with branches (single-tenant, multi-branch). If 256 intends to **sell this to other
-  operators** (SaaS, multi-tenant), that changes data isolation, billing, and onboarding. *Assumption:
-  single operator, multi-branch for MVP; multi-tenant as a later option.*
-- **Payments scope for MVP** — take card payments live, or invoice-only at first?
-- **Mapping/telematics providers** — which navigation + tracking vendors?
-- **Driver app** — responsive web for MVP, native later? *Assumed yes.*
+- **Tenancy → MULTI-TENANT SaaS (D2).** The platform is sold to multiple operators. **Every domain
+  entity is scoped by `Tenant`** from day one; a **Platform Super Admin** provisions tenants, distinct
+  from a per-tenant Admin. Branding/config/billing are per tenant. Existing live data back-fills into a
+  default tenant. (This updates the data model `02` and roles `01`.)
+- **Start → P0 Foundations (D1).** Theming + role/panel shell + public site + Super Admin lead.
+- **Payments → invoice-only first (D3).** Live card/gateway deferred.
 
-These are tracked in each relevant panel doc under "Open questions."
+Still open (revisit before the relevant phase): per-tenant billing/subscription model; tenant
+self-signup vs. provisioned; mapping/telematics providers; native driver app timing; payment gateway
+choice. Tracked in [DECISIONS.md](DECISIONS.md) and per-panel "Open questions".
 
 ---
 
