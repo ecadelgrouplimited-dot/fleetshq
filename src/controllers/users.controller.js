@@ -4,8 +4,21 @@ const prisma = require('../config/database');
 const { ok, created } = require('../utils/responseHelper');
 const { NotFoundError, ConflictError, ValidationError } = require('../utils/errors');
 const { checkPassword } = require('../utils/passwordPolicy');
+const { ROLE_LABELS, getUserRoles } = require('../utils/rbac');
 
-const VALID_ROLES = ['director', 'transport_manager', 'hr_manager', 'operations_manager', 'driver', 'garage'];
+const VALID_ROLES = Object.keys(ROLE_LABELS);
+const normalizeRoles = (roles, fallbackRole) => {
+  const list = Array.isArray(roles) ? roles : roles ? [roles] : [];
+  if (fallbackRole) list.unshift(fallbackRole);
+  const normalized = [...new Set(list.filter(Boolean))];
+  if (normalized.length === 0) throw new ValidationError('At least one valid role is required');
+  const invalid = normalized.find((role) => !VALID_ROLES.includes(role));
+  if (invalid) throw new ValidationError(`Invalid role: ${invalid}`);
+  return normalized;
+};
+const normalizeBranchIds = (branchIds) => (
+  Array.isArray(branchIds) ? [...new Set(branchIds.filter(Boolean).map(String))] : []
+);
 const genTempPassword = () => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
   const bytes = crypto.randomBytes(10);
@@ -19,7 +32,7 @@ const splitName = (full) => {
 exports.list = async (req, res, next) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, role: true, firstName: true, lastName: true,
+      select: { id: true, email: true, role: true, roles: true, branchIds: true, firstName: true, lastName: true,
         phone: true, isActive: true, lastLoginAt: true, employeeId: true },
       orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
     });
@@ -29,10 +42,12 @@ exports.list = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { email, password, role, firstName, lastName, phone } = req.body;
+    const { email, password, role, roles, branchIds, firstName, lastName, phone } = req.body;
     if (!email || !password || !role) throw new ValidationError('email, password and role are required');
     const pwError = checkPassword(password);
     if (pwError) throw new ValidationError(pwError);
+    const roleList = normalizeRoles(roles, role);
+    const normalizedBranchIds = normalizeBranchIds(branchIds);
 
     const existing = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (existing) throw new ConflictError('A user with this email already exists');
@@ -41,10 +56,11 @@ exports.create = async (req, res, next) => {
       data: {
         email: email.toLowerCase().trim(),
         passwordHash: await bcrypt.hash(password, 10),
-        role, firstName, lastName, phone: phone || null, isActive: true,
+        role: roleList[0], roles: roleList, branchIds: normalizedBranchIds, branchId: normalizedBranchIds[0] || null,
+        firstName, lastName, phone: phone || null, isActive: true,
       },
     });
-    return created(res, { id: user.id, email: user.email, role: user.role });
+    return created(res, { id: user.id, email: user.email, role: user.role, roles: getUserRoles(user) });
   } catch (e) { next(e); }
 };
 
@@ -69,7 +85,7 @@ exports.createFromEmployees = async (req, res, next) => {
         const tempPassword = genTempPassword();
         const { firstName, lastName } = splitName(emp.fullName);
         await prisma.user.create({
-          data: { email, passwordHash: await bcrypt.hash(tempPassword, 10), role, firstName, lastName, phone: emp.phone || null, isActive: true, employeeId: emp.id },
+          data: { email, passwordHash: await bcrypt.hash(tempPassword, 10), role, roles: [role], firstName, lastName, phone: emp.phone || null, isActive: true, employeeId: emp.id },
         });
         results.push({ status: 'created', name: emp.fullName, email, tempPassword });
       } catch (e) {
@@ -83,20 +99,28 @@ exports.createFromEmployees = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { isActive, phone, firstName, lastName } = req.body;
+    const { isActive, phone, firstName, lastName, role, roles, branchIds } = req.body;
     const user = await prisma.user.findUnique({ where: { id: req.params.id } });
     if (!user) throw new NotFoundError('User');
 
     const updated = await prisma.user.update({
       where: { id: req.params.id },
       data: {
+        ...((role || roles) && (() => {
+          const roleList = normalizeRoles(roles, role || user.role);
+          return { role: roleList[0], roles: roleList };
+        })()),
+        ...(branchIds !== undefined && (() => {
+          const normalizedBranchIds = normalizeBranchIds(branchIds);
+          return { branchIds: normalizedBranchIds, branchId: normalizedBranchIds[0] || null };
+        })()),
         ...(isActive !== undefined && { isActive: Boolean(isActive) }),
         ...(phone && { phone }),
         ...(firstName && { firstName }),
         ...(lastName && { lastName }),
       },
     });
-    return ok(res, { id: updated.id, isActive: updated.isActive });
+    return ok(res, { id: updated.id, isActive: updated.isActive, role: updated.role, roles: getUserRoles(updated), branchIds: updated.branchIds });
   } catch (e) { next(e); }
 };
 

@@ -35,16 +35,21 @@
 <!-- ── Sidebar ─────────────────────────────────────────── -->
 <div class="sidebar-overlay" id="sidebarOverlay" hidden></div>
 <aside class="sidebar" id="appSidebar">
-  <% const isDirector = user.role === 'director'; %>
-  <% const isTransport = user.role === 'transport_manager'; %>
-  <% const isHr = user.role === 'hr_manager'; %>
-  <% const isOps = user.role === 'operations_manager'; %>
-  <% const isDriver = user.role === 'driver'; %>
-  <% const canSeePeople = isDirector || isTransport || isHr || isOps; %>
-  <% const canSeeSponsored = isDirector || isTransport || isHr; %>
-  <% const canSeeFleet = isDirector || isTransport || isOps; %>
-  <% const canSeeCompliance = isDirector || isTransport || isHr || isOps; %>
-  <% const canSeeAuditEvidence = isDirector || isTransport || isHr; %>
+  <% const userRoles = Array.isArray(user.roles) && user.roles.length ? user.roles : [user.role]; %>
+  <% const hasAny = (...roles) => roles.some(role => userRoles.includes(role)); %>
+  <% const isDirector = hasAny('director', 'super_admin'); %>
+  <% const isTransport = hasAny('transport_manager'); %>
+  <% const isHr = hasAny('hr_manager'); %>
+  <% const isOps = hasAny('operations_manager'); %>
+  <% const isFleet = hasAny('fleet_manager'); %>
+  <% const isFinance = hasAny('finance_officer'); %>
+  <% const isTrainer = hasAny('trainer'); %>
+  <% const isDriver = hasAny('driver'); %>
+  <% const canSeePeople = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'finance_officer', 'trainer'); %>
+  <% const canSeeSponsored = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager'); %>
+  <% const canSeeFleet = hasAny('super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager', 'garage'); %>
+  <% const canSeeCompliance = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'trainer', 'garage'); %>
+  <% const canSeeAuditEvidence = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager', 'trainer'); %>
 
   <div class="sidebar-traffic" aria-hidden="true">
     <i class="r"></i><i class="y"></i><i class="g"></i>
@@ -170,11 +175,15 @@
   </div>
   <% } %>
 
-  <% if (isDirector || isTransport || isHr) { %>
+  <% if (isDirector || isTransport || isHr || isFleet) { %>
   <div class="sidebar-section">
     <div class="sidebar-section-label">Admin</div>
     <nav>
       <% if (isDirector) { %>
+      <a href="/super-admin" class="<%= title === 'Super Admin' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10M7 4v16m10-16v10"/></svg>
+        Super Admin
+      </a>
       <a href="/users" class="<%= title === 'User Management' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         User Management
@@ -192,7 +201,7 @@
         Settings
       </a>
       <% } %>
-      <% if (isDirector || isTransport) { %>
+      <% if (isDirector || isTransport || isFleet) { %>
       <a href="/fleet/new" class="<%= title === 'Add Vehicle' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
         Add Vehicle
@@ -214,7 +223,7 @@
       <div class="user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></div>
       <div class="user-info">
         <div class="user-name"><%= user.name %></div>
-        <div class="user-role"><%= user.role.replace(/_/g, ' ') %></div>
+        <div class="user-role"><%= userRoles.map(r => roleLabel ? roleLabel(r) : r.replace(/_/g, ' ')).join(' / ') %></div>
       </div>
     </a>
     <a href="/logout" class="signout">
@@ -241,6 +250,17 @@
       <h2><%= title %></h2>
     </div>
     <div class="topbar-right">
+      <% const availablePanels = Array.isArray(panels) ? panels : []; %>
+      <% if (availablePanels.length > 1) { %>
+      <label class="panel-switcher" title="Switch panel">
+        <span>Panel</span>
+        <select id="panelSwitcher" aria-label="Switch panel">
+          <% availablePanels.forEach(panel => { %>
+            <option value="<%= panel.href %>" <%= panel.href !== '/' && (typeof path !== 'undefined') && path === panel.href ? 'selected' : '' %>><%= panel.label %></option>
+          <% }) %>
+        </select>
+      </label>
+      <% } %>
       <label class="topbar-search">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
         <input id="navSpotlight" type="search" placeholder="Search menu… (/)" autocomplete="off" aria-label="Search navigation">
@@ -288,6 +308,14 @@
 
   // Highlight active nav by current path
   const path = window.location.pathname;
+  const panelSwitcher = document.getElementById('panelSwitcher');
+  if (panelSwitcher) {
+    Array.from(panelSwitcher.options).forEach(function(option) {
+      var href = option.value;
+      if (href === path || (href !== '/' && path.startsWith(href))) option.selected = true;
+    });
+    panelSwitcher.addEventListener('change', function(){ window.location.href = panelSwitcher.value; });
+  }
   document.querySelectorAll('.sidebar nav a').forEach(a => {
     const href = a.getAttribute('href');
     if (href === path || (href !== '/' && path.startsWith(href))) {

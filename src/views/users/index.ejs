@@ -29,11 +29,11 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
+        <tr><th>Name</th><th>Email</th><th>Roles</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
       </thead>
       <tbody id="usersTableBody">
         ${users.map(u => `
-          <tr data-search-row data-search-text="${`${esc(u.firstName)} ${esc(u.lastName)} ${esc(u.email)} ${u.role} ${u.isActive ? 'active' : 'inactive'}`.toLowerCase()}">
+          <tr data-search-row data-search-text="${`${esc(u.firstName)} ${esc(u.lastName)} ${esc(u.email)} ${(u.roles && u.roles.length ? u.roles : [u.role]).join(' ')} ${u.isActive ? 'active' : 'inactive'}`.toLowerCase()}">
             <td>
               <div style="display:flex;align-items:center;gap:10px">
                 <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${esc(u.firstName.charAt(0))}</div>
@@ -42,9 +42,9 @@
             </td>
             <td class="cell-muted">${esc(u.email)}</td>
             <td>
-              <span class="badge ${u.role === 'director' ? 'badge-purple' : u.role === 'transport_manager' ? 'badge-blue' : u.role === 'hr_manager' ? 'badge-cyan' : u.role === 'driver' ? 'badge-slate' : 'badge-green'}">
-                ${u.role.replace(/_/g,' ')}
-              </span>
+              <div class="role-chip-list">
+                ${(u.roles && u.roles.length ? u.roles : [u.role]).map(r => `<span class="badge ${r === 'director' || r === 'super_admin' ? 'badge-purple' : r === 'transport_manager' || r === 'fleet_manager' ? 'badge-blue' : r === 'hr_manager' || r === 'trainer' ? 'badge-cyan' : r === 'driver' || r === 'client' ? 'badge-slate' : 'badge-green'}">${roleLabel ? roleLabel(r) : r.replace(/_/g,' ')}</span>`).join('')}
+              </div>
             </td>
             <td class="cell-muted">${u.lastLoginAt ? formatDate(u.lastLoginAt) : 'Never'}</td>
             <td>
@@ -52,7 +52,7 @@
             </td>
             <td>
               <div class="flex gap-2" style="flex-wrap:wrap">
-                <button data-edit-user data-id="${u.id}" data-first="${esc(u.firstName)}" data-last="${esc(u.lastName)}" data-phone="${esc(u.phone || '')}" data-active="${u.isActive ? 'true' : 'false'}" class="btn btn-ghost btn-sm">Edit</button>
+                <button data-edit-user data-id="${u.id}" data-first="${esc(u.firstName)}" data-last="${esc(u.lastName)}" data-phone="${esc(u.phone || '')}" data-active="${u.isActive ? 'true' : 'false'}" data-roles="${esc((u.roles && u.roles.length ? u.roles : [u.role]).join(','))}" data-branches="${esc((u.branchIds || []).join(','))}" class="btn btn-ghost btn-sm">Edit</button>
                 <button data-reset-user data-id="${u.id}" data-name="${esc(u.firstName)} ${esc(u.lastName)}" class="btn btn-outline btn-sm">Reset PW</button>
                 ${u.isActive
                   ? `<button data-toggle-user data-id="${u.id}" data-to="false" class="btn btn-ghost btn-sm">Deactivate</button>`
@@ -98,15 +98,18 @@
         <input class="form-control" id="uEmail" type="email" placeholder="user@256logisticsltd.com">
       </div>
       <div class="form-group">
-        <label class="form-label">Role <span class="required">*</span></label>
-        <select class="form-control" id="uRole">
-          <option value="director">Director</option>
-          <option value="transport_manager">Transport Manager</option>
-          <option value="hr_manager">HR Manager</option>
-          <option value="operations_manager">Operations Manager</option>
-          <option value="driver" selected>Driver</option>
-          <option value="garage">Garage Provider</option>
+        <label class="form-label">Roles <span class="required">*</span></label>
+        <select class="form-control" id="uRoles" multiple size="8">
+          ${roleOptions.map(r => `<option value="${r.value}" ${r.value === 'driver' ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}
         </select>
+        <div class="form-hint">Hold Ctrl/Cmd to assign more than one panel role.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branches</label>
+        <select class="form-control" id="uBranchIds" multiple size="5">
+          ${(branches || []).map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('')}
+        </select>
+        <div class="form-hint">Leave empty for all branches / not branch-limited.</div>
       </div>
       <div class="form-group">
         <label class="form-label">Temporary Password <span class="required">*</span></label>
@@ -148,6 +151,20 @@
           <input type="checkbox" id="editIsActive" style="width:16px;height:16px">
           <span style="font-size:13px;font-weight:600">Active account</span>
         </label>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Roles</label>
+        <select class="form-control" id="editRoles" multiple size="8">
+          ${roleOptions.map(r => `<option value="${r.value}">${esc(r.label)}</option>`).join('')}
+        </select>
+        <div class="form-hint">The first selected role is kept as the primary compatibility role.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Branches</label>
+        <select class="form-control" id="editBranchIds" multiple size="5">
+          ${(branches || []).map(b => `<option value="${b.id}">${esc(b.name)}</option>`).join('')}
+        </select>
+        <div class="form-hint">Leave empty for all branches / not branch-limited.</div>
       </div>
     </div>
     <div class="modal-footer">
@@ -199,12 +216,7 @@
           <div class="fe-role">
             <label class="form-label" style="margin:0 0 0 auto">Role</label>
             <select class="form-control" id="feRole" style="width:auto">
-              <option value="driver" selected>Driver</option>
-              <option value="operations_manager">Operations Manager</option>
-              <option value="transport_manager">Transport Manager</option>
-              <option value="hr_manager">HR Manager</option>
-              <option value="garage">Garage Provider</option>
-              <option value="director">Director</option>
+              ${roleOptions.map(r => `<option value="${r.value}" ${r.value === 'driver' ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -241,10 +253,12 @@
   .fe-person span { font-size:11.5px; color:var(--text-muted); }
   .fe-alert { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:12px; }
   #feBody code { background:#f1f5f9; padding:2px 6px; border-radius:5px; font-size:12px; font-weight:700; }
+  .role-chip-list { display:flex; flex-wrap:wrap; gap:5px; }
+  .form-hint { margin-top:5px; color:var(--text-muted); font-size:11.5px; }
 </style>
 
 <script>
-document.querySelectorAll('[data-edit-user]').forEach(b => b.addEventListener('click', () => openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true')));
+document.querySelectorAll('[data-edit-user]').forEach(b => b.addEventListener('click', () => openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true', b.dataset.roles, b.dataset.branches)));
 document.querySelectorAll('[data-reset-user]').forEach(b => b.addEventListener('click', () => openResetPassword(b.dataset.id, b.dataset.name)));
 document.querySelectorAll('[data-toggle-user]').forEach(b => b.addEventListener('click', () => toggleUser(b.dataset.id, b.dataset.to === 'true')));
 document.querySelectorAll('[data-delete-user]').forEach(b => b.addEventListener('click', () => confirmDeleteUser(b.dataset.id, b.dataset.name)));
@@ -253,12 +267,15 @@ function closeModal(id) {
 }
 
 async function createUser() {
+  const selectedRoles = Array.prototype.slice.call(document.getElementById('uRoles').selectedOptions).map(o => o.value);
   const body = {
     firstName: document.getElementById('uFirstName').value,
     lastName: document.getElementById('uLastName').value,
     email: document.getElementById('uEmail').value,
     password: document.getElementById('uPass').value,
-    role: document.getElementById('uRole').value,
+    role: selectedRoles[0],
+    roles: selectedRoles,
+    branchIds: Array.prototype.slice.call(document.getElementById('uBranchIds').selectedOptions).map(o => o.value),
   };
   const res = await fetch('/api/v1/users', {
     method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -269,22 +286,34 @@ async function createUser() {
   document.getElementById('addUserModal').style.display = 'none';
 }
 
-function openEditUser(id, firstName, lastName, phone, isActive) {
+function openEditUser(id, firstName, lastName, phone, isActive, roles, branches) {
   document.getElementById('editUserId').value = id;
   document.getElementById('editFirstName').value = firstName;
   document.getElementById('editLastName').value = lastName;
   document.getElementById('editPhone').value = phone || '';
   document.getElementById('editIsActive').checked = Boolean(isActive);
+  var selectedRoles = String(roles || '').split(',').filter(Boolean);
+  Array.prototype.slice.call(document.getElementById('editRoles').options).forEach(function(option){
+    option.selected = selectedRoles.indexOf(option.value) !== -1;
+  });
+  var selectedBranches = String(branches || '').split(',').filter(Boolean);
+  Array.prototype.slice.call(document.getElementById('editBranchIds').options).forEach(function(option){
+    option.selected = selectedBranches.indexOf(option.value) !== -1;
+  });
   document.getElementById('editUserModal').style.display = 'flex';
 }
 
 async function saveUserEdit() {
   const id = document.getElementById('editUserId').value;
+  const selectedRoles = Array.prototype.slice.call(document.getElementById('editRoles').selectedOptions).map(o => o.value);
   const body = {
     firstName: document.getElementById('editFirstName').value,
     lastName: document.getElementById('editLastName').value,
     phone: document.getElementById('editPhone').value,
     isActive: document.getElementById('editIsActive').checked,
+    role: selectedRoles[0],
+    roles: selectedRoles,
+    branchIds: Array.prototype.slice.call(document.getElementById('editBranchIds').selectedOptions).map(o => o.value),
   };
   const res = await fetch('/api/v1/users/' + id, {
     method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },

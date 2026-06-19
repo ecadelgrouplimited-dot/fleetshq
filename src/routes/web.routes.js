@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const prisma = require('../config/database');
 const { verify } = require('../config/jwt');
+const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
 const { UPLOAD_DIR } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
@@ -13,6 +14,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { checkPassword } = require('../utils/passwordPolicy');
 const { sendMail } = require('../services/mail.service');
+const { ROLE_LABELS, getUserRoles, hasAnyRole, getUserPanels, roleLabel } = require('../utils/rbac');
 
 router.use(cookieParser());
 
@@ -22,15 +24,22 @@ const webAuth = (req, res, next) => {
   if (!token) return res.redirect('/login');
   const payload = verify(token);
   if (!payload) return res.redirect('/login');
-  req.user = payload;
-  res.locals.user = payload;
-  res.locals.formatDate = formatDate;
-  res.locals.daysUntil = daysUntil;
-  res.locals.esc = esc;
-  next();
+  payload.tenantId = payload.tenantId || DEFAULT_TENANT_ID;
+  payload.roles = getUserRoles(payload);
+  payload.branchIds = payload.branchIds || [];
+  runWithTenant(payload.tenantId, () => {
+    req.user = payload;
+    res.locals.user = payload;
+    res.locals.formatDate = formatDate;
+    res.locals.daysUntil = daysUntil;
+    res.locals.esc = esc;
+    res.locals.panels = getUserPanels(payload);
+    res.locals.roleLabel = roleLabel;
+    next();
+  });
 };
 
-const hasRole = (user, roles) => roles.includes(user.role);
+const hasRole = (user, roles) => hasAnyRole(user, roles);
 
 const requireRoles = (...roles) => (req, res, next) => {
   if (hasRole(req.user, roles)) return next();
@@ -41,12 +50,12 @@ const requireRoles = (...roles) => (req, res, next) => {
   });
 };
 
-const peopleRoles = ['director', 'transport_manager', 'hr_manager', 'operations_manager'];
-const fleetRoles = ['director', 'transport_manager', 'operations_manager'];
-const transportRoles = ['director', 'transport_manager'];
-const hrRoles = ['director', 'hr_manager'];
-const evidenceRoles = ['director', 'transport_manager', 'hr_manager'];
-const reportsRoles = ['director', 'transport_manager', 'hr_manager', 'operations_manager'];
+const peopleRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'finance_officer', 'trainer'];
+const fleetRoles = ['super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager', 'garage'];
+const transportRoles = ['super_admin', 'director', 'transport_manager', 'fleet_manager'];
+const hrRoles = ['super_admin', 'director', 'hr_manager'];
+const evidenceRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'trainer'];
+const reportsRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'finance_officer', 'trainer'];
 
 const exportRoles = {
   staff: peopleRoles,
@@ -58,7 +67,7 @@ const exportRoles = {
   defects: fleetRoles,
   vor: fleetRoles,
   'daily-checks': fleetRoles,
-  training: ['director', 'transport_manager', 'hr_manager'],
+  training: ['super_admin', 'director', 'transport_manager', 'hr_manager', 'trainer'],
 };
 
 const documentKinds = {
@@ -350,7 +359,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     await registerSuccess(user);
-    const token = sign({ id: user.id, role: user.role, email: user.email,
+    const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [], email: user.email,
       name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null });
 
     res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
@@ -474,9 +483,126 @@ router.get('/documents/:kind/:id/download', webAuth, async (req, res) => {
   }
 });
 
-// ── Public landing page ────────────────────────────────
-router.get('/welcome', (req, res) => {
-  res.render('landing/index', { title: 'Welcome' });
+// ── Public site ────────────────────────────────────────
+const renderPublicPage = (page, title, extra = {}) => (req, res) => {
+  res.render('landing/index', {
+    page,
+    title,
+    leadSent: false,
+    leadError: null,
+    enquiryType: req.query.type || 'general',
+    trackingRef: '',
+    trackingResult: null,
+    ...extra,
+  });
+};
+
+router.get('/welcome', renderPublicPage('home', '256 Logistics - Logistics platform'));
+router.get('/about', renderPublicPage('about', 'About 256 Logistics'));
+router.get('/services', renderPublicPage('services', '256 Logistics services'));
+router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
+
+router.get('/contact', (req, res) => {
+  res.render('landing/index', {
+    page: 'contact',
+    title: 'Contact 256 Logistics',
+    leadSent: req.query.sent === '1',
+    leadError: null,
+    enquiryType: req.query.type || 'general',
+    trackingRef: '',
+    trackingResult: null,
+  });
+});
+
+router.post('/contact', loginLimiter, async (req, res) => {
+  const name = (req.body.name || '').trim();
+  const email = (req.body.email || '').toLowerCase().trim();
+  const phone = (req.body.phone || '').trim();
+  const company = (req.body.company || '').trim();
+  const enquiryType = (req.body.enquiryType || 'general').trim();
+  const message = (req.body.message || '').trim();
+  const renderError = (leadError) => res.status(400).render('landing/index', {
+    page: 'contact',
+    title: 'Contact 256 Logistics',
+    leadSent: false,
+    leadError,
+    enquiryType,
+    formData: { name, email, phone, company, message },
+    trackingRef: '',
+    trackingResult: null,
+  });
+
+  if (!name || !email || !message) {
+    return renderError('Please share your name, email, and a short message.');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return renderError('Please enter a valid email address.');
+  }
+
+  try {
+    await prisma.publicLead.create({
+      data: {
+        name,
+        email,
+        phone: phone || null,
+        company: company || null,
+        enquiryType,
+        message,
+        sourcePath: req.originalUrl,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') || null,
+      },
+    });
+
+    const notificationTo = process.env.ALERT_TO_EMAIL || process.env.SMTP_FROM || 'director@256logisticsltd.com';
+    await sendMail({
+      to: notificationTo,
+      subject: `New public enquiry: ${enquiryType}`,
+      text: [
+        `Name: ${name}`,
+        `Email: ${email}`,
+        `Phone: ${phone || '-'}`,
+        `Company: ${company || '-'}`,
+        `Type: ${enquiryType}`,
+        '',
+        message,
+      ].join('\n'),
+      html: `<p><strong>Name:</strong> ${esc(name)}</p><p><strong>Email:</strong> ${esc(email)}</p><p><strong>Phone:</strong> ${esc(phone || '-')}</p><p><strong>Company:</strong> ${esc(company || '-')}</p><p><strong>Type:</strong> ${esc(enquiryType)}</p><p>${esc(message).replace(/\n/g, '<br>')}</p>`,
+    });
+
+    return res.redirect('/contact?sent=1');
+  } catch (e) {
+    return renderError('We could not save your enquiry. Please try again.');
+  }
+});
+
+router.get('/track', (req, res) => {
+  const trackingRef = (req.query.ref || '').trim();
+  const cleanRef = trackingRef.toUpperCase();
+  const shortHash = cleanRef.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const etaHour = 9 + (shortHash % 8);
+  res.render('landing/index', {
+    page: 'track',
+    title: 'Track a shipment',
+    leadSent: false,
+    leadError: null,
+    enquiryType: 'general',
+    trackingRef,
+    trackingResult: trackingRef ? {
+      reference: cleanRef,
+      status: 'Reference received',
+      service: shortHash % 2 === 0 ? 'Dedicated transport' : 'General freight',
+      etaWindow: `Today ${etaHour}:00-${etaHour + 2}:00`,
+      vehicle: `256-${String((shortHash % 80) + 20).padStart(2, '0')}`,
+      nextAction: 'Operations will attach live milestones when the shipment spine is connected.',
+      checkpoints: [
+        { label: 'Reference received', time: 'Now', state: 'done', detail: 'Your reference is recognised by the public tracking intake.' },
+        { label: 'Operations review', time: 'Pending', state: 'active', detail: 'The dispatch desk will validate the consignment and assign movement details.' },
+        { label: 'Collection scheduled', time: 'Next', state: 'idle', detail: 'Collection time, driver, and depot details will appear here.' },
+        { label: 'Out for delivery', time: 'Later', state: 'idle', detail: 'Live progress and proof of delivery will connect in the shipment spine phase.' },
+      ],
+    } : null,
+  });
 });
 
 // Front door: unauthenticated visitors meet the landing page, not the login wall.
@@ -1698,7 +1824,260 @@ router.get('/audit-evidence/:slug', webAuth, requireRoles(...evidenceRoles), asy
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/settings', webAuth, requireRoles('director'), async (req, res) => {
+const adminWriteOnly = (req, res, next) => {
+  if (hasRole(req.user, ['super_admin'])) return next();
+  return res.status(403).render('error', {
+    title: 'Access denied',
+    message: 'Only Super Admin can change platform settings.',
+    code: 403,
+  });
+};
+
+const slugify = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 48);
+
+const toMoney = (value) => {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed) || parsed < 0) return '0.00';
+  return parsed.toFixed(2);
+};
+
+const listFromText = (value) => String(value || '')
+  .split(/\r?\n|,/)
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const ensureCompanyProfile = async () => {
+  const existing = await prisma.company.findFirst({ orderBy: { createdAt: 'asc' } });
+  if (existing) return existing;
+
+  return prisma.company.create({
+    data: {
+      name: '256 Logistics',
+      legalName: '256 Logistics Ltd',
+      timezone: 'Europe/London',
+      branding: {
+        accentColor: '#2f80ed',
+        publicName: '256 Logistics',
+      },
+    },
+  });
+};
+
+router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
+  try {
+    const [
+      tenant,
+      company,
+      branches,
+      serviceTypes,
+      configRows,
+      users,
+      counts,
+      tenants,
+      recentAudit,
+    ] = await Promise.all([
+      prisma.tenant.findUnique({ where: { id: req.user.tenantId } }),
+      prisma.company.findFirst({ orderBy: { createdAt: 'asc' } }),
+      prisma.branch.findMany({ orderBy: [{ name: 'asc' }] }),
+      prisma.serviceType.findMany({ orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] }),
+      prisma.systemConfig.findMany({ orderBy: [{ category: 'asc' }, { key: 'asc' }] }),
+      prisma.user.findMany({
+        select: { id: true, email: true, role: true, roles: true, branchIds: true, firstName: true, lastName: true, isActive: true, lastLoginAt: true },
+        orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
+      }),
+      Promise.all([
+        prisma.user.count(),
+        prisma.branch.count(),
+        prisma.vehicle.count(),
+        prisma.publicLead.count({ where: { isResolved: false } }),
+        prisma.serviceType.count({ where: { isActive: true } }),
+      ]),
+      prisma.tenant.findMany({
+        include: { _count: { select: { users: true, companies: true, branches: true } } },
+        orderBy: [{ status: 'asc' }, { name: 'asc' }],
+      }),
+      prisma.auditLog.findMany({
+        include: { user: { select: { firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+      }),
+    ]);
+
+    const config = configRows.reduce((acc, row) => {
+      acc[`${row.category}.${row.key}`] = row.value;
+      return acc;
+    }, {});
+    const roleOptions = Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label }));
+    res.render('super-admin/index', {
+      title: 'Super Admin',
+      tenant,
+      company,
+      branches,
+      serviceTypes,
+      users,
+      tenants,
+      recentAudit,
+      roleOptions,
+      config,
+      canWrite: hasRole(req.user, ['super_admin']),
+      stats: {
+        users: counts[0],
+        branches: counts[1],
+        vehicles: counts[2],
+        openLeads: counts[3],
+        activeServices: counts[4],
+      },
+      saved: req.query.saved || '',
+      formatDate,
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/super-admin/tenants', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    const name = (req.body.name || '').trim();
+    if (!name) throw new Error('Tenant name is required');
+    const slug = slugify(req.body.slug || name);
+    const tenant = await prisma.tenant.create({
+      data: {
+        name,
+        slug,
+        plan: (req.body.plan || 'starter').trim(),
+        status: req.body.status || 'trial',
+      },
+    });
+    await runWithTenant(tenant.id, async () => {
+      const company = await prisma.company.create({
+        data: {
+          name,
+          legalName: req.body.legalName || null,
+          timezone: req.body.timezone || 'Europe/London',
+        },
+      });
+      await prisma.branch.create({ data: { name: 'Main Branch', companyId: company.id } });
+    });
+    res.redirect('/super-admin?saved=tenant');
+  } catch (e) { res.status(400).render('error', { title: 'Tenant create failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/tenants/:id/status', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    await prisma.tenant.update({
+      where: { id: req.params.id },
+      data: { status: req.body.status || 'active', plan: req.body.plan || undefined },
+    });
+    res.redirect('/super-admin?saved=tenant-status');
+  } catch (e) { res.status(400).render('error', { title: 'Tenant update failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/company', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    const existing = await prisma.company.findFirst({ orderBy: { createdAt: 'asc' } });
+    const data = {
+      name: (req.body.name || '').trim() || '256 Logistics',
+      legalName: (req.body.legalName || '').trim() || null,
+      operatorLicenceNumber: (req.body.operatorLicenceNumber || '').trim() || null,
+      registeredAddress: (req.body.registeredAddress || '').trim() || null,
+      timezone: req.body.timezone || 'Europe/London',
+      branding: {
+        accentColor: req.body.accentColor || '#2f80ed',
+        publicName: req.body.publicName || req.body.name || '256 Logistics',
+      },
+    };
+    if (existing) await prisma.company.update({ where: { id: existing.id }, data });
+    else await prisma.company.create({ data });
+    res.redirect('/super-admin?saved=company');
+  } catch (e) { res.status(400).render('error', { title: 'Company update failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/branches', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    const company = await ensureCompanyProfile();
+    await prisma.branch.create({
+      data: {
+        companyId: company.id,
+        name: (req.body.name || '').trim(),
+        address: (req.body.address || '').trim() || null,
+        serviceAreas: listFromText(req.body.serviceAreas),
+        hours: { summary: (req.body.hours || '').trim() || 'Standard operating hours' },
+      },
+    });
+    res.redirect('/super-admin?saved=branch');
+  } catch (e) { res.status(400).render('error', { title: 'Branch create failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/branches/:id', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    await prisma.branch.update({
+      where: { id: req.params.id },
+      data: {
+        name: (req.body.name || '').trim(),
+        address: (req.body.address || '').trim() || null,
+        serviceAreas: listFromText(req.body.serviceAreas),
+        hours: { summary: (req.body.hours || '').trim() || 'Standard operating hours' },
+      },
+    });
+    res.redirect('/super-admin?saved=branch');
+  } catch (e) { res.status(400).render('error', { title: 'Branch update failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/service-types', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    await prisma.serviceType.create({
+      data: {
+        name: (req.body.name || '').trim(),
+        code: slugify(req.body.code || req.body.name).toUpperCase(),
+        description: (req.body.description || '').trim() || null,
+        baseRate: toMoney(req.body.baseRate),
+        perMileRate: toMoney(req.body.perMileRate),
+        sortOrder: Number(req.body.sortOrder || 0),
+        isActive: req.body.isActive !== 'false',
+      },
+    });
+    res.redirect('/super-admin?saved=service');
+  } catch (e) { res.status(400).render('error', { title: 'Service create failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/service-types/:id', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    await prisma.serviceType.update({
+      where: { id: req.params.id },
+      data: {
+        name: (req.body.name || '').trim(),
+        code: slugify(req.body.code || req.body.name).toUpperCase(),
+        description: (req.body.description || '').trim() || null,
+        baseRate: toMoney(req.body.baseRate),
+        perMileRate: toMoney(req.body.perMileRate),
+        sortOrder: Number(req.body.sortOrder || 0),
+        isActive: req.body.isActive === 'true',
+      },
+    });
+    res.redirect('/super-admin?saved=service');
+  } catch (e) { res.status(400).render('error', { title: 'Service update failed', message: e.message, code: 400 }); }
+});
+
+router.post('/super-admin/system-config', webAuth, adminWriteOnly, async (req, res) => {
+  try {
+    const value = {
+      alertFrom: req.body.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@256logisticsltd.com',
+      smtpEnabled: req.body.smtpEnabled === 'true',
+      smsProvider: req.body.smsProvider || 'not_configured',
+      publicTrackingEnabled: req.body.publicTrackingEnabled === 'true',
+      leadNotificationsEnabled: req.body.leadNotificationsEnabled === 'true',
+    };
+    const existing = await prisma.systemConfig.findFirst({ where: { category: 'notifications', key: 'email_sms' } });
+    if (existing) await prisma.systemConfig.update({ where: { id: existing.id }, data: { value } });
+    else await prisma.systemConfig.create({ data: { category: 'notifications', key: 'email_sms', value } });
+    res.redirect('/super-admin?saved=config');
+  } catch (e) { res.status(400).render('error', { title: 'Config update failed', message: e.message, code: 400 }); }
+});
+
+router.get('/settings', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
   try {
     res.render('settings/index', {
       title: 'Settings',
@@ -1716,10 +2095,10 @@ router.get('/settings', webAuth, requireRoles('director'), async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/users', webAuth, requireRoles('director'), async (req, res) => {
+router.get('/users', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      select: { id: true, email: true, role: true, firstName: true, lastName: true,
+      select: { id: true, email: true, role: true, roles: true, branchIds: true, firstName: true, lastName: true,
         isActive: true, lastLoginAt: true },
       orderBy: [{ role: 'asc' }, { lastName: 'asc' }],
     });
@@ -1732,11 +2111,15 @@ router.get('/users', webAuth, requireRoles('director'), async (req, res) => {
       orderBy: { fullName: 'asc' },
     });
     const eligibleEmployees = emps.filter(e => e.email && !takenEmails.has(e.email.toLowerCase()) && !linkedEmployeeIds.has(e.id));
-    res.render('users/index', { title: 'User Management', users, eligibleEmployees, formatDate });
+    const [roleOptions, branches] = [
+      Object.entries(ROLE_LABELS).map(([value, label]) => ({ value, label })),
+      await prisma.branch.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    ];
+    res.render('users/index', { title: 'User Management', users, eligibleEmployees, formatDate, roleOptions, branches });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.get('/migration', webAuth, requireRoles('director'), async (req, res) => {
+router.get('/migration', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
   try {
     const [employees, users, vehicles] = await Promise.all([
       prisma.employee.count(),
@@ -1756,7 +2139,7 @@ router.get('/privacy', (req, res) => {
 });
 
 // Data subject access request (DSAR) — director-only: export all data for one employee
-router.get('/privacy/dsar', webAuth, requireRoles('director', 'hr_manager'), async (req, res) => {
+router.get('/privacy/dsar', webAuth, requireRoles('super_admin', 'director', 'hr_manager'), async (req, res) => {
   try {
     const { employeeId } = req.query;
     if (!employeeId) {
@@ -1784,7 +2167,7 @@ router.get('/privacy/dsar', webAuth, requireRoles('director', 'hr_manager'), asy
 });
 
 // Right to erasure — director only: anonymise a leaver's personal data, preserving operational records
-router.post('/privacy/erase', webAuth, requireRoles('director'), async (req, res) => {
+router.post('/privacy/erase', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
   try {
     const { employeeId } = req.body;
     if (!employeeId) return res.status(400).render('error', { title: 'Bad Request', message: 'employeeId is required', code: 400 });

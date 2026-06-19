@@ -1,0 +1,230 @@
+<%
+  const writeAttr = canWrite ? '' : 'disabled';
+  const branding = (company && company.branding) || {};
+  const notificationConfig = config['notifications.email_sms'] || {};
+  const areasText = (branch) => Array.isArray(branch.serviceAreas) ? branch.serviceAreas.join(', ') : '';
+  const hoursText = (branch) => branch.hours && branch.hours.summary ? branch.hours.summary : '';
+  const money = (value) => Number(value || 0).toFixed(2);
+%>
+<%- include('../layouts/main', { body: `
+${saved ? `<div class="alert alert-success mb-4">Saved ${esc(saved.replace(/-/g, ' '))}.</div>` : ''}
+${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. Super Admin is required for changes.</div>` : ''}
+
+<div class="admin-hero mb-4">
+  <div>
+    <div class="eyebrow">Super Admin</div>
+    <h3>${esc(tenant?.name || 'Tenant control room')}</h3>
+    <p>Configure tenants, company profile, branches, service pricing, users, and notification settings from one panel.</p>
+  </div>
+  <div class="admin-hero-meta">
+    <span class="badge ${tenant?.status === 'active' ? 'badge-green' : tenant?.status === 'trial' ? 'badge-blue' : 'badge-red'}">${esc(tenant?.status || 'active')}</span>
+    <span>${esc(tenant?.plan || 'starter')} plan</span>
+  </div>
+</div>
+
+<div class="admin-stats mb-4">
+  ${[
+    ['Users', stats.users],
+    ['Branches', stats.branches],
+    ['Vehicles', stats.vehicles],
+    ['Open leads', stats.openLeads],
+    ['Active services', stats.activeServices],
+  ].map(([label, value]) => `<div class="stat-card"><span>${label}</span><strong>${value}</strong></div>`).join('')}
+</div>
+
+<div class="admin-grid mb-4">
+  <section class="card">
+    <div class="card-header"><h3>Platform Tenants</h3></div>
+    <div class="card-body">
+      <form method="post" action="/super-admin/tenants" class="admin-form compact">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <input class="form-control" name="name" placeholder="Tenant name" ${writeAttr} required>
+        <input class="form-control" name="slug" placeholder="slug">
+        <select class="form-control" name="plan" ${writeAttr}>
+          <option value="starter">Starter</option>
+          <option value="growth">Growth</option>
+          <option value="enterprise">Enterprise</option>
+        </select>
+        <select class="form-control" name="status" ${writeAttr}>
+          <option value="trial">Trial</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
+        </select>
+        <button class="btn btn-primary" ${writeAttr}>Create tenant</button>
+      </form>
+      <div class="tenant-list">
+        ${tenants.map(t => `
+          <form method="post" action="/super-admin/tenants/${t.id}/status" class="tenant-row">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <div><strong>${esc(t.name)}</strong><span>${esc(t.slug)} · ${t._count.users} users · ${t._count.branches} branches</span></div>
+            <select class="form-control" name="plan" ${writeAttr}>
+              ${['starter','growth','enterprise'].map(plan => `<option value="${plan}" ${t.plan === plan ? 'selected' : ''}>${plan}</option>`).join('')}
+            </select>
+            <select class="form-control" name="status" ${writeAttr}>
+              ${['active','trial','suspended'].map(status => `<option value="${status}" ${t.status === status ? 'selected' : ''}>${status}</option>`).join('')}
+            </select>
+            <button class="btn btn-outline btn-sm" ${writeAttr}>Update</button>
+          </form>
+        `).join('')}
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h3>Company Profile</h3></div>
+    <div class="card-body">
+      <form method="post" action="/super-admin/company" class="admin-form">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Trading name</label><input class="form-control" name="name" value="${esc(company?.name || '')}" ${writeAttr} required></div>
+          <div class="form-group"><label class="form-label">Public name</label><input class="form-control" name="publicName" value="${esc(branding.publicName || company?.name || '')}" ${writeAttr}></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Legal name</label><input class="form-control" name="legalName" value="${esc(company?.legalName || '')}" ${writeAttr}></div>
+          <div class="form-group"><label class="form-label">Operator licence</label><input class="form-control" name="operatorLicenceNumber" value="${esc(company?.operatorLicenceNumber || '')}" ${writeAttr}></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Timezone</label><input class="form-control" name="timezone" value="${esc(company?.timezone || 'Europe/London')}" ${writeAttr}></div>
+          <div class="form-group"><label class="form-label">Accent colour</label><input class="form-control" type="color" name="accentColor" value="${esc(branding.accentColor || '#2f80ed')}" ${writeAttr}></div>
+        </div>
+        <div class="form-group"><label class="form-label">Registered address</label><textarea class="form-control" name="registeredAddress" ${writeAttr}>${esc(company?.registeredAddress || '')}</textarea></div>
+        <button class="btn btn-primary" ${writeAttr}>Save company</button>
+      </form>
+    </div>
+  </section>
+</div>
+
+<div class="admin-grid mb-4">
+  <section class="card">
+    <div class="card-header"><h3>Branches</h3></div>
+    <div class="card-body">
+      <form method="post" action="/super-admin/branches" class="admin-form compact">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <input class="form-control" name="name" placeholder="Branch name" ${writeAttr} required>
+        <input class="form-control" name="address" placeholder="Address" ${writeAttr}>
+        <input class="form-control" name="serviceAreas" placeholder="Service areas, comma separated" ${writeAttr}>
+        <input class="form-control" name="hours" placeholder="Operating hours" ${writeAttr}>
+        <button class="btn btn-primary" ${writeAttr}>Add branch</button>
+      </form>
+      <div class="branch-list">
+        ${branches.map(branch => `
+          <form method="post" action="/super-admin/branches/${branch.id}" class="branch-card">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <input class="form-control" name="name" value="${esc(branch.name)}" ${writeAttr}>
+            <input class="form-control" name="address" value="${esc(branch.address || '')}" placeholder="Address" ${writeAttr}>
+            <input class="form-control" name="serviceAreas" value="${esc(areasText(branch))}" placeholder="Service areas" ${writeAttr}>
+            <input class="form-control" name="hours" value="${esc(hoursText(branch))}" placeholder="Hours" ${writeAttr}>
+            <button class="btn btn-outline btn-sm" ${writeAttr}>Save</button>
+          </form>
+        `).join('') || '<div class="empty-state"><p>No branches yet</p><div class="empty-hint">Add a branch to start assigning users and future vehicles.</div></div>'}
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h3>User & Access</h3><a class="btn btn-outline btn-sm" href="/users">Open user manager</a></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>User</th><th>Roles</th><th>Branches</th><th>Status</th></tr></thead>
+        <tbody>
+          ${users.slice(0, 8).map(u => `
+            <tr>
+              <td><strong>${esc(u.firstName)} ${esc(u.lastName)}</strong><div class="cell-muted">${esc(u.email)}</div></td>
+              <td>${(u.roles && u.roles.length ? u.roles : [u.role]).map(r => `<span class="badge badge-blue">${roleLabel ? roleLabel(r) : r}</span>`).join(' ')}</td>
+              <td class="cell-muted">${u.branchIds && u.branchIds.length ? u.branchIds.length + ' assigned' : 'All / unassigned'}</td>
+              <td><span class="badge ${u.isActive ? 'badge-green' : 'badge-red'}">${u.isActive ? 'Active' : 'Inactive'}</span></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="admin-grid mb-4">
+  <section class="card">
+    <div class="card-header"><h3>Service Types & Basic Rates</h3></div>
+    <div class="card-body">
+      <form method="post" action="/super-admin/service-types" class="admin-form compact">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <input class="form-control" name="name" placeholder="Service name" ${writeAttr} required>
+        <input class="form-control" name="code" placeholder="CODE" ${writeAttr}>
+        <input class="form-control" name="baseRate" type="number" step="0.01" min="0" placeholder="Base rate" ${writeAttr}>
+        <input class="form-control" name="perMileRate" type="number" step="0.01" min="0" placeholder="Per mile" ${writeAttr}>
+        <button class="btn btn-primary" ${writeAttr}>Add service</button>
+      </form>
+      <div class="service-list">
+        ${serviceTypes.map(service => `
+          <form method="post" action="/super-admin/service-types/${service.id}" class="service-row">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <input class="form-control" name="name" value="${esc(service.name)}" ${writeAttr}>
+            <input class="form-control" name="code" value="${esc(service.code)}" ${writeAttr}>
+            <input class="form-control" name="baseRate" type="number" step="0.01" min="0" value="${money(service.baseRate)}" ${writeAttr}>
+            <input class="form-control" name="perMileRate" type="number" step="0.01" min="0" value="${money(service.perMileRate)}" ${writeAttr}>
+            <input type="hidden" name="isActive" value="false">
+            <label class="inline-check"><input type="checkbox" name="isActive" value="true" ${service.isActive ? 'checked' : ''} ${writeAttr}> Active</label>
+            <button class="btn btn-outline btn-sm" ${writeAttr}>Save</button>
+          </form>
+        `).join('') || '<div class="empty-state"><p>No service rates yet</p><div class="empty-hint">Add same-day, next-day, economy, pallet, courier or returns.</div></div>'}
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h3>System Configuration</h3></div>
+    <div class="card-body">
+      <form method="post" action="/super-admin/system-config" class="admin-form">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-group"><label class="form-label">Alert sender</label><input class="form-control" name="alertFrom" value="${esc(notificationConfig.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@256logisticsltd.com')}" ${writeAttr}></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">SMS provider</label><input class="form-control" name="smsProvider" value="${esc(notificationConfig.smsProvider || 'not_configured')}" ${writeAttr}></div>
+          <div class="form-group"><label class="form-label">SMTP enabled</label><select class="form-control" name="smtpEnabled" ${writeAttr}><option value="false" ${notificationConfig.smtpEnabled ? '' : 'selected'}>No</option><option value="true" ${notificationConfig.smtpEnabled ? 'selected' : ''}>Yes</option></select></div>
+        </div>
+        <div class="form-grid">
+          <label class="inline-check"><input type="checkbox" name="publicTrackingEnabled" value="true" ${notificationConfig.publicTrackingEnabled !== false ? 'checked' : ''} ${writeAttr}> Public tracking enabled</label>
+          <label class="inline-check"><input type="checkbox" name="leadNotificationsEnabled" value="true" ${notificationConfig.leadNotificationsEnabled !== false ? 'checked' : ''} ${writeAttr}> Lead notifications enabled</label>
+        </div>
+        <button class="btn btn-primary" ${writeAttr}>Save configuration</button>
+      </form>
+
+      <div class="audit-mini">
+        <h4>Recent admin activity</h4>
+        ${recentAudit.map(log => `<div class="audit-row"><span>${esc(log.action)}</span><small>${log.user ? esc(log.user.firstName + ' ' + log.user.lastName) : 'System'} · ${formatDate(log.createdAt)}</small></div>`).join('') || '<p class="text-sm text-muted">No recent audit activity.</p>'}
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .alert { border:1px solid var(--border); border-radius:10px; padding:12px 14px; font-size:13px; }
+  .alert-success { background:var(--success-bg); color:var(--success-t); border-color:rgba(16,185,129,.25); }
+  .alert-info { background:var(--info-bg); color:var(--info-t); border-color:rgba(6,182,212,.25); }
+  .admin-hero { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; border:1px solid var(--border); border-radius:12px; padding:24px; background:linear-gradient(135deg,var(--card),rgba(59,130,246,.1)); }
+  .admin-hero h3 { margin:4px 0 8px; font-size:28px; letter-spacing:-.03em; }
+  .admin-hero p { color:var(--text-muted); max-width:700px; margin:0; }
+  .admin-hero-meta { display:flex; flex-direction:column; gap:8px; align-items:flex-end; color:var(--text-muted); font-size:13px; }
+  .eyebrow { color:var(--primary); font-weight:800; letter-spacing:.08em; text-transform:uppercase; font-size:11px; }
+  .admin-stats { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+  .stat-card { border:1px solid var(--border); border-radius:10px; padding:16px; background:var(--card); }
+  .stat-card span { display:block; color:var(--text-muted); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+  .stat-card strong { display:block; margin-top:5px; font-size:28px; }
+  .admin-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+  .admin-form { display:grid; gap:12px; }
+  .admin-form.compact { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:end; }
+  .admin-form.compact .btn { min-height:42px; }
+  .tenant-list, .branch-list, .service-list { display:grid; gap:10px; margin-top:16px; }
+  .tenant-row, .branch-card, .service-row { display:grid; gap:10px; align-items:center; border:1px solid var(--border); border-radius:10px; padding:12px; background:var(--surface-2); }
+  .tenant-row { grid-template-columns:1.3fr .7fr .7fr auto; }
+  .branch-card { grid-template-columns:1fr 1.2fr 1.2fr 1fr auto; }
+  .service-row { grid-template-columns:1.1fr .65fr .65fr .65fr auto auto; }
+  .tenant-row span { display:block; color:var(--text-muted); font-size:12px; margin-top:3px; }
+  .inline-check { display:flex; align-items:center; gap:8px; color:var(--text-muted); font-size:13px; font-weight:700; }
+  .inline-check input { width:16px; height:16px; }
+  .audit-mini { margin-top:18px; border-top:1px solid var(--border); padding-top:16px; }
+  .audit-mini h4 { margin:0 0 10px; }
+  .audit-row { display:flex; justify-content:space-between; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .audit-row small { color:var(--text-muted); }
+  @media (max-width:1100px){ .admin-grid, .admin-stats { grid-template-columns:1fr 1fr; } .tenant-row, .branch-card, .service-row, .admin-form.compact { grid-template-columns:1fr; } }
+  @media (max-width:720px){ .admin-grid, .admin-stats { grid-template-columns:1fr; } .admin-hero { flex-direction:column; } .admin-hero-meta { align-items:flex-start; } }
+</style>
+` }) %>

@@ -5,6 +5,7 @@ const { ok } = require('../utils/responseHelper');
 const { AuthError, ValidationError } = require('../utils/errors');
 const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
 const { checkPassword } = require('../utils/passwordPolicy');
+const { getUserRoles } = require('../utils/rbac');
 
 exports.login = async (req, res, next) => {
   try {
@@ -32,7 +33,10 @@ exports.login = async (req, res, next) => {
 
     const token = sign({
       id: user.id,
+      tenantId: user.tenantId,
       role: user.role,
+      roles: getUserRoles(user),
+      branchIds: user.branchIds || [],
       email: user.email,
       name: `${user.firstName} ${user.lastName}`,
       employeeId: user.employee?.id || null,
@@ -50,8 +54,11 @@ exports.login = async (req, res, next) => {
       token,
       user: {
         id: user.id,
+        tenantId: user.tenantId,
         name: `${user.firstName} ${user.lastName}`,
         role: user.role,
+        roles: getUserRoles(user),
+        branchIds: user.branchIds || [],
         email: user.email,
         employeeId: user.employee?.id || null,
       },
@@ -87,7 +94,7 @@ exports.me = async (req, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, lastLoginAt: true },
+      select: { id: true, tenantId: true, email: true, role: true, roles: true, branchIds: true, firstName: true, lastName: true, phone: true, lastLoginAt: true },
     });
     return ok(res, user);
   } catch (e) { next(e); }

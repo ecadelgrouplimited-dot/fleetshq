@@ -12,11 +12,16 @@ datasource db {
 // ─────────────────────────────────────────
 
 enum UserRole {
+  super_admin
   director
   transport_manager
   hr_manager
   operations_manager
+  fleet_manager
+  finance_officer
+  trainer
   driver
+  client
   garage
 }
 
@@ -181,15 +186,106 @@ enum AlertSeverity {
   notice
 }
 
+enum TenantStatus {
+  active
+  suspended
+  trial
+}
+
 // ─────────────────────────────────────────
 // MODELS
 // ─────────────────────────────────────────
 
+model Tenant {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  plan      String       @default("starter")
+  status    TenantStatus @default(active)
+  branding  Json?
+
+  companies Company[]
+  branches  Branch[]
+  users     User[]
+  employees Employee[]
+  sponsoredWorkers SponsoredWorker[]
+  sponsoredWorkerChanges SponsoredWorkerChange[]
+  employeeDocuments EmployeeDocument[]
+  trainingRecords TrainingRecord[]
+  policyAcknowledgements PolicyAcknowledgement[]
+  toolboxTalks ToolboxTalk[]
+  toolboxTalkAssignments ToolboxTalkAssignment[]
+  vehicles Vehicle[]
+  vehicleDocuments VehicleDocument[]
+  walkAroundChecks WalkAroundCheck[]
+  walkAroundCheckItems WalkAroundCheckItem[]
+  defectCases DefectCase[]
+  defectPhotos DefectPhoto[]
+  vorRecords VorRecord[]
+  auditLogs AuditLog[]
+  alerts Alert[]
+  complianceScores ComplianceScore[]
+  publicLeads PublicLead[]
+  serviceTypes ServiceType[]
+  systemConfigs SystemConfig[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id                    String @id @default(uuid())
+  tenant                Tenant @relation(fields: [tenantId], references: [id])
+  tenantId              String @default("00000000-0000-4000-8000-000000000001")
+  name                  String
+  legalName             String?
+  operatorLicenceNumber String?
+  registeredAddress     String?
+  timezone              String @default("Europe/London")
+  branding              Json?
+
+  branches Branch[]
+  users    User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Branch {
+  id           String   @id @default(uuid())
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId     String   @default("00000000-0000-4000-8000-000000000001")
+  company      Company  @relation(fields: [companyId], references: [id])
+  companyId    String
+  name         String
+  address      String?
+  serviceAreas Json?
+  hours        Json?
+
+  users User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([companyId])
+}
+
 model User {
   id           String    @id @default(uuid())
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId     String    @default("00000000-0000-4000-8000-000000000001")
+  company      Company?  @relation(fields: [companyId], references: [id])
+  companyId    String?
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  branchId     String?
   email        String    @unique
   passwordHash String
   role         UserRole
+  roles        UserRole[] @default([])
+  branchIds    String[]   @default([])
   firstName    String
   lastName     String
   phone        String?
@@ -216,10 +312,16 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([companyId])
+  @@index([branchId])
 }
 
 model Employee {
   id                    String           @id @default(uuid())
+  tenant                Tenant           @relation(fields: [tenantId], references: [id])
+  tenantId              String           @default("00000000-0000-4000-8000-000000000001")
   fullName              String
   dateOfBirth           DateTime
   homeAddress           String
@@ -263,10 +365,14 @@ model Employee {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model SponsoredWorker {
   id                      String    @id @default(uuid())
+  tenant                  Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId                String    @default("00000000-0000-4000-8000-000000000001")
   employee                Employee  @relation(fields: [employeeId], references: [id])
   employeeId              String    @unique
   cosNumber               String
@@ -287,10 +393,14 @@ model SponsoredWorker {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model SponsoredWorkerChange {
   id                   String              @id @default(uuid())
+  tenant               Tenant              @relation(fields: [tenantId], references: [id])
+  tenantId             String              @default("00000000-0000-4000-8000-000000000001")
   sponsoredWorker      SponsoredWorker     @relation(fields: [sponsoredWorkerId], references: [id])
   sponsoredWorkerId    String
   changeType           SponsoredChangeType
@@ -304,10 +414,14 @@ model SponsoredWorkerChange {
   notes                String?
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model EmployeeDocument {
   id            String       @id @default(uuid())
+  tenant        Tenant       @relation(fields: [tenantId], references: [id])
+  tenantId      String       @default("00000000-0000-4000-8000-000000000001")
   employee      Employee     @relation(fields: [employeeId], references: [id])
   employeeId    String
   documentType  DocumentType
@@ -321,10 +435,14 @@ model EmployeeDocument {
   notes         String?
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model TrainingRecord {
   id                 String         @id @default(uuid())
+  tenant             Tenant         @relation(fields: [tenantId], references: [id])
+  tenantId           String         @default("00000000-0000-4000-8000-000000000001")
   employee           Employee       @relation(fields: [employeeId], references: [id])
   employeeId         String
   trainingType       TrainingType
@@ -340,10 +458,13 @@ model TrainingRecord {
   updatedAt DateTime @updatedAt
 
   @@unique([employeeId, trainingType])
+  @@index([tenantId])
 }
 
 model PolicyAcknowledgement {
   id            String     @id @default(uuid())
+  tenant        Tenant     @relation(fields: [tenantId], references: [id])
+  tenantId      String     @default("00000000-0000-4000-8000-000000000001")
   employee      Employee   @relation(fields: [employeeId], references: [id])
   employeeId    String
   policyType    PolicyType
@@ -354,10 +475,14 @@ model PolicyAcknowledgement {
   deviceInfo    String?
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model ToolboxTalk {
   id                 String    @id @default(uuid())
+  tenant             Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId           String    @default("00000000-0000-4000-8000-000000000001")
   topic              String
   description        String
   dateIssued         DateTime
@@ -372,10 +497,14 @@ model ToolboxTalk {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model ToolboxTalkAssignment {
   id            String      @id @default(uuid())
+  tenant        Tenant      @relation(fields: [tenantId], references: [id])
+  tenantId      String      @default("00000000-0000-4000-8000-000000000001")
   toolboxTalk   ToolboxTalk @relation(fields: [toolboxTalkId], references: [id])
   toolboxTalkId String
   employee      Employee    @relation(fields: [employeeId], references: [id])
@@ -386,10 +515,13 @@ model ToolboxTalkAssignment {
   createdAt DateTime @default(now())
 
   @@unique([toolboxTalkId, employeeId])
+  @@index([tenantId])
 }
 
 model Vehicle {
   id                  String        @id @default(uuid())
+  tenant              Tenant        @relation(fields: [tenantId], references: [id])
+  tenantId            String        @default("00000000-0000-4000-8000-000000000001")
   registration        String        @unique
   vinNumber           String        @unique
   make                String
@@ -417,10 +549,14 @@ model Vehicle {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model VehicleDocument {
   id            String              @id @default(uuid())
+  tenant        Tenant              @relation(fields: [tenantId], references: [id])
+  tenantId      String              @default("00000000-0000-4000-8000-000000000001")
   vehicle       Vehicle             @relation(fields: [vehicleId], references: [id])
   vehicleId     String
   documentType  VehicleDocumentType
@@ -435,10 +571,14 @@ model VehicleDocument {
   notes         String?
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model WalkAroundCheck {
   id            String   @id @default(uuid())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId      String   @default("00000000-0000-4000-8000-000000000001")
   vehicle       Vehicle  @relation("CheckVehicle", fields: [vehicleId], references: [id])
   vehicleId     String
   driver        Employee @relation("CheckDriver", fields: [driverId], references: [id])
@@ -455,19 +595,27 @@ model WalkAroundCheck {
   defects DefectCase[]          @relation("CheckDefects")
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model WalkAroundCheckItem {
   id      String          @id @default(uuid())
+  tenant  Tenant          @relation(fields: [tenantId], references: [id])
+  tenantId String         @default("00000000-0000-4000-8000-000000000001")
   check   WalkAroundCheck @relation(fields: [checkId], references: [id])
   checkId String
   item    CheckItemType
   status  CheckItemStatus
   notes   String?
+
+  @@index([tenantId])
 }
 
 model DefectCase {
   id                       String         @id @default(uuid())
+  tenant                   Tenant         @relation(fields: [tenantId], references: [id])
+  tenantId                 String         @default("00000000-0000-4000-8000-000000000001")
   referenceNumber          String         @unique
   vehicle                  Vehicle        @relation("DefectVehicle", fields: [vehicleId], references: [id])
   vehicleId                String
@@ -498,10 +646,14 @@ model DefectCase {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model DefectPhoto {
   id           String     @id @default(uuid())
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
+  tenantId     String     @default("00000000-0000-4000-8000-000000000001")
   defectCase   DefectCase @relation(fields: [defectCaseId], references: [id])
   defectCaseId String
   storageKey   String
@@ -509,10 +661,14 @@ model DefectPhoto {
   uploadedById String
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model VorRecord {
   id                  String      @id @default(uuid())
+  tenant              Tenant      @relation(fields: [tenantId], references: [id])
+  tenantId            String      @default("00000000-0000-4000-8000-000000000001")
   vehicle             Vehicle     @relation("VorVehicle", fields: [vehicleId], references: [id])
   vehicleId           String
   defectCase          DefectCase? @relation("VorDefect", fields: [defectCaseId], references: [id])
@@ -531,10 +687,14 @@ model VorRecord {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
 }
 
 model AuditLog {
   id            String   @id @default(uuid())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId      String   @default("00000000-0000-4000-8000-000000000001")
   user          User     @relation(fields: [userId], references: [id])
   userId        String
   action        String
@@ -550,10 +710,13 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([userId])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model Alert {
   id           String        @id @default(uuid())
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  tenantId     String        @default("00000000-0000-4000-8000-000000000001")
   alertType    AlertType
   severity     AlertSeverity
   entityType   String
@@ -569,10 +732,13 @@ model Alert {
 
   @@index([severity, isResolved])
   @@index([entityType, entityId])
+  @@index([tenantId])
 }
 
 model ComplianceScore {
   id            String   @id @default(uuid())
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId      String   @default("00000000-0000-4000-8000-000000000001")
   scoreDate     DateTime @unique @db.Date
   peopleScore   Decimal  @db.Decimal(5, 2)
   fleetScore    Decimal  @db.Decimal(5, 2)
@@ -583,4 +749,66 @@ model ComplianceScore {
   driverDetails Json
 
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model PublicLead {
+  id          String   @id @default(uuid())
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  tenantId    String   @default("00000000-0000-4000-8000-000000000001")
+  name        String
+  email       String
+  phone       String?
+  company     String?
+  enquiryType String   @default("general")
+  message     String
+  sourcePath  String?
+  ipAddress   String?
+  userAgent   String?
+  isResolved  Boolean  @default(false)
+  resolvedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([createdAt])
+}
+
+model ServiceType {
+  id          String  @id @default(uuid())
+  tenant      Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId    String  @default("00000000-0000-4000-8000-000000000001")
+  name        String
+  code        String
+  description String?
+  baseRate    Decimal @default(0) @db.Decimal(10, 2)
+  perMileRate Decimal @default(0) @db.Decimal(10, 2)
+  isActive    Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
+  @@index([isActive])
+}
+
+model SystemConfig {
+  id        String  @id @default(uuid())
+  tenant    Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId  String  @default("00000000-0000-4000-8000-000000000001")
+  category  String
+  key       String
+  value     Json
+  isSecret  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, category, key])
+  @@index([tenantId])
+  @@index([category])
 }

@@ -1,0 +1,67 @@
+const request = require('supertest');
+const app = require('../server');
+const prisma = require('../src/config/database');
+
+const csrfFrom = (res) => {
+  const cookie = (res.headers['set-cookie'] || []).find((value) => value.startsWith('csrfToken='));
+  return cookie ? cookie.split(';')[0].split('=')[1] : '';
+};
+
+describe('public site', () => {
+  const createdEmails = [];
+
+  afterAll(async () => {
+    if (createdEmails.length) {
+      await prisma.publicLead.deleteMany({ where: { email: { in: createdEmails } } });
+    }
+    await prisma.$disconnect();
+  });
+
+  it.each([
+    ['/welcome', 'operating system for modern logistics'],
+    ['/about', 'built for proof'],
+    ['/services', 'Service catalogue'],
+    ['/contact', 'Send an enquiry'],
+    ['/track', 'Track a shipment'],
+  ])('renders %s', async (path, expectedText) => {
+    const res = await request(app).get(path).expect(200);
+    expect(res.text).toContain(expectedText);
+  });
+
+  it('renders the tracking stub for a supplied reference', async () => {
+    const res = await request(app).get('/track?ref=256-TEST-001').expect(200);
+    expect(res.text).toContain('256-TEST-001');
+    expect(res.text).toContain('Collection scheduled');
+    expect(res.text).toContain('ETA window');
+  });
+
+  it('captures a contact lead', async () => {
+    const agent = request.agent(app);
+    const page = await agent.get('/contact').expect(200);
+    const token = csrfFrom(page);
+    const email = `public-${Date.now()}@example.com`;
+    createdEmails.push(email);
+
+    await agent
+      .post('/contact')
+      .type('form')
+      .send({
+        _csrf: token,
+        name: 'Public Test Lead',
+        email,
+        phone: '07000000000',
+        company: 'Example Freight',
+        enquiryType: 'quote',
+        message: 'Please price a regular lane.',
+      })
+      .expect(302)
+      .expect('Location', '/contact?sent=1');
+
+    const lead = await prisma.publicLead.findFirst({ where: { email } });
+    expect(lead).toMatchObject({
+      name: 'Public Test Lead',
+      enquiryType: 'quote',
+      company: 'Example Freight',
+    });
+  });
+});

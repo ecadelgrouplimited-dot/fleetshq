@@ -1,5 +1,7 @@
 const { verify } = require('../config/jwt');
 const { AuthError } = require('../utils/errors');
+const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
+const { getUserRoles } = require('../utils/rbac');
 
 module.exports = (req, res, next) => {
   const header = req.headers.authorization;
@@ -11,6 +13,11 @@ module.exports = (req, res, next) => {
   const payload = verify(token);
   if (!payload) return next(new AuthError('Invalid or expired token'));
 
-  req.user = payload;
-  next();
+  payload.tenantId = payload.tenantId || DEFAULT_TENANT_ID;
+  payload.roles = getUserRoles(payload);
+  payload.branchIds = payload.branchIds || [];
+  runWithTenant(payload.tenantId, () => {
+    req.user = payload;
+    next();
+  });
 };

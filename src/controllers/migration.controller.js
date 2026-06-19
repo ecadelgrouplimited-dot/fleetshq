@@ -67,6 +67,7 @@ const importUsers = async (rows) => {
       const data = {
         email,
         role: row.role,
+        roles: row.roles ? row.roles.split(/[;|]/).map(r => r.trim()).filter(Boolean) : [row.role],
         firstName: row.firstName || row.first_name || 'New',
         lastName: row.lastName || row.last_name || 'User',
         phone: row.phone || null,
