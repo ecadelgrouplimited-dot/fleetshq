@@ -2716,4 +2716,151 @@ router.post('/my-learning/:id/complete', webAuth, async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
+// ── Phase 4: Finance & Executive ─────────────────────────────────────
+const financeRoles = ['super_admin', 'director', 'finance_officer'];
+const executiveRoles = ['super_admin', 'director'];
+const EXPENSE_CATEGORIES = ['fuel', 'maintenance', 'wages', 'insurance', 'admin', 'rent', 'utilities', 'marketing', 'other'];
+const EXPENSE_LABELS = { fuel: 'Fuel', maintenance: 'Maintenance', wages: 'Wages', insurance: 'Insurance', admin: 'Admin', rent: 'Rent', utilities: 'Utilities', marketing: 'Marketing', other: 'Other' };
+
+function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+function startOfYear(d) { return new Date(d.getFullYear(), 0, 1); }
+
+// ── Finance overview (panel home) ─────────────────────────────────────
+router.get('/finance', webAuth, requireRoles(...financeRoles), async (req, res) => {
+  try {
+    const now = new Date();
+    const som = startOfMonth(now);
+    const soy = startOfYear(now);
+
+    const [
+      allInvoices, mtdInvoices, ytdInvoices,
+      allExpenses, mtdExpenses, ytdExpenses,
+      recentExpenses, recentInvoices,
+    ] = await Promise.all([
+      prisma.invoice.aggregate({ _sum: { total: true }, _count: { _all: true } }),
+      prisma.invoice.aggregate({ where: { createdAt: { gte: som } }, _sum: { total: true }, _count: { _all: true } }),
+      prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { total: true } }),
+      prisma.expense.aggregate({ _sum: { amount: true, vatAmount: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: som } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: soy } }, _sum: { amount: true } }),
+      prisma.expense.findMany({ orderBy: { expenseDate: 'desc' }, take: 8 }),
+      prisma.invoice.findMany({ where: { status: { in: ['issued', 'overdue'] } }, orderBy: { createdAt: 'desc' }, take: 8, include: { customer: true } }),
+    ]);
+
+    const expByCat = await prisma.expense.groupBy({ by: ['category'], _sum: { amount: true }, orderBy: { _sum: { amount: 'desc' } } });
+
+    const revenue = { mtd: Number(mtdInvoices._sum.total || 0), ytd: Number(ytdInvoices._sum.total || 0), total: Number(allInvoices._sum.total || 0) };
+    const expenses = { mtd: Number(mtdExpenses._sum.amount || 0), ytd: Number(ytdExpenses._sum.amount || 0), total: Number(allExpenses._sum.amount || 0) };
+    const pl = { mtd: revenue.mtd - expenses.mtd, ytd: revenue.ytd - expenses.ytd };
+    const outstanding = await prisma.invoice.aggregate({ where: { status: { in: ['issued', 'overdue'] } }, _sum: { total: true }, _count: { _all: true } });
+    const vatOwed = await prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { vat: true } });
+
+    res.render('finance/overview', {
+      title: 'Finance Overview', revenue, expenses, pl, outstanding: { amount: Number(outstanding._sum.total || 0), count: outstanding._count._all },
+      vatOwed: Number(vatOwed._sum.vat || 0), expByCat, recentExpenses, recentInvoices,
+      expenseLabels: EXPENSE_LABELS, formatDate, path: '/finance',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Finance: expenses ─────────────────────────────────────────────────
+router.get('/finance/expenses', webAuth, requireRoles(...financeRoles), async (req, res) => {
+  try {
+    const { cat, from, to } = req.query;
+    const where = {};
+    if (cat) where.category = cat;
+    if (from || to) { where.expenseDate = {}; if (from) where.expenseDate.gte = new Date(from); if (to) where.expenseDate.lte = new Date(to); }
+    const [expenses, totals] = await Promise.all([
+      prisma.expense.findMany({ where, orderBy: { expenseDate: 'desc' }, take: 200 }),
+      prisma.expense.aggregate({ where, _sum: { amount: true, vatAmount: true }, _count: { _all: true } }),
+    ]);
+    res.render('finance/expenses', {
+      title: 'Expenses', expenses, totals: { amount: Number(totals._sum.amount || 0), vat: Number(totals._sum.vatAmount || 0), count: totals._count._all },
+      categories: EXPENSE_CATEGORIES, expenseLabels: EXPENSE_LABELS, filter: { cat, from, to }, formatDate, path: '/finance/expenses',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/finance/expenses', webAuth, requireRoles(...financeRoles), async (req, res) => {
+  try {
+    const { category, description, amount, vatAmount, expenseDate, supplier, reference } = req.body;
+    if (!description || !amount || !expenseDate) return res.redirect('/finance/expenses');
+    await prisma.expense.create({
+      data: {
+        category: EXPENSE_CATEGORIES.includes(category) ? category : 'other',
+        description: description.trim(),
+        amount: parseFloat(amount),
+        vatAmount: parseFloat(vatAmount || 0),
+        expenseDate: new Date(expenseDate),
+        supplier: supplier || null,
+        reference: reference || null,
+        recordedById: req.user.id,
+      },
+    });
+    res.redirect('/finance/expenses');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Executive / Director BI dashboard ────────────────────────────────
+router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, res) => {
+  try {
+    const now = new Date();
+    const som = startOfMonth(now);
+    const soy = startOfYear(now);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    const [
+      revenueYtd, revenueMtd, revenueTotal,
+      expensesYtd, expensesMtd,
+      shipmentsTotal, shipmentsMtd, shipmentsInTransit,
+      activeEmployees, totalVehicles, activeVehicles,
+      complianceScore,
+      enrolTotal, enrolCompleted,
+      openDefects, pendingLeave, onLeaveToday,
+      rtwAtRisk,
+    ] = await Promise.all([
+      prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { total: true } }),
+      prisma.invoice.aggregate({ where: { createdAt: { gte: som } }, _sum: { total: true } }),
+      prisma.invoice.aggregate({ _sum: { total: true }, _count: { _all: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: soy } }, _sum: { amount: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: som } }, _sum: { amount: true } }),
+      prisma.shipment.count(),
+      prisma.shipment.count({ where: { createdAt: { gte: som } } }),
+      prisma.shipment.count({ where: { status: { in: ['collected', 'in_transit', 'out_for_delivery'] } } }),
+      prisma.employee.count({ where: { employmentStatus: 'active' } }),
+      prisma.vehicle.count(),
+      prisma.vehicle.count({ where: { status: 'active' } }),
+      prisma.complianceScore.findFirst({ orderBy: { scoreDate: 'desc' } }),
+      prisma.courseEnrolment.count(),
+      prisma.courseEnrolment.count({ where: { status: 'completed' } }),
+      prisma.defectCase.count({ where: { status: { in: ['reported', 'under_review', 'repair_booked'] } } }),
+      prisma.leaveRequest.count({ where: { status: 'pending' } }),
+      prisma.leaveRequest.count({ where: { status: 'approved', startDate: { lte: today }, endDate: { gte: today } } }),
+      prisma.sponsoredWorker.count({ where: { visaExpiryDate: { lte: new Date(Date.now() + 60 * 86400000) } } }),
+    ]);
+
+    const rvYtd = Number(revenueYtd._sum.total || 0);
+    const rvMtd = Number(revenueMtd._sum.total || 0);
+    const exYtd = Number(expensesYtd._sum.amount || 0);
+    const exMtd = Number(expensesMtd._sum.amount || 0);
+    const fleetUtil = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
+    const trainingRate = enrolTotal > 0 ? Math.round((enrolCompleted / enrolTotal) * 100) : 0;
+    const score = complianceScore ? Number(complianceScore.overallScore) : null;
+
+    res.render('executive/index', {
+      title: 'Executive Overview',
+      kpi: {
+        revenueYtd: rvYtd, revenueMtd: rvMtd, plYtd: rvYtd - exYtd, plMtd: rvMtd - exMtd,
+        expensesYtd: exYtd, expensesMtd: exMtd,
+        shipmentsTotal, shipmentsMtd, shipmentsInTransit,
+        activeEmployees, totalVehicles, activeVehicles, fleetUtil,
+        complianceScore: score, openDefects,
+        trainingRate, pendingLeave, onLeaveToday, rtwAtRisk,
+        invoiceCount: revenueTotal._count._all,
+      },
+      formatDate, path: '/executive',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 module.exports = router;

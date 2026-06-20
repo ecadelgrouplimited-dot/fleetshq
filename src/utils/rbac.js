@@ -27,13 +27,13 @@ const PANEL_LABELS = {
 
 const PANEL_HOME = {
   super_admin: '/super-admin',
-  executive: '/',
+  executive: '/executive',
   hr: '/hr',
   client: '/portal',
   driver: '/driver/jobs',
   dispatch: '/dispatch',
   fleet: '/fleet/overview',
-  finance: '/invoices',
+  finance: '/finance',
   compliance: '/compliance',
   lms: '/lms',
 };

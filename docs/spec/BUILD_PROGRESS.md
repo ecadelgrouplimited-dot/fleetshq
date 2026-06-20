@@ -4,7 +4,7 @@
 > [00 §6](00-product-vision-and-architecture.md#6-phased-build-roadmap); decisions in
 > [DECISIONS.md](DECISIONS.md). Legend: ✅ done · 🔨 in progress · ⏳ next · ⬜ planned.
 
-**Now:** Phases 0–3 complete → next is Phase 4 (Money & Insight). **Decisions:** multi-tenant SaaS · invoice-only · P0 start.
+**Now:** Phases 0–4 complete → next is Phase 5 (Advanced). **Decisions:** multi-tenant SaaS · invoice-only · P0 start.
 
 ---
 
@@ -46,8 +46,12 @@ The pre-existing compliance hub (vehicles, PMI, checks, defects, VOR, driver ris
 | P3.2 | HR overview dashboard | ✅ | `/hr` panel home: total/active headcount, leave pending, on-leave-today, training completions, overdue training, RTW/visa at-risk; pending leave approval table; overdue enrolments table; RTW watch list; quick-link grid. HR panel home updated (`/hr`). |
 | P3.3 | LMS: courses, enrolment, certificates | ✅ | `Course` + `CourseEnrolment` models (8 seeded courses: Induction, H&S, Manual Handling, Road Safety, GDPR, Cybersecurity, Dangerous Goods, Customer Service); `/lms` admin — tabbed course catalogue (mandatory/optional, validity, enrolment count), assign multi-course to multi-employee (or assign-all), enrolment table with mark-complete; certificate generation (`CERT-YYYY-NNNN`) + expiry tracking; `/my-learning` learner self-service (to-complete list, open course, mark complete, cert display). LMS panel home updated (`/lms`). |
 
-## Phase 4 — Money & Insight ⬜
-Finance (full) · Executive/Director BI · cross-domain KPIs & forecasting.
+## Phase 4 — Money & Insight ✅
+| ID | Item | Status | Notes |
+|----|------|--------|-------|
+| P4.1 | Expense tracking | ✅ | `Expense` model (9 categories: fuel/maintenance/wages/insurance/admin/rent/utilities/marketing/other; amount, VAT, supplier, date, notes; tenant-scoped, additive migration); `/finance/expenses` — log-expense form + date/category/amount filter + expense log table with totals. Finance panel home updated (`/finance`). |
+| P4.2 | Finance overview dashboard | ✅ | `/finance` panel home: revenue (MTD/YTD), expenses (MTD/YTD), net P&L, outstanding receivables; unpaid-invoices table (mark-paid shortcut); expenses-by-category CSS bar chart; recent-expenses table; VAT summary (output VAT YTD). All figures live from DB. |
+| P4.3 | Executive BI dashboard | ✅ | `/executive` panel home: 18-query Promise.all pulling cross-domain KPIs — Financial (revenue/expenses/P&L MTD+YTD, invoice count), Operations (shipments total/MTD/in-transit, fleet utilisation, compliance score, open defects), People (active employees, training completion %, pending leave, on-leave-today, RTW-at-risk); dynamic Watchlist alerts; quick-nav links to each domain. Executive panel home updated (`/executive`). |
 
 ## Phase 5 — Advanced ⬜
 Telematics · tacho integration · native driver app · live card payments · routing optimisation.
@@ -65,3 +69,4 @@ Telematics · tacho integration · native driver app · live card payments · ro
 - **2026-06-20** — ✅ **Phase 2 — fleet & compliance** shipped: fuel management (`FuelLog` model + `/fleet/fuel` logging & cost dashboard); Fleet Manager overview (`/fleet/overview` — availability, VOR, defects, fuel, 30-day compliance-date table); Compliance & Safety overview (`/compliance` — scores, alert counts, risk strip, visa watch, alert feed); daily vehicle checks tied to driver jobs (per-job check status + preselected check). Panel homes updated (fleet → overview, compliance → overview). 46/46 tests pass; verified live-style end-to-end.
 - **2026-06-20** — ✅ **Phase 1 — shipment spine** shipped: new shipment domain (Customer, Shipment, Parcel, TrackingEvent, Job, ProofOfDelivery, Invoice — additive migration, tenant-scoped) + pricing engine; client portal (dashboard, book with live quote, shipment list + detail/timeline); dispatch board (allocate driver+vehicle, status board); driver flow (accept/collect/deliver + POD); invoicing (generate from delivered, mark paid); public `/track` wired to real shipments. Full lifecycle verified end-to-end; 46/46 tests pass.
 - **2026-06-20** — ✨ **Polish pass.** Redesigned the public site to a premium standard (ambient cinematic field, operations-console hero with floating status chips, stats count-up, scroll-reveal, "how it works" flow, gold ECADEL credit band, richer footer) across all 5 pages in light + dark — verified both themes. Fixed Super Admin broken CSS variables (`--card-bg`/`--surface`/`--success-soft` → real theme tokens). Phase 0 complete; 42/42 tests pass.
+- **2026-06-20** — ✅ **Phase 4 — Money & Insight** shipped: expense tracking (`Expense` model + `/finance/expenses` — log, filter, totals); finance overview dashboard (`/finance` — revenue/expenses/P&L MTD+YTD, outstanding receivables, unpaid-invoices quick-pay, expenses-by-category bar chart, VAT summary); executive BI dashboard (`/executive` — 18-query cross-domain KPI board covering Financial/Operations/People with live Watchlist alerts). Nav wired (Finance section: Finance Overview, Expenses, Invoices, Executive BI). Additive migration `20260620113448_money_insight` (ExpenseCategory enum + Expense table). Expense added to tenant-scoped models.

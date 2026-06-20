@@ -1134,3 +1134,34 @@ model CourseEnrolment {
   @@index([employeeId])
   @@index([status])
 }
+
+enum ExpenseCategory {
+  fuel
+  maintenance
+  wages
+  insurance
+  admin
+  rent
+  utilities
+  marketing
+  other
+}
+
+model Expense {
+  id            String          @id @default(uuid())
+  tenantId      String          @default("00000000-0000-4000-8000-000000000001")
+  category      ExpenseCategory @default(other)
+  description   String
+  amount        Decimal         @db.Decimal(10, 2)
+  vatAmount     Decimal         @default(0) @db.Decimal(10, 2)
+  expenseDate   DateTime        @db.Date
+  supplier      String?
+  reference     String?
+  recordedById  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([tenantId])
+  @@index([expenseDate])
+  @@index([category])
+}

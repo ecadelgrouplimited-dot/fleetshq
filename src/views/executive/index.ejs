@@ -1,0 +1,131 @@
+<%
+  const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = (n) => Number(n || 0).toLocaleString('en-GB');
+  const plColor = (n) => n >= 0 ? '#10b981' : '#ef4444';
+  const band = (n) => n == null ? 'slate' : n >= 85 ? 'green' : n >= 70 ? 'amber' : 'red';
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Executive</div>
+    <h1>Business overview</h1>
+    <p class="page-sub">Cross-domain KPIs — finance, operations, fleet, people and compliance.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/finance">Finance detail</a>
+    <a class="btn btn-outline" href="/compliance">Compliance</a>
+  </div>
+</div>
+
+<div class="exec-section-label">Financial</div>
+<div class="stat-grid mb-6">
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+    <div><div class="stat-value">${fmt(kpi.revenueYtd)}</div><div class="stat-label">Revenue YTD</div><div class="stat-sub">${fmt(kpi.revenueMtd)} this month</div></div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg></div>
+    <div><div class="stat-value">${fmt(kpi.expensesYtd)}</div><div class="stat-label">Expenses YTD</div><div class="stat-sub">${fmt(kpi.expensesMtd)} this month</div></div>
+  </div>
+  <div class="stat-card ${kpi.plYtd >= 0 ? 'blue' : 'amber'}">
+    <div class="stat-icon ${kpi.plYtd >= 0 ? 'blue' : 'amber'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+    <div><div class="stat-value" style="color:${plColor(kpi.plYtd)}">${kpi.plYtd >= 0 ? '' : '-'}${fmt(Math.abs(kpi.plYtd))}</div><div class="stat-label">Net P&amp;L YTD</div><div class="stat-sub" style="color:${plColor(kpi.plMtd)}">${kpi.plMtd >= 0 ? '' : '-'}${fmt(Math.abs(kpi.plMtd))} this month</div></div>
+  </div>
+  <div class="stat-card slate">
+    <div class="stat-icon slate"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z"/></svg></div>
+    <div><div class="stat-value">${num(kpi.invoiceCount)}</div><div class="stat-label">Total invoices</div><div class="stat-sub">All time</div></div>
+  </div>
+</div>
+
+<div class="exec-section-label">Operations</div>
+<div class="stat-grid mb-6">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+    <div><div class="stat-value">${num(kpi.shipmentsTotal)}</div><div class="stat-label">Total shipments</div><div class="stat-sub">${num(kpi.shipmentsMtd)} this month · ${num(kpi.shipmentsInTransit)} in transit</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3m-6 0h6m-6 10h6"/></svg></div>
+    <div><div class="stat-value">${num(kpi.activeVehicles)} / ${num(kpi.totalVehicles)}</div><div class="stat-label">Fleet utilisation</div><div class="stat-sub">${kpi.fleetUtil}% active</div></div>
+  </div>
+  <div class="stat-card ${band(kpi.complianceScore) === 'green' ? 'green' : band(kpi.complianceScore) === 'amber' ? 'amber' : 'red'}">
+    <div class="stat-icon ${band(kpi.complianceScore) === 'green' ? 'green' : band(kpi.complianceScore) === 'amber' ? 'amber' : 'red'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+    <div><div class="stat-value">${kpi.complianceScore != null ? kpi.complianceScore.toFixed(0) + '%' : '—'}</div><div class="stat-label">Compliance score</div><div class="stat-sub">${kpi.openDefects} open defect${kpi.openDefects === 1 ? '' : 's'}</div></div>
+  </div>
+  <div class="stat-card slate">
+    <div class="stat-icon slate"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+    <div><div class="stat-value">${num(kpi.openDefects)}</div><div class="stat-label">Open defects</div><div class="stat-sub"><a href="/defects" style="color:var(--primary)">View defects →</a></div></div>
+  </div>
+</div>
+
+<div class="exec-section-label">People</div>
+<div class="stat-grid mb-6">
+  <div class="stat-card blue">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+    <div><div class="stat-value">${num(kpi.activeEmployees)}</div><div class="stat-label">Active employees</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg></div>
+    <div><div class="stat-value">${kpi.trainingRate}%</div><div class="stat-label">Training completion</div></div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+    <div><div class="stat-value">${num(kpi.pendingLeave)}</div><div class="stat-label">Leave pending</div><div class="stat-sub">${num(kpi.onLeaveToday)} on leave today</div></div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg></div>
+    <div><div class="stat-value">${num(kpi.rtwAtRisk)}</div><div class="stat-label">RTW / visa at risk</div><div class="stat-sub">within 60 days</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Quick navigation</h3></div>
+    <div class="card-body">
+      <div class="exec-links">
+        <a class="exec-link" href="/finance"><span>Finance overview</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/finance/expenses"><span>Expenses</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/invoices"><span>Invoices</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/dispatch"><span>Live dispatch board</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/fleet/overview"><span>Fleet overview</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/compliance"><span>Compliance overview</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/hr"><span>HR overview</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/lms"><span>Learning management</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/reports"><span>Reports</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <a class="exec-link" href="/super-admin"><span>Super Admin</span><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Watchlist</h3></div>
+    <div class="card-body">
+      <div class="watch-list">
+        ${kpi.openDefects > 0 ? `<div class="watch-item red"><span class="wi-dot red"></span><span>${kpi.openDefects} open vehicle defect${kpi.openDefects === 1 ? '' : 's'}</span><a class="wi-link" href="/defects">View</a></div>` : ''}
+        ${kpi.rtwAtRisk > 0 ? `<div class="watch-item amber"><span class="wi-dot amber"></span><span>${kpi.rtwAtRisk} RTW/visa expiring within 60 days</span><a class="wi-link" href="/sponsored-workers">View</a></div>` : ''}
+        ${kpi.pendingLeave > 0 ? `<div class="watch-item amber"><span class="wi-dot amber"></span><span>${kpi.pendingLeave} leave request${kpi.pendingLeave === 1 ? '' : 's'} awaiting approval</span><a class="wi-link" href="/leave">Approve</a></div>` : ''}
+        ${kpi.complianceScore != null && kpi.complianceScore < 70 ? `<div class="watch-item red"><span class="wi-dot red"></span><span>Compliance score below 70%</span><a class="wi-link" href="/compliance">View</a></div>` : ''}
+        ${kpi.trainingRate < 50 ? `<div class="watch-item amber"><span class="wi-dot amber"></span><span>Training completion at ${kpi.trainingRate}%</span><a class="wi-link" href="/lms">View</a></div>` : ''}
+        ${kpi.openDefects === 0 && kpi.rtwAtRisk === 0 && kpi.pendingLeave === 0 && (kpi.complianceScore == null || kpi.complianceScore >= 70) && kpi.trainingRate >= 50 ? `<div style="padding:16px;color:var(--text-muted);font-size:14px">Nothing requires immediate attention.</div>` : ''}
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .exec-section-label { font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); margin:0 0 10px; padding-top:4px; }
+  .exec-links { display:flex; flex-direction:column; }
+  .exec-link { display:flex; align-items:center; justify-content:space-between; padding:11px 4px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text); font-size:14px; font-weight:500; transition:color .15s; }
+  .exec-link:last-child { border-bottom:none; }
+  .exec-link:hover { color:var(--primary,#2563eb); }
+  .watch-list { display:flex; flex-direction:column; gap:10px; }
+  .watch-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; font-size:13px; font-weight:500; }
+  .watch-item.red { background:var(--danger-bg); }
+  .watch-item.amber { background:var(--warning-bg); }
+  .wi-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .wi-dot.red { background:#ef4444; }
+  .wi-dot.amber { background:#f59e0b; }
+  .wi-link { margin-left:auto; color:var(--primary,#2563eb); text-decoration:none; font-weight:600; flex-shrink:0; }
+  .stat-card.slate { background:var(--surface-2); }
+  .stat-icon.slate { background:var(--border); color:var(--text-muted); }
+</style>
+` }) %>

@@ -38,6 +38,7 @@ const tenantScopedModels = new Set([
   'LeaveRequest',
   'Course',
   'CourseEnrolment',
+  'Expense',
 ]);
 
 const readOperations = new Set([

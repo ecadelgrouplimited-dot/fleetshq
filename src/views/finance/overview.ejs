@@ -1,0 +1,155 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Finance</div>
+    <h1>Finance overview</h1>
+    <p class="page-sub">Revenue, expenses, P&amp;L and outstanding receivables at a glance.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/finance/expenses">Expenses</a>
+    <a class="btn btn-outline" href="/invoices">Invoices</a>
+  </div>
+</div>
+
+<div class="stat-grid mb-6">
+  <div class="stat-card green">
+    <div class="stat-icon green">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div>
+      <div class="stat-value">£${revenue.mtd.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="stat-label">Revenue this month</div>
+      <div class="stat-sub">£${revenue.ytd.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} YTD</div>
+    </div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+    </div>
+    <div>
+      <div class="stat-value">£${expenses.mtd.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="stat-label">Expenses this month</div>
+      <div class="stat-sub">£${expenses.ytd.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} YTD</div>
+    </div>
+  </div>
+  <div class="stat-card ${pl.mtd >= 0 ? 'blue' : 'amber'}">
+    <div class="stat-icon ${pl.mtd >= 0 ? 'blue' : 'amber'}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+    </div>
+    <div>
+      <div class="stat-value">${pl.mtd >= 0 ? '' : '-'}£${Math.abs(pl.mtd).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="stat-label">Net P&amp;L this month</div>
+      <div class="stat-sub">${pl.ytd >= 0 ? '' : '-'}£${Math.abs(pl.ytd).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} YTD</div>
+    </div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    </div>
+    <div>
+      <div class="stat-value">£${outstanding.amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="stat-label">Outstanding receivables</div>
+      <div class="stat-sub">${outstanding.count} invoice${outstanding.count === 1 ? '' : 's'} unpaid</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Unpaid invoices</h3>
+      <a class="btn btn-outline btn-sm" href="/invoices">All invoices</a>
+    </div>
+    ${recentInvoices.length === 0 ? `<div class="empty-state"><p>No unpaid invoices</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ref</th><th>Customer</th><th>Issued</th><th>Amount</th><th></th></tr></thead>
+      <tbody>${recentInvoices.map(inv => `
+        <tr>
+          <td style="font-family:monospace;font-weight:600">${esc(inv.number)}</td>
+          <td class="cell-muted">${esc(inv.customer?.name || '—')}</td>
+          <td class="cell-muted">${formatDate(inv.createdAt)}</td>
+          <td style="font-weight:700">£${Number(inv.total).toFixed(2)}</td>
+          <td>
+            <form method="post" action="/invoices/${inv.id}/pay">
+              <input type="hidden" name="_csrf" value="${csrfToken}">
+              <button class="btn btn-outline btn-sm">Mark paid</button>
+            </form>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Expenses by category</h3>
+      <a class="btn btn-outline btn-sm" href="/finance/expenses">All expenses</a>
+    </div>
+    ${expByCat.length === 0 ? `<div class="empty-state"><p>No expenses logged yet</p></div>` : `
+    <div class="card-body">
+      ${expByCat.map(e => {
+        const amt = Number(e._sum.amount || 0);
+        const max = Number(expByCat[0]._sum.amount || 1);
+        const pct = Math.round((amt / max) * 100);
+        return `<div class="cat-bar">
+          <div class="cat-bar-label">
+            <span>${esc(expenseLabels[e.category] || e.category)}</span>
+            <span style="font-weight:700">£${amt.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+          <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }).join('')}
+    </div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Recent expenses</h3><a class="btn btn-outline btn-sm" href="/finance/expenses">Log expense</a></div>
+    ${recentExpenses.length === 0 ? `<div class="empty-state"><p>No expenses yet</p><div class="empty-hint">Log your first expense on the Expenses page.</div></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th></tr></thead>
+      <tbody>${recentExpenses.map(e => `
+        <tr>
+          <td class="cell-muted">${formatDate(e.expenseDate)}</td>
+          <td><span class="badge badge-slate">${esc(expenseLabels[e.category] || e.category)}</span></td>
+          <td style="font-weight:600">${esc(e.description)}</td>
+          <td style="font-weight:700">£${Number(e.amount).toFixed(2)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>VAT summary (YTD)</h3></div>
+    <div class="card-body">
+      <div class="vat-grid">
+        <div class="vat-item">
+          <div class="vat-label">Output VAT (invoiced)</div>
+          <div class="vat-value green">£${vatOwed.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div class="vat-sub">Collected from customers</div>
+        </div>
+        <div class="vat-item">
+          <div class="vat-label">Total invoiced (excl. VAT)</div>
+          <div class="vat-value">${revenue.ytd > 0 ? '£' + (revenue.ytd - vatOwed).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</div>
+          <div class="vat-sub">Net revenue YTD</div>
+        </div>
+      </div>
+      <p class="cell-muted" style="font-size:12px;margin-top:16px">VAT figures are indicative. Consult your accountant for HMRC submissions.</p>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .cat-bar { margin-bottom:14px; }
+  .cat-bar-label { display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .cat-bar-track { background:var(--border); border-radius:4px; height:6px; }
+  .cat-bar-fill { background:var(--primary,#2563eb); border-radius:4px; height:6px; transition:width .3s; }
+  .vat-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .vat-item { background:var(--surface-2); border:1px solid var(--border); border-radius:10px; padding:16px; }
+  .vat-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:8px; }
+  .vat-value { font-size:22px; font-weight:800; margin-bottom:4px; }
+  .vat-value.green { color:#10b981; }
+  .vat-sub { font-size:12px; color:var(--text-muted); }
+</style>
+` }) %>
