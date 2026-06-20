@@ -34,6 +34,7 @@ const tenantScopedModels = new Set([
   'Job',
   'ProofOfDelivery',
   'Invoice',
+  'FuelLog',
 ]);
 
 const readOperations = new Set([

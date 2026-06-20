@@ -1121,6 +1121,81 @@ router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
+// ══ PHASE 2: Fleet Manager — overview + fuel (must be before /fleet/:id) ══
+const fleetMgrRoles = ['super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager'];
+const daysBetween = (d) => Math.ceil((new Date(d) - new Date()) / 86400000);
+
+router.get('/fleet/overview', webAuth, requireRoles(...fleetRoles), async (req, res) => {
+  try {
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const soon = new Date(); soon.setDate(soon.getDate() + 30);
+    const [vehicles, openDefects, vorOpen, fuelMonth] = await Promise.all([
+      prisma.vehicle.findMany({ where: { status: { not: 'sold' } } }),
+      prisma.defectCase.count({ where: { status: { notIn: ['repaired', 'signed_off'] } } }),
+      prisma.vorRecord.count({ where: { actualReturnDate: null } }),
+      prisma.fuelLog.findMany({ where: { loggedDate: { gte: monthStart } } }),
+    ]);
+    const active = vehicles.filter((v) => v.status === 'active').length;
+    const vor = vehicles.filter((v) => v.status === 'vor').length;
+    const expiring = [];
+    for (const v of vehicles) {
+      const checks = [
+        ['MOT', v.motExpiryDate], ['Insurance', v.insuranceExpiryDate],
+        ['Road tax', v.roadTaxExpiryDate], ['Tacho cal.', v.tachoCalibrExpiry], ['PMI', v.nextPmiDate],
+      ];
+      for (const [label, date] of checks) {
+        if (!date) continue;
+        const d = daysBetween(date);
+        if (d <= 30) expiring.push({ reg: v.registration, id: v.id, label, date, days: d });
+      }
+    }
+    expiring.sort((a, b) => a.days - b.days);
+    const fuelSpend = fuelMonth.reduce((s, f) => s + Number(f.cost), 0);
+    const fuelLitres = fuelMonth.reduce((s, f) => s + Number(f.litres), 0);
+    res.render('fleet/overview', {
+      title: 'Fleet Overview',
+      stats: { total: vehicles.length, active, vor, openDefects, vorOpen, fuelSpend, fuelLitres, fuelLogs: fuelMonth.length, ppl: fuelLitres ? fuelSpend / fuelLitres : 0 },
+      expiring: expiring.slice(0, 12), formatDate, path: '/fleet/overview',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/fleet/fuel', webAuth, requireRoles(...fleetRoles), async (req, res) => {
+  try {
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+    const [logs, vehicles, monthLogs] = await Promise.all([
+      prisma.fuelLog.findMany({ orderBy: { loggedDate: 'desc' }, take: 60 }),
+      prisma.vehicle.findMany({ where: { status: { not: 'sold' } }, select: { id: true, registration: true }, orderBy: { registration: 'asc' } }),
+      prisma.fuelLog.findMany({ where: { loggedDate: { gte: monthStart } } }),
+    ]);
+    const vehMap = Object.fromEntries(vehicles.map((v) => [v.id, v.registration]));
+    const spend = monthLogs.reduce((s, f) => s + Number(f.cost), 0);
+    const litres = monthLogs.reduce((s, f) => s + Number(f.litres), 0);
+    res.render('fleet/fuel', { title: 'Fuel Management', logs, vehicles, vehMap, totals: { spend, litres, ppl: litres ? spend / litres : 0, count: monthLogs.length }, canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/fuel' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/fleet/fuel', webAuth, requireRoles(...fleetMgrRoles), async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.vehicleId) return res.redirect('/fleet/fuel');
+    await prisma.fuelLog.create({
+      data: {
+        vehicleId: b.vehicleId,
+        driverId: b.driverId || null,
+        loggedDate: b.loggedDate ? new Date(b.loggedDate) : new Date(),
+        litres: parseFloat(b.litres) || 0,
+        cost: parseFloat(b.cost) || 0,
+        odometer: b.odometer ? parseInt(b.odometer, 10) : null,
+        fuelCard: b.fuelCard || null,
+        notes: b.notes || null,
+        createdById: req.user.id,
+      },
+    });
+    res.redirect('/fleet/fuel');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 // ── Add Vehicle (must be before /fleet/:id) ───────────────
 router.get('/fleet/new', webAuth, requireRoles(...transportRoles), async (req, res) => {
   try {
@@ -1219,7 +1294,14 @@ router.get('/checks/new', webAuth, async (req, res) => {
     select: { id: true, registration: true, make: true, model: true },
     orderBy: { registration: 'asc' },
   });
-  res.render('checks/form', { title: 'Daily Walk-Around Check', vehicles, CHECK_ITEMS, CHECK_ITEM_LABELS });
+  // A driver checking the vehicle allocated to a shipment job may not be its "assigned"
+  // driver — ensure the requested vehicle is selectable.
+  const preselectVehicle = req.query.vehicle || '';
+  if (preselectVehicle && !vehicles.some((v) => v.id === preselectVehicle)) {
+    const extra = await prisma.vehicle.findUnique({ where: { id: preselectVehicle }, select: { id: true, registration: true, make: true, model: true } });
+    if (extra) vehicles.unshift(extra);
+  }
+  res.render('checks/form', { title: 'Daily Walk-Around Check', vehicles, preselectVehicle, CHECK_ITEMS, CHECK_ITEM_LABELS });
 });
 
 // ── Defects ────────────────────────────────────────────
@@ -2375,7 +2457,17 @@ router.get('/driver/jobs', webAuth, requireRoles(...driverJobRoles), async (req,
       orderBy: { allocatedAt: 'asc' },
       include: { shipment: { include: { customer: true } } },
     });
-    res.render('driver/jobs', { title: 'My Jobs', jobs, svc: shipmentSvc, formatDate, path: '/driver/jobs' });
+    // Tie the daily walk-around check to the job's vehicle.
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const vehicleIds = [...new Set(jobs.map((j) => j.vehicleId).filter(Boolean))];
+    const [checksToday, vehicleRows] = await Promise.all([
+      vehicleIds.length ? prisma.walkAroundCheck.findMany({ where: { vehicleId: { in: vehicleIds }, checkDate: { gte: today } }, select: { vehicleId: true } }) : [],
+      vehicleIds.length ? prisma.vehicle.findMany({ where: { id: { in: vehicleIds } }, select: { id: true, registration: true } }) : [],
+    ]);
+    const checked = new Set(checksToday.map((c) => c.vehicleId));
+    const vehMap = Object.fromEntries(vehicleRows.map((v) => [v.id, v.registration]));
+    const enriched = jobs.map((j) => ({ ...j, vehicleReg: j.vehicleId ? (vehMap[j.vehicleId] || 'Vehicle') : null, vehicleChecked: j.vehicleId ? checked.has(j.vehicleId) : false }));
+    res.render('driver/jobs', { title: 'My Jobs', jobs: enriched, svc: shipmentSvc, formatDate, path: '/driver/jobs' });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2424,6 +2516,31 @@ router.post('/invoices/:id/pay', webAuth, requireRoles(...invoiceRoles), async (
   try {
     await prisma.invoice.update({ where: { id: req.params.id }, data: { status: 'paid', paidAt: new Date() } });
     res.redirect('/invoices');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Compliance & Safety overview (panel home) ─────────────
+const complianceOverviewRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'trainer'];
+router.get('/compliance', webAuth, requireRoles(...complianceOverviewRoles), async (req, res) => {
+  try {
+    const soon = new Date(); soon.setDate(soon.getDate() + 30);
+    const [score, alertGroups, openDefects, vorOpen, sponsored, employees, vehicles, missedToday] = await Promise.all([
+      prisma.complianceScore.findFirst({ orderBy: { scoreDate: 'desc' } }),
+      prisma.alert.groupBy({ by: ['severity'], where: { isResolved: false }, _count: { _all: true } }),
+      prisma.defectCase.count({ where: { status: { notIn: ['repaired', 'signed_off'] } } }),
+      prisma.vorRecord.count({ where: { actualReturnDate: null } }),
+      prisma.sponsoredWorker.findMany({ where: { OR: [{ visaExpiryDate: { lte: soon } }, { rightToWorkFollowupDate: { lte: soon } }] }, include: { employee: { select: { fullName: true, id: true } } } }),
+      prisma.employee.count({ where: { employmentStatus: 'active' } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' } } }),
+      prisma.alert.findMany({ where: { isResolved: false }, orderBy: [{ severity: 'asc' }, { createdAt: 'desc' }], take: 8 }),
+    ]);
+    const sev = Object.fromEntries(alertGroups.map((g) => [g.severity, g._count._all]));
+    res.render('compliance/overview', {
+      title: 'Compliance & Safety',
+      score, sev: { critical: sev.critical || 0, warning: sev.warning || 0, notice: sev.notice || 0 },
+      stats: { openDefects, vorOpen, employees, vehicles, sponsoredAtRisk: sponsored.length },
+      sponsored, alerts: missedToday, formatDate, daysUntil, path: '/compliance',
+    });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

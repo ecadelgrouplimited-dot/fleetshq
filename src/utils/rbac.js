@@ -32,9 +32,9 @@ const PANEL_HOME = {
   client: '/portal',
   driver: '/driver/jobs',
   dispatch: '/dispatch',
-  fleet: '/fleet',
+  fleet: '/fleet/overview',
   finance: '/invoices',
-  compliance: '/audit-evidence',
+  compliance: '/compliance',
   lms: '/training',
 };
 

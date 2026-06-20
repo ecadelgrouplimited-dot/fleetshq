@@ -1018,3 +1018,27 @@ model Invoice {
   @@index([tenantId])
   @@index([status])
 }
+
+// ─────────────────────────────────────────
+// FUEL MANAGEMENT (Phase 2) — scalar tenantId, registered in database.js
+// ─────────────────────────────────────────
+
+model FuelLog {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("00000000-0000-4000-8000-000000000001")
+  vehicleId   String
+  driverId    String?
+  loggedDate  DateTime @default(now())
+  litres      Decimal  @default(0) @db.Decimal(10, 2)
+  cost        Decimal  @default(0) @db.Decimal(10, 2)
+  odometer    Int?
+  fuelCard    String?
+  notes       String?
+  createdById String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([vehicleId])
+  @@index([loggedDate])
+}

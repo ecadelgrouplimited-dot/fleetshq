@@ -1,0 +1,53 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Fleet manager</div>
+    <h1>Fleet overview</h1>
+    <p class="page-sub">Availability, upcoming compliance dates, defects and fuel — at a glance.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/fleet/fuel">Fuel</a>
+    <a class="btn btn-outline" href="/fleet/pmi-planner">PMI planner</a>
+    <a class="btn btn-primary" href="/fleet">All vehicles</a>
+  </div>
+</div>
+
+<div class="stat-grid mb-6">
+  <a href="/fleet" class="stat-card blue">
+    <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 7h.01"/></svg></div>
+    <div><div class="stat-value">${stats.active}/${stats.total}</div><div class="stat-label">Active vehicles</div><div class="stat-sub">${stats.total} in fleet</div></div>
+  </a>
+  <a href="/vor" class="stat-card ${stats.vor > 0 ? 'red' : 'green'}">
+    <div class="stat-icon ${stats.vor > 0 ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg></div>
+    <div><div class="stat-value">${stats.vor}</div><div class="stat-label">Off road (VOR)</div><div class="stat-sub">${stats.vorOpen} open record${stats.vorOpen === 1 ? '' : 's'}</div></div>
+  </a>
+  <a href="/defects" class="stat-card ${stats.openDefects > 0 ? 'amber' : 'green'}">
+    <div class="stat-icon ${stats.openDefects > 0 ? 'amber' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+    <div><div class="stat-value">${stats.openDefects}</div><div class="stat-label">Open defects</div></div>
+  </a>
+  <a href="/fleet/fuel" class="stat-card green">
+    <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h6a2 2 0 002-2V7M3 7l2-3h6l2 3M3 7h10m4 2l2 1v6a2 2 0 11-4 0V7"/></svg></div>
+    <div><div class="stat-value">£${stats.fuelSpend.toFixed(0)}</div><div class="stat-label">Fuel this month</div><div class="stat-sub">${stats.fuelLitres.toFixed(0)} L · £${stats.ppl.toFixed(2)}/L</div></div>
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Compliance dates due (next 30 days)</h3><a class="btn btn-outline btn-sm" href="/fleet">Manage fleet</a></div>
+  ${expiring.length === 0 ? `<div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><p>Nothing due in the next 30 days</p><div class="empty-hint">MOT, PMI, insurance, road tax and tacho calibration are all clear.</div></div>` : `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Vehicle</th><th>Item</th><th>Due</th><th>Status</th></tr></thead>
+      <tbody>
+        ${expiring.map(e => `
+          <tr>
+            <td><a href="/fleet/${e.id}" style="font-weight:700">${esc(e.reg)}</a></td>
+            <td>${esc(e.label)}</td>
+            <td>${formatDate(e.date)}</td>
+            <td><span class="badge ${e.days < 0 ? 'badge-red' : e.days <= 7 ? 'badge-red' : e.days <= 14 ? 'badge-amber' : 'badge-slate'}">${e.days < 0 ? Math.abs(e.days) + ' days overdue' : 'in ' + e.days + ' days'}</span></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+` }) %>

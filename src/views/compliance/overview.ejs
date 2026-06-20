@@ -1,0 +1,101 @@
+<%
+  const sc = score || {};
+  const ov = sc.overallScore != null ? Number(sc.overallScore) : null;
+  const band = (n) => n == null ? 'slate' : n >= 85 ? 'green' : n >= 70 ? 'amber' : 'red';
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Compliance &amp; safety</div>
+    <h1>Compliance overview</h1>
+    <p class="page-sub">Live risk across people, fleet and drivers — and the evidence behind it.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/driver-risk">Driver risk</a>
+    <a class="btn btn-primary" href="/audit-evidence">Audit evidence</a>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card">
+    <div class="card-header"><h3>Compliance score</h3></div>
+    <div class="card-body">
+      ${ov == null ? `<div class="empty-state" style="padding:24px"><p>No score calculated yet</p><div class="empty-hint">Scores compute from records, expiries and checks.</div></div>` : `
+      <div class="score-row">
+        ${[['Overall', ov],['People', Number(sc.peopleScore)],['Fleet', Number(sc.fleetScore)],['Driver', Number(sc.driverScore)]].map(([label,val]) => `
+          <div class="score-pill ${band(val)}">
+            <div class="sp-val">${val.toFixed(0)}<sup>%</sup></div>
+            <div class="sp-lbl">${label}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="cell-muted" style="margin-top:12px;font-size:12px">As of ${formatDate(sc.scoreDate)}</div>`}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Open alerts</h3></div>
+    <div class="card-body">
+      <div class="alert-counts">
+        <a href="/" class="ac-pill critical"><strong>${sev.critical}</strong><span>Critical</span></a>
+        <a href="/" class="ac-pill warning"><strong>${sev.warning}</strong><span>Warning</span></a>
+        <a href="/" class="ac-pill notice"><strong>${sev.notice}</strong><span>Notice</span></a>
+      </div>
+      <div class="risk-strip">
+        <a href="/defects" class="rs"><strong>${stats.openDefects}</strong><span>Open defects</span></a>
+        <a href="/vor" class="rs"><strong>${stats.vorOpen}</strong><span>Vehicles VOR</span></a>
+        <a href="/sponsored-workers" class="rs"><strong>${stats.sponsoredAtRisk}</strong><span>RTW/visa at risk</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Right-to-work &amp; visa watch</h3><a class="btn btn-outline btn-sm" href="/sponsored-workers">All sponsored</a></div>
+    ${sponsored.length === 0 ? `<div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><p>No RTW or visa dates due soon</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Worker</th><th>Visa expiry</th><th>RTW follow-up</th></tr></thead>
+      <tbody>${sponsored.map(s => `
+        <tr>
+          <td style="font-weight:600">${esc(s.employee ? s.employee.fullName : '—')}</td>
+          <td><span class="badge ${daysUntil(s.visaExpiryDate) <= 30 ? 'badge-amber' : 'badge-slate'}">${formatDate(s.visaExpiryDate)}</span></td>
+          <td class="cell-muted">${s.rightToWorkFollowupDate ? formatDate(s.rightToWorkFollowupDate) : '—'}</td>
+        </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Latest alerts</h3></div>
+    <div class="dashboard-alert-scroll" style="max-height:340px">
+      ${alerts.length === 0 ? `<div class="empty-state"><p>All clear</p><div class="empty-hint">No active compliance alerts.</div></div>` : `
+      <div style="padding:8px">${alerts.map(a => `
+        <div class="alert-item ${a.severity}" style="margin-bottom:8px">
+          <div class="alert-indicator ${a.severity}"></div>
+          <div class="alert-body"><div class="alert-msg" style="font-size:14px">${esc(a.message)}</div><div class="alert-meta">${esc(a.entityName || '')} · ${a.severity}</div></div>
+        </div>`).join('')}</div>`}
+    </div>
+  </div>
+</div>
+
+<style>
+  .score-row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .score-pill { border:1px solid var(--border); border-radius:12px; padding:16px 12px; text-align:center; }
+  .score-pill.green { background:var(--success-bg); border-color:rgba(16,185,129,.3); }
+  .score-pill.amber { background:var(--warning-bg); border-color:rgba(245,158,11,.3); }
+  .score-pill.red { background:var(--danger-bg); border-color:rgba(239,68,68,.3); }
+  .sp-val { font-size:30px; font-weight:900; letter-spacing:-1px; }
+  .sp-val sup { font-size:14px; opacity:.7; }
+  .sp-lbl { font-size:12px; font-weight:700; color:var(--text-muted); margin-top:2px; text-transform:uppercase; letter-spacing:.04em; }
+  .alert-counts { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+  .ac-pill { display:flex; flex-direction:column; align-items:center; padding:14px; border-radius:12px; border:1px solid var(--border); text-decoration:none; color:var(--text); }
+  .ac-pill strong { font-size:26px; font-weight:900; }
+  .ac-pill span { font-size:12px; color:var(--text-muted); font-weight:600; }
+  .ac-pill.critical { background:var(--danger-bg); } .ac-pill.warning { background:var(--warning-bg); } .ac-pill.notice { background:var(--notice-bg); }
+  .risk-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .rs { display:flex; flex-direction:column; align-items:center; padding:12px; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); background:var(--surface-2); }
+  .rs strong { font-size:22px; font-weight:800; }
+  .rs span { font-size:11.5px; color:var(--text-muted); }
+  @media (max-width:640px){ .score-row { grid-template-columns:repeat(2,1fr); } }
+</style>
+` }) %>
