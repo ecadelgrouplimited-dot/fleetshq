@@ -417,6 +417,23 @@
       document.documentElement.setAttribute('data-theme', next);
       try { localStorage.setItem('theme', next); } catch (e) {}
       document.cookie = 'theme=' + next + '; path=/; max-age=31536000; samesite=lax';
+      // Update Chart.js defaults and re-render all live chart instances (DA-01)
+      if (window.Chart && Chart.instances) {
+        var isDark = next === 'dark';
+        var gridColor = isDark ? 'rgba(148,163,184,0.16)' : '#e2e8f0';
+        var textColor = isDark ? '#93a4bd' : '#64748b';
+        Chart.defaults.color = textColor;
+        Chart.defaults.borderColor = gridColor;
+        Object.values(Chart.instances).forEach(function(chart) {
+          if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach(function(scale) {
+              if (scale.grid) scale.grid.color = gridColor;
+              if (scale.ticks) scale.ticks.color = textColor;
+            });
+          }
+          chart.update('none');
+        });
+      }
     });
   })();
 

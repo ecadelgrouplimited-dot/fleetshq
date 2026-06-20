@@ -147,7 +147,7 @@
             <div class="dashboard-talk-topic">${talk.topic}</div>
             <div class="dashboard-talk-meta">Issued ${formatDate(talk.dateIssued)} by ${esc(talk.issuedBy.firstName)} ${esc(talk.issuedBy.lastName)}</div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="signToolboxTalk('${talk.id}', this)">Sign now</button>
+          <button class="btn btn-primary btn-sm" data-sign-talk="${talk.id}">Sign now</button>
         </div>
       `).join('')}
     </div>
@@ -304,25 +304,27 @@
 </style>
 
 <script>
-async function signToolboxTalk(id, button) {
-  const original = button.textContent;
-  button.disabled = true;
-  button.textContent = 'Signing...';
-  try {
-    const res = await fetch('/api/v1/toolbox-talks/' + id + '/sign', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      body: JSON.stringify({ signatureData: 'signed-via-driver-dashboard' }),
+(function() {
+  document.querySelectorAll('[data-sign-talk]').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var id = btn.getAttribute('data-sign-talk');
+      setButtonLoading(btn, true, 'Signing...');
+      try {
+        var res = await fetch('/api/v1/toolbox-talks/' + id + '/sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ signatureData: 'signed-via-driver-dashboard' }),
+        });
+        if (!res.ok) throw new Error('Unable to sign toolbox talk');
+        showToast('Toolbox talk signed successfully', 'success');
+        setTimeout(function() { window.location.reload(); }, 500);
+      } catch (err) {
+        setButtonLoading(btn, false);
+        showToast(err.message || 'Unable to sign toolbox talk', 'error');
+      }
     });
-    if (!res.ok) throw new Error('Unable to sign toolbox talk');
-    showToast('Toolbox talk signed successfully', 'success');
-    setTimeout(() => window.location.reload(), 500);
-  } catch (error) {
-    button.disabled = false;
-    button.textContent = original;
-    showToast(error.message || 'Unable to sign toolbox talk', 'error');
-  }
-}
+  });
+})();
 </script>
 ` }) %>

@@ -2519,6 +2519,41 @@ router.post('/invoices/:id/pay', webAuth, requireRoles(...invoiceRoles), async (
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
+router.post('/invoices/:id/remind', webAuth, requireRoles(...invoiceRoles), async (req, res) => {
+  try {
+    const invoice = await prisma.invoice.findFirst({
+      where: { id: req.params.id },
+      include: { customer: true, shipment: true },
+    });
+    if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+    if (invoice.status === 'paid') return res.status(400).json({ error: 'Invoice is already paid' });
+    if (!invoice.customer?.email) return res.status(400).json({ error: 'Customer has no email address on file' });
+
+    const dueStr = invoice.dueDate
+      ? new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      : 'as agreed';
+
+    await sendMail({
+      to: invoice.customer.email,
+      subject: `Payment reminder — Invoice ${invoice.number}`,
+      text: [
+        `Dear ${invoice.customer.name},`,
+        '',
+        `This is a friendly reminder that invoice ${invoice.number} for £${Number(invoice.total).toFixed(2)} is due ${dueStr}.`,
+        '',
+        'If you have already made payment, please disregard this message.',
+        '',
+        '256 Logistics Ltd',
+      ].join('\n'),
+      html: `<p>Dear ${esc(invoice.customer.name)},</p><p>This is a friendly reminder that invoice <strong>${esc(invoice.number)}</strong> for <strong>£${Number(invoice.total).toFixed(2)}</strong> is due <strong>${dueStr}</strong>.</p><p>If you have already made payment, please disregard this message.</p><p>256 Logistics Ltd</p>`,
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Could not send reminder' });
+  }
+});
+
 // ── Compliance & Safety overview (panel home) ─────────────
 const complianceOverviewRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'trainer'];
 router.get('/compliance', webAuth, requireRoles(...complianceOverviewRoles), async (req, res) => {
@@ -2755,9 +2790,20 @@ router.get('/finance', webAuth, requireRoles(...financeRoles), async (req, res) 
     const outstanding = await prisma.invoice.aggregate({ where: { status: { in: ['issued', 'overdue'] } }, _sum: { total: true }, _count: { _all: true } });
     const vatOwed = await prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { vat: true } });
 
+    // 30-day daily revenue for bar chart
+    const thirtyAgo = new Date(); thirtyAgo.setDate(thirtyAgo.getDate() - 29);
+    const last30 = await prisma.invoice.findMany({ where: { createdAt: { gte: thirtyAgo } }, select: { createdAt: true, total: true } });
+    const revenueChart = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (29 - i));
+      const dayTotal = last30
+        .filter(inv => { const c = new Date(inv.createdAt); return c.getDate() === d.getDate() && c.getMonth() === d.getMonth() && c.getFullYear() === d.getFullYear(); })
+        .reduce((s, inv) => s + Number(inv.total), 0);
+      return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total: dayTotal };
+    });
+
     res.render('finance/overview', {
       title: 'Finance Overview', revenue, expenses, pl, outstanding: { amount: Number(outstanding._sum.total || 0), count: outstanding._count._all },
-      vatOwed: Number(vatOwed._sum.vat || 0), expByCat, recentExpenses, recentInvoices,
+      vatOwed: Number(vatOwed._sum.vat || 0), expByCat, recentExpenses, recentInvoices, revenueChart,
       expenseLabels: EXPENSE_LABELS, formatDate, path: '/finance',
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }

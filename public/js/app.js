@@ -278,9 +278,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Auto-loading state on form submit buttons (prevents double-submit)
-  // Activate by adding data-loading-btn to a submit button, or data-form-loading to a form.
+  // Also adds submit-attempted class for client-side :invalid styling (G-05)
   document.querySelectorAll('form[data-form-loading], form[method="post"]').forEach(function(form) {
     form.addEventListener('submit', function() {
+      form.classList.add('submit-attempted');
       var btn = form.querySelector('button[type="submit"], button:not([type="button"])');
       if (btn && !btn.disabled) {
         setButtonLoading(btn, true);

@@ -19,19 +19,57 @@
     <table>
       <thead><tr><th>Number</th><th>Customer</th><th>Shipment</th><th>Total</th><th>Status</th><th>Due</th><th></th></tr></thead>
       <tbody>
-        ${invoices.map(i => `
+        ${invoices.map(i => {
+          const isOverdue = i.dueDate && new Date(i.dueDate) < new Date() && i.status !== 'paid';
+          return `
           <tr>
             <td style="font-family:monospace;font-weight:700">${esc(i.number)}</td>
             <td>${esc(i.customer ? i.customer.name : '—')}</td>
             <td>${i.shipment ? `<a href="/shipments/${i.shipmentId}" style="font-family:monospace">${esc(i.shipment.reference)}</a>` : '—'}</td>
             <td style="font-weight:700">£${Number(i.total).toFixed(2)}</td>
-            <td><span class="badge ${i.status === 'paid' ? 'badge-green' : i.status === 'overdue' ? 'badge-red' : 'badge-amber'}">${esc(i.status)}</span></td>
+            <td>
+              <span class="badge ${i.status === 'paid' ? 'badge-green' : isOverdue ? 'badge-red' : 'badge-amber'}">${isOverdue && i.status !== 'overdue' ? 'overdue' : esc(i.status)}</span>
+            </td>
             <td class="cell-muted">${i.dueDate ? formatDate(i.dueDate) : '—'}</td>
-            <td>${i.status !== 'paid' ? `<form method="post" action="/invoices/${i.id}/pay"><input type="hidden" name="_csrf" value="${csrfToken}"><button class="btn btn-outline btn-sm">Mark paid</button></form>` : '<span class="cell-muted">—</span>'}</td>
-          </tr>
-        `).join('')}
+            <td>
+              ${i.status !== 'paid' ? `
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <form method="post" action="/invoices/${i.id}/pay"><input type="hidden" name="_csrf" value="${csrfToken}"><button class="btn btn-outline btn-sm">Mark paid</button></form>
+                ${i.customer?.email ? `<button class="btn btn-ghost btn-sm" data-remind-invoice="${i.id}" data-csrf="${csrfToken}">Send reminder</button>` : ''}
+              </div>` : '<span class="cell-muted">—</span>'}
+            </td>
+          </tr>`;
+        }).join('')}
       </tbody>
     </table>
   </div>`}
 </div>
+
+<script>
+(function() {
+  document.querySelectorAll('[data-remind-invoice]').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var id = btn.getAttribute('data-remind-invoice');
+      var csrf = btn.getAttribute('data-csrf');
+      setButtonLoading(btn, true, 'Sending...');
+      try {
+        var res = await fetch('/invoices/' + id + '/remind', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+          credentials: 'same-origin',
+        });
+        var data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send reminder');
+        showToast('Reminder sent to customer', 'success');
+        setButtonLoading(btn, false);
+        btn.disabled = true;
+        btn.textContent = 'Sent ✓';
+      } catch (err) {
+        setButtonLoading(btn, false);
+        showToast(err.message || 'Could not send reminder', 'error');
+      }
+    });
+  });
+})();
+</script>
 ` }) %>
