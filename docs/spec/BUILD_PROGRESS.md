@@ -4,7 +4,7 @@
 > [00 §6](00-product-vision-and-architecture.md#6-phased-build-roadmap); decisions in
 > [DECISIONS.md](DECISIONS.md). Legend: ✅ done · 🔨 in progress · ⏳ next · ⬜ planned.
 
-**Now:** Phase 0 complete → moving to Phase 1 (shipment spine). **Decisions:** multi-tenant SaaS · invoice-only · P0 start.
+**Now:** Phase 1 (shipment spine) complete → next is Phase 2 (fleet & compliance). **Decisions:** multi-tenant SaaS · invoice-only · P0 start.
 
 ---
 
@@ -18,8 +18,16 @@
 | P0.4 | **Public marketing site** (home/about/mission/services/contact/footer + loading + theme toggle) | ✅ | Public home/services/about/contact/track routes; lead capture; loading screen; public theme toggle; footer; route tests. |
 | P0.5 | **Super Admin** (platform tenant mgmt + per-tenant users/company/branches) | ✅ | `/super-admin` control room; platform tenant provisioning/status; company profile; branches; branch-aware users; service types/rates; system config; director read-only access. |
 
-## Phase 1 — Shipment spine (MVP core) ⬜
-Pricing/services config · Client booking + quotes · Dispatcher allocation + tracking · Driver job→pickup→delivery→POD · basic invoicing (invoice-only).
+## Phase 1 — Shipment spine (MVP core) ✅
+| ID | Item | Status | Notes |
+|----|------|--------|-------|
+| P1.1 | Shipment domain + pricing | ✅ | Customer/Shipment/Parcel/TrackingEvent/Job/ProofOfDelivery/Invoice models (additive migration, tenant-scoped); pricing engine (base + mileage + overweight + VAT). |
+| P1.2 | Client portal | ✅ | `/portal` dashboard, `/book` with live AJAX quote, `/shipments` list + filters, `/shipments/:id` detail with timeline + price breakdown. |
+| P1.3 | Dispatch | ✅ | `/dispatch` board — unallocated queue, allocate driver+vehicle (Job), in-motion view, status transitions. |
+| P1.4 | Driver | ✅ | `/driver/jobs` — accept, collect, deliver with POD (recipient/signature/notes) modal; driver-scoped. |
+| P1.5 | Invoicing + public tracking | ✅ | Generate invoice from delivered shipment (idempotent), `/invoices` list + mark-paid; public `/track` wired to real shipment references with live timeline. |
+
+End-to-end verified (book → allocate → collect → in-transit → out-for-delivery → deliver/POD → invoice → public track). 46/46 tests pass.
 
 ## Phase 2 — Fleet & Compliance ⬜
 Fleet Manager (vehicles/maintenance/fuel) · Compliance & Safety panel (re-house existing) · vehicle checks tied to driver jobs.
@@ -42,4 +50,5 @@ Telematics · tacho integration · native driver app · live card payments · ro
 - **2026-06-19** — ✅ **P0.3 panel-scoped roles + nav shell** shipped: 10-panel role enum, multi-role `roles[]`, branch membership placeholder, centralized RBAC/panel mapping, panel switcher, multi-role user management, and focused RBAC tests. Verified 32/32 tests pass.
 - **2026-06-19** — ✅ **P0.4 public marketing site** shipped: expanded `/welcome` into public home/about/services/contact/track pages, added CSRF-protected lead capture with tenant-aware `PublicLead`, loading screen, public theme toggle, footer, and route coverage. Verified 39/39 tests pass.
 - **2026-06-19** — ✅ **P0.5 Super Admin** shipped: added `ServiceType`/`SystemConfig`, `/super-admin` platform control room, tenant provisioning/status tools, company/branch management, branch-aware user assignment, service rate basics, system notification/tracking config, and read-only director access. Verified 42/42 tests pass.
+- **2026-06-20** — ✅ **Phase 1 — shipment spine** shipped: new shipment domain (Customer, Shipment, Parcel, TrackingEvent, Job, ProofOfDelivery, Invoice — additive migration, tenant-scoped) + pricing engine; client portal (dashboard, book with live quote, shipment list + detail/timeline); dispatch board (allocate driver+vehicle, status board); driver flow (accept/collect/deliver + POD); invoicing (generate from delivered, mark paid); public `/track` wired to real shipments. Full lifecycle verified end-to-end; 46/46 tests pass.
 - **2026-06-20** — ✨ **Polish pass.** Redesigned the public site to a premium standard (ambient cinematic field, operations-console hero with floating status chips, stats count-up, scroll-reveal, "how it works" flow, gold ECADEL credit band, richer footer) across all 5 pages in light + dark — verified both themes. Fixed Super Admin broken CSS variables (`--card-bg`/`--surface`/`--success-soft` → real theme tokens). Phase 0 complete; 42/42 tests pass.

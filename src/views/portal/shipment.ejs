@@ -1,0 +1,96 @@
+<%
+  const s = shipment;
+  const lines = Array.isArray(s.priceBreakdown) ? s.priceBreakdown : [];
+  const isFinal = s.status === 'delivered' || s.status === 'cancelled';
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Shipment</div>
+    <h1 style="font-family:monospace;letter-spacing:-1px">${esc(s.reference)}</h1>
+    <p class="page-sub">${esc(s.serviceName)}${s.customer ? ' · ' + esc(s.customer.name) : ''}</p>
+  </div>
+  <div class="page-head-actions">
+    <span class="badge ${svc.statusBadge(s.status)}" style="font-size:13px;padding:7px 14px">${esc(svc.statusLabel(s.status))}</span>
+    <a class="btn btn-outline" href="/shipments">Back</a>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card"><div class="card-header"><h3>Pickup</h3></div><div class="card-body">
+    <div style="font-weight:600">${esc(s.pickupContact || 'Contact n/a')}</div>
+    <div class="cell-muted" style="white-space:pre-line">${esc(s.pickupAddress)}</div>
+    ${s.pickupPostcode ? `<div class="cell-muted">${esc(s.pickupPostcode)}</div>` : ''}
+  </div></div>
+  <div class="card"><div class="card-header"><h3>Delivery</h3></div><div class="card-body">
+    <div style="font-weight:600">${esc(s.deliveryContact || 'Contact n/a')}</div>
+    <div class="cell-muted" style="white-space:pre-line">${esc(s.deliveryAddress)}</div>
+    ${s.deliveryPostcode ? `<div class="cell-muted">${esc(s.deliveryPostcode)}</div>` : ''}
+  </div></div>
+</div>
+
+<div class="grid-2 mb-4">
+  <div class="card"><div class="card-header"><h3>Load &amp; schedule</h3></div><div class="card-body">
+    <div class="info-row">
+      <div class="info-item"><label class="form-label">Parcels</label><div>${s.parcelCount}</div></div>
+      <div class="info-item"><label class="form-label">Weight</label><div>${Number(s.weightKg).toFixed(0)} kg</div></div>
+      <div class="info-item"><label class="form-label">Distance</label><div>${Number(s.distanceMiles).toFixed(0)} mi</div></div>
+    </div>
+    <div class="info-row" style="margin-top:10px">
+      <div class="info-item"><label class="form-label">Collection</label><div>${s.collectionDate ? formatDate(s.collectionDate) : '—'}</div></div>
+      <div class="info-item"><label class="form-label">ETA window</label><div>${esc(s.etaWindow || '—')}</div></div>
+    </div>
+    ${(driver || vehicle) ? `<div class="info-row" style="margin-top:10px">
+      <div class="info-item"><label class="form-label">Driver</label><div>${esc(driver ? driver.fullName : 'Unassigned')}</div></div>
+      <div class="info-item"><label class="form-label">Vehicle</label><div>${esc(vehicle ? vehicle.registration : 'Unassigned')}</div></div>
+    </div>` : ''}
+    ${s.instructions ? `<div style="margin-top:12px"><label class="form-label">Instructions</label><div class="cell-muted">${esc(s.instructions)}</div></div>` : ''}
+  </div></div>
+
+  <div class="card"><div class="card-header"><h3>Price</h3></div><div class="card-body">
+    ${lines.map(l => `<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--text-muted)"><span>${esc(l.label)}</span><span>£${Number(l.amount).toFixed(2)}</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:var(--text-muted)"><span>VAT (20%)</span><span>£${Number(s.priceVat).toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;padding-top:10px;margin-top:6px;border-top:1px solid var(--border);font-size:20px;font-weight:800"><span>Total</span><span>£${Number(s.priceTotal).toFixed(2)}</span></div>
+    ${s.invoice ? `<div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between"><a href="/invoices" style="font-weight:700">${esc(s.invoice.number)}</a><span class="badge ${s.invoice.status === 'paid' ? 'badge-green' : 'badge-amber'}">${esc(s.invoice.status)}</span></div>` : ''}
+  </div></div>
+</div>
+
+${(canManage || canInvoice) ? `
+<div class="card mb-4"><div class="card-header"><h3>Actions</h3></div><div class="card-body" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+  ${(canManage && !isFinal) ? `
+    ${s.status === 'allocated' ? `<form method="post" action="/shipments/${s.id}/status"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="status" value="collected"><button class="btn btn-outline">Mark collected</button></form>` : ''}
+    ${s.status === 'collected' ? `<form method="post" action="/shipments/${s.id}/status"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="status" value="in_transit"><button class="btn btn-outline">In transit</button></form>` : ''}
+    ${s.status === 'in_transit' ? `<form method="post" action="/shipments/${s.id}/status"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="status" value="out_for_delivery"><button class="btn btn-outline">Out for delivery</button></form>` : ''}
+    ${s.status === 'booked' ? `<a class="btn btn-primary" href="/dispatch">Allocate in dispatch →</a>` : ''}
+    <form method="post" action="/shipments/${s.id}/status" onsubmit="return confirm('Cancel this shipment?')"><input type="hidden" name="_csrf" value="${csrfToken}"><input type="hidden" name="status" value="cancelled"><button class="btn btn-outline" style="color:#dc2626;border-color:#fca5a5">Cancel shipment</button></form>
+  ` : ''}
+  ${(canInvoice && s.status === 'delivered' && !s.invoice) ? `<form method="post" action="/shipments/${s.id}/invoice"><input type="hidden" name="_csrf" value="${csrfToken}"><button class="btn btn-primary">Generate invoice</button></form>` : ''}
+  ${isFinal && canManage && !canInvoice ? `<span class="cell-muted">Shipment ${esc(svc.statusLabel(s.status).toLowerCase())}.</span>` : ''}
+</div></div>` : ''}
+
+<div class="card"><div class="card-header"><h3>Tracking timeline</h3></div><div class="card-body">
+  ${s.events.length === 0 ? '<p class="cell-muted">No events yet.</p>' : `
+  <div class="ship-timeline">
+    ${s.events.map(ev => `
+      <div class="ste">
+        <span class="ste-dot ${ev.type === 'delivered' ? 'done' : ev.type === 'exception' ? 'warn' : ''}"></span>
+        <div><div class="ste-h"><strong>${esc(ev.label)}</strong><span>${formatDate(ev.createdAt)}</span></div>${ev.detail ? `<p>${esc(ev.detail)}</p>` : ''}</div>
+      </div>
+    `).join('')}
+  </div>`}
+</div></div>
+
+<style>
+  .ship-timeline { display:grid; gap:0; }
+  .ste { position:relative; display:flex; gap:14px; padding:0 0 18px 0; }
+  .ste:not(:last-child)::after { content:''; position:absolute; left:6px; top:16px; bottom:0; width:2px; background:var(--border); }
+  .ste-dot { width:14px; height:14px; border-radius:50%; flex:0 0 14px; margin-top:3px; background:var(--primary); box-shadow:0 0 0 4px rgba(37,99,235,.15); z-index:1; }
+  .ste-dot.done { background:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.18); }
+  .ste-dot.warn { background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.18); }
+  .ste-h { display:flex; justify-content:space-between; gap:12px; }
+  .ste-h span { color:var(--text-muted); font-size:12px; }
+  .ste p { margin:3px 0 0; color:var(--text-muted); font-size:13px; }
+  .info-row { display:flex; gap:24px; flex-wrap:wrap; }
+  .info-item { min-width:90px; }
+</style>
+` }) %>

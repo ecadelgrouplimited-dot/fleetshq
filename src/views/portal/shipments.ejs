@@ -1,0 +1,40 @@
+<%
+  const statuses = [['','All'],['booked','Booked'],['allocated','Allocated'],['collected','Collected'],['in_transit','In transit'],['out_for_delivery','Out for delivery'],['delivered','Delivered'],['cancelled','Cancelled']];
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Client portal</div>
+    <h1>Shipments</h1>
+    <p class="page-sub">${shipments.length} shipment${shipments.length === 1 ? '' : 's'}${status ? ' · ' + esc(svc.statusLabel(status)) : ''}.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-primary" href="/book">Book a shipment</a></div>
+</div>
+
+<div class="chip-row mb-4">
+  ${statuses.map(([val, label]) => `<a class="chip ${status === val ? 'active' : ''}" href="/shipments${val ? '?status=' + val : ''}">${label}</a>`).join('')}
+</div>
+
+<div class="card">
+  ${shipments.length === 0 ? `<div class="empty-state"><p>No shipments found</p><div class="empty-hint">Try a different filter or book a new shipment.</div></div>` : `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Route</th><th>Status</th><th>Total</th><th>Invoice</th><th></th></tr></thead>
+      <tbody>
+        ${shipments.map(s => `
+          <tr>
+            <td><a href="/shipments/${s.id}" style="font-family:monospace;font-weight:700">${esc(s.reference)}</a></td>
+            <td>${esc(s.customer ? s.customer.name : '—')}</td>
+            <td>${esc(s.serviceName)}</td>
+            <td class="cell-muted">${esc((s.pickupPostcode || s.pickupAddress || '').slice(0,18))} → ${esc((s.deliveryPostcode || s.deliveryAddress || '').slice(0,18))}</td>
+            <td><span class="badge ${svc.statusBadge(s.status)}">${esc(svc.statusLabel(s.status))}</span></td>
+            <td style="font-weight:700">£${Number(s.priceTotal).toFixed(2)}</td>
+            <td>${s.invoice ? `<span class="badge ${s.invoice.status === 'paid' ? 'badge-green' : 'badge-amber'}">${esc(s.invoice.status)}</span>` : '<span class="cell-muted">—</span>'}</td>
+            <td><a class="btn btn-outline btn-sm" href="/shipments/${s.id}">View</a></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+` }) %>

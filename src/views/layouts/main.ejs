@@ -50,6 +50,10 @@
   <% const canSeeFleet = hasAny('super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager', 'garage'); %>
   <% const canSeeCompliance = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'trainer', 'garage'); %>
   <% const canSeeAuditEvidence = hasAny('super_admin', 'director', 'transport_manager', 'hr_manager', 'trainer'); %>
+  <% const canSeeLogistics = hasAny('super_admin', 'director', 'operations_manager', 'transport_manager', 'client'); %>
+  <% const canDispatch = hasAny('super_admin', 'director', 'operations_manager', 'transport_manager'); %>
+  <% const canSeeJobs = hasAny('super_admin', 'director', 'operations_manager', 'transport_manager', 'driver'); %>
+  <% const canSeeInvoices = hasAny('super_admin', 'director', 'finance_officer'); %>
 
   <div class="sidebar-traffic" aria-hidden="true">
     <i class="r"></i><i class="y"></i><i class="g"></i>
@@ -76,6 +80,46 @@
       </a>
     </nav>
   </div>
+
+  <% if (canSeeLogistics || canSeeJobs || canSeeInvoices) { %>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Logistics</div>
+    <nav>
+      <% if (canSeeLogistics) { %>
+      <a href="/portal" class="<%= title === 'Client Portal' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+        Client Portal
+      </a>
+      <a href="/book" class="<%= title === 'Book a shipment' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Book a shipment
+      </a>
+      <a href="/shipments" class="<%= title === 'Shipments' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        Shipments
+      </a>
+      <% } %>
+      <% if (canDispatch) { %>
+      <a href="/dispatch" class="<%= title === 'Dispatch' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+        Dispatch
+      </a>
+      <% } %>
+      <% if (canSeeJobs) { %>
+      <a href="/driver/jobs" class="<%= title === 'My Jobs' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+        <%= isDriver ? 'My Jobs' : 'Driver Jobs' %>
+      </a>
+      <% } %>
+      <% if (canSeeInvoices) { %>
+      <a href="/invoices" class="<%= title === 'Invoices' ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m-2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Invoices
+      </a>
+      <% } %>
+    </nav>
+  </div>
+  <% } %>
 
   <% if (isDriver) { %>
   <div class="sidebar-section">

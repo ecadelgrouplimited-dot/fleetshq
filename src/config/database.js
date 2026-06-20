@@ -27,6 +27,13 @@ const tenantScopedModels = new Set([
   'PublicLead',
   'ServiceType',
   'SystemConfig',
+  'Customer',
+  'Shipment',
+  'Parcel',
+  'TrackingEvent',
+  'Job',
+  'ProofOfDelivery',
+  'Invoice',
 ]);
 
 const readOperations = new Set([

@@ -1,0 +1,56 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Operations</div>
+    <h1>Dispatch board</h1>
+    <p class="page-sub">Allocate booked shipments to a driver and vehicle, then track them to delivery.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/shipments">All shipments</a></div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h3>Unallocated <span class="badge badge-amber">${unallocated.length}</span></h3></div>
+    <div class="card-body" style="display:grid;gap:12px">
+      ${unallocated.length === 0 ? '<div class="empty-state" style="padding:30px"><p>Nothing waiting</p><div class="empty-hint">Booked shipments appear here for allocation.</div></div>' : unallocated.map(s => `
+        <form method="post" action="/dispatch/${s.id}/allocate" class="alloc-card">
+          <input type="hidden" name="_csrf" value="${csrfToken}">
+          <div class="alloc-head">
+            <a href="/shipments/${s.id}" style="font-family:monospace;font-weight:700">${esc(s.reference)}</a>
+            <span class="cell-muted">£${Number(s.priceTotal).toFixed(2)}</span>
+          </div>
+          <div class="cell-muted" style="font-size:12.5px;margin-bottom:10px">${esc(s.serviceName)} · ${esc((s.pickupPostcode||s.pickupAddress||'').slice(0,16))} → ${esc((s.deliveryPostcode||s.deliveryAddress||'').slice(0,16))}</div>
+          <div class="alloc-row">
+            <select class="form-control" name="driverId" required><option value="">Driver…</option>${drivers.map(d => `<option value="${esc(d.id)}">${esc(d.fullName)}</option>`).join('')}</select>
+            <select class="form-control" name="vehicleId" required><option value="">Vehicle…</option>${vehicles.map(v => `<option value="${esc(v.id)}">${esc(v.registration)}</option>`).join('')}</select>
+            <button class="btn btn-primary">Allocate</button>
+          </div>
+        </form>
+      `).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>In motion <span class="badge badge-blue">${active.length}</span></h3></div>
+    <div class="card-body" style="display:grid;gap:10px">
+      ${active.length === 0 ? '<div class="empty-state" style="padding:30px"><p>Nothing in motion</p></div>' : active.map(s => `
+        <div class="motion-card">
+          <div>
+            <a href="/shipments/${s.id}" style="font-family:monospace;font-weight:700">${esc(s.reference)}</a>
+            <div class="cell-muted" style="font-size:12px">${esc(s.customer ? s.customer.name : '—')} · ${s.job && s.job.driverId ? esc(empMap[s.job.driverId] || 'Driver') : 'No driver'} · ${s.job && s.job.vehicleId ? esc(vehMap[s.job.vehicleId] || 'Vehicle') : ''}</div>
+          </div>
+          <span class="badge ${svc.statusBadge(s.status)}">${esc(svc.statusLabel(s.status))}</span>
+        </div>
+      `).join('')}
+    </div>
+  </div>
+</div>
+
+<style>
+  .alloc-card { border:1px solid var(--border); border-radius:12px; padding:14px; background:var(--surface-2); }
+  .alloc-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .alloc-row { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; }
+  .motion-card { display:flex; justify-content:space-between; align-items:center; gap:12px; border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--card); }
+  @media (max-width:700px){ .alloc-row { grid-template-columns:1fr; } }
+</style>
+` }) %>

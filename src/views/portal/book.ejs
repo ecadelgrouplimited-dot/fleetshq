@@ -1,0 +1,115 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Client portal</div>
+    <h1>Book a shipment</h1>
+    <p class="page-sub">Enter the movement, get an instant quote, and confirm the booking.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/shipments">Cancel</a></div>
+</div>
+
+<form method="post" action="/book" id="bookForm">
+  <input type="hidden" name="_csrf" value="${csrfToken}">
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Service &amp; load</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Service type <span class="required">*</span></label>
+          <select class="form-control" name="serviceTypeId" id="serviceTypeId" required>
+            <option value="">Choose a service…</option>
+            ${services.map(s => `<option value="${esc(s.id)}" data-base="${Number(s.baseRate).toFixed(2)}" data-mile="${Number(s.perMileRate).toFixed(2)}">${esc(s.name)} — £${Number(s.baseRate).toFixed(2)} base</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group"><label class="form-label">Distance (miles)</label><input class="form-control" type="number" min="0" step="1" name="distanceMiles" id="distanceMiles" value="0"></div>
+          <div class="form-group"><label class="form-label">Weight (kg)</label><input class="form-control" type="number" min="0" step="1" name="weightKg" id="weightKg" value="0"></div>
+          <div class="form-group"><label class="form-label">Parcels</label><input class="form-control" type="number" min="1" step="1" name="parcelCount" value="1"></div>
+        </div>
+        <button type="button" class="btn btn-outline" id="quoteBtn">Get quote</button>
+        <div id="quoteBox" class="quote-box" hidden></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Customer</h3></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Existing customer</label>
+          <select class="form-control" name="customerId" id="customerId">
+            <option value="">— New / one-off —</option>
+            ${customers.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div id="newCustomer">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">New customer name</label><input class="form-control" name="newCustomerName" placeholder="e.g. Acme Freight Ltd"></div>
+            <div class="form-group"><label class="form-label">Email</label><input class="form-control" type="email" name="newCustomerEmail"></div>
+          </div>
+          <div class="form-group"><label class="form-label">Phone</label><input class="form-control" name="newCustomerPhone"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Collection date</label><input class="form-control" type="date" name="collectionDate"></div>
+        <div class="form-group"><label class="form-label">ETA window</label><input class="form-control" name="etaWindow" placeholder="e.g. Tomorrow 09:00–12:00"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2 mt-4">
+    <div class="card">
+      <div class="card-header"><h3>Pickup</h3></div>
+      <div class="card-body">
+        <div class="form-group"><label class="form-label">Contact</label><input class="form-control" name="pickupContact" placeholder="Name at pickup"></div>
+        <div class="form-group"><label class="form-label">Address <span class="required">*</span></label><textarea class="form-control" name="pickupAddress" required></textarea></div>
+        <div class="form-group"><label class="form-label">Postcode</label><input class="form-control" name="pickupPostcode"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Delivery</h3></div>
+      <div class="card-body">
+        <div class="form-group"><label class="form-label">Contact</label><input class="form-control" name="deliveryContact" placeholder="Name at delivery"></div>
+        <div class="form-group"><label class="form-label">Address <span class="required">*</span></label><textarea class="form-control" name="deliveryAddress" required></textarea></div>
+        <div class="form-group"><label class="form-label">Postcode</label><input class="form-control" name="deliveryPostcode"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt-4">
+    <div class="card-body">
+      <div class="form-group"><label class="form-label">Instructions</label><textarea class="form-control" name="instructions" placeholder="Access notes, references, special handling…"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-lg">Book shipment</button>
+    </div>
+  </div>
+</form>
+
+<style>
+  .quote-box { margin-top:14px; border:1px solid var(--border); border-radius:12px; padding:14px 16px; background:var(--surface-2); }
+  .quote-box .ql { display:flex; justify-content:space-between; padding:5px 0; font-size:13px; color:var(--text-muted); }
+  .quote-box .qt { display:flex; justify-content:space-between; padding-top:10px; margin-top:6px; border-top:1px solid var(--border); font-size:18px; font-weight:800; color:var(--text); }
+  .btn-lg { padding:12px 22px; font-size:15px; }
+</style>
+<script>
+(function(){
+  var cust = document.getElementById('customerId');
+  var newC = document.getElementById('newCustomer');
+  function toggleNew(){ newC.style.display = cust.value ? 'none' : 'block'; }
+  cust.addEventListener('change', toggleNew); toggleNew();
+
+  document.getElementById('quoteBtn').addEventListener('click', async function(){
+    var box = document.getElementById('quoteBox');
+    var body = {
+      serviceTypeId: document.getElementById('serviceTypeId').value,
+      distanceMiles: document.getElementById('distanceMiles').value,
+      weightKg: document.getElementById('weightKg').value,
+    };
+    if (!body.serviceTypeId) { showToast('Choose a service first', 'error'); return; }
+    try {
+      var q = await apiCall('POST', '/book/quote', body);
+      box.hidden = false;
+      box.innerHTML = q.lines.map(function(l){ return '<div class="ql"><span>'+l.label+'</span><span>£'+l.amount.toFixed(2)+'</span></div>'; }).join('')
+        + '<div class="ql"><span>VAT (20%)</span><span>£'+q.vat.toFixed(2)+'</span></div>'
+        + '<div class="qt"><span>Total</span><span>£'+q.total.toFixed(2)+'</span></div>';
+    } catch (e) { showToast(e.message || 'Could not price that', 'error'); }
+  });
+})();
+</script>
+` }) %>

@@ -1,0 +1,73 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Driver</div>
+    <h1>My jobs</h1>
+    <p class="page-sub">Accept jobs, collect, and deliver with proof of delivery.</p>
+  </div>
+</div>
+
+${jobs.length === 0 ? `
+  <div class="card"><div class="empty-state">
+    <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div>
+    <p>No active jobs</p><div class="empty-hint">New allocations from dispatch will appear here.</div>
+  </div></div>
+` : `
+<div style="display:grid;gap:14px">
+  ${jobs.map(j => { const s = j.shipment; return `
+    <div class="card job-card">
+      <div class="job-top">
+        <div>
+          <a href="/shipments/${s.id}" style="font-family:monospace;font-weight:800;font-size:16px">${esc(s.reference)}</a>
+          <div class="cell-muted" style="font-size:13px">${esc(s.serviceName)}${s.customer ? ' · ' + esc(s.customer.name) : ''}</div>
+        </div>
+        <span class="badge ${svc.statusBadge(s.status)}">${esc(svc.statusLabel(s.status))}</span>
+      </div>
+      <div class="job-route">
+        <div class="jr"><span class="jr-dot pick"></span><div><strong>Pickup</strong><div class="cell-muted">${esc(s.pickupAddress)}${s.pickupPostcode ? ' · ' + esc(s.pickupPostcode) : ''}</div></div></div>
+        <div class="jr"><span class="jr-dot drop"></span><div><strong>Delivery</strong><div class="cell-muted">${esc(s.deliveryAddress)}${s.deliveryPostcode ? ' · ' + esc(s.deliveryPostcode) : ''}</div></div></div>
+      </div>
+      <div class="job-actions">
+        ${j.status === 'offered' ? `<form method="post" action="/jobs/${j.id}/accept"><input type="hidden" name="_csrf" value="${csrfToken}"><button class="btn btn-primary">Accept job</button></form>` : ''}
+        ${(j.status === 'accepted' && s.status !== 'collected') ? `<form method="post" action="/jobs/${j.id}/collect"><input type="hidden" name="_csrf" value="${csrfToken}"><button class="btn btn-outline">Mark collected</button></form>` : ''}
+        ${(j.status === 'en_route' || s.status === 'collected' || s.status === 'in_transit' || s.status === 'out_for_delivery') ? `<button type="button" class="btn btn-primary" onclick="openPod('${j.id}','${esc(s.reference)}')">Deliver &amp; capture POD</button>` : ''}
+        <a class="btn btn-ghost btn-sm" href="/shipments/${s.id}">Details</a>
+      </div>
+    </div>
+  `; }).join('')}
+</div>`}
+
+<div class="modal-overlay" id="podModal" style="display:none">
+  <div class="modal">
+    <div class="modal-header"><h3>Proof of delivery — <span id="podRef"></span></h3><button type="button" class="btn btn-ghost btn-sm" onclick="closePod()">✕</button></div>
+    <form method="post" id="podForm">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Recipient name <span class="required">*</span></label><input class="form-control" name="recipientName" required placeholder="Who received the goods"></div>
+        <div class="form-group"><label class="form-label">Signature</label><input class="form-control" name="signatureData" placeholder="Type recipient name to sign"></div>
+        <label class="inline-check" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" name="otpVerified" value="true"> OTP / ID verified at the door</label>
+        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" name="notes" placeholder="Left with… / condition…"></textarea></div>
+      </div>
+      <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border)">
+        <button type="button" class="btn btn-outline" onclick="closePod()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm delivery</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .job-card { padding:18px; }
+  .job-top { display:flex; justify-content:space-between; align-items:start; gap:12px; margin-bottom:14px; }
+  .job-route { display:grid; gap:10px; padding:12px 0; border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin-bottom:14px; }
+  .jr { display:flex; gap:12px; align-items:start; }
+  .jr-dot { width:12px; height:12px; border-radius:50%; margin-top:4px; flex:0 0 12px; }
+  .jr-dot.pick { background:#3b82f6; } .jr-dot.drop { background:#10b981; }
+  .jr strong { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); }
+  .job-actions { display:flex; gap:10px; flex-wrap:wrap; }
+</style>
+<script>
+  function openPod(jobId, ref){ document.getElementById('podForm').action = '/jobs/' + jobId + '/deliver'; document.getElementById('podRef').textContent = ref; document.getElementById('podModal').style.display = 'flex'; }
+  function closePod(){ document.getElementById('podModal').style.display = 'none'; }
+</script>
+` }) %>

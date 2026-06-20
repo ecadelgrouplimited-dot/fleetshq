@@ -197,51 +197,51 @@ enum TenantStatus {
 // ─────────────────────────────────────────
 
 model Tenant {
-  id        String       @id @default(uuid())
-  name      String
-  slug      String       @unique
-  plan      String       @default("starter")
-  status    TenantStatus @default(active)
-  branding  Json?
+  id       String       @id @default(uuid())
+  name     String
+  slug     String       @unique
+  plan     String       @default("starter")
+  status   TenantStatus @default(active)
+  branding Json?
 
-  companies Company[]
-  branches  Branch[]
-  users     User[]
-  employees Employee[]
-  sponsoredWorkers SponsoredWorker[]
+  companies              Company[]
+  branches               Branch[]
+  users                  User[]
+  employees              Employee[]
+  sponsoredWorkers       SponsoredWorker[]
   sponsoredWorkerChanges SponsoredWorkerChange[]
-  employeeDocuments EmployeeDocument[]
-  trainingRecords TrainingRecord[]
+  employeeDocuments      EmployeeDocument[]
+  trainingRecords        TrainingRecord[]
   policyAcknowledgements PolicyAcknowledgement[]
-  toolboxTalks ToolboxTalk[]
+  toolboxTalks           ToolboxTalk[]
   toolboxTalkAssignments ToolboxTalkAssignment[]
-  vehicles Vehicle[]
-  vehicleDocuments VehicleDocument[]
-  walkAroundChecks WalkAroundCheck[]
-  walkAroundCheckItems WalkAroundCheckItem[]
-  defectCases DefectCase[]
-  defectPhotos DefectPhoto[]
-  vorRecords VorRecord[]
-  auditLogs AuditLog[]
-  alerts Alert[]
-  complianceScores ComplianceScore[]
-  publicLeads PublicLead[]
-  serviceTypes ServiceType[]
-  systemConfigs SystemConfig[]
+  vehicles               Vehicle[]
+  vehicleDocuments       VehicleDocument[]
+  walkAroundChecks       WalkAroundCheck[]
+  walkAroundCheckItems   WalkAroundCheckItem[]
+  defectCases            DefectCase[]
+  defectPhotos           DefectPhoto[]
+  vorRecords             VorRecord[]
+  auditLogs              AuditLog[]
+  alerts                 Alert[]
+  complianceScores       ComplianceScore[]
+  publicLeads            PublicLead[]
+  serviceTypes           ServiceType[]
+  systemConfigs          SystemConfig[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Company {
-  id                    String @id @default(uuid())
-  tenant                Tenant @relation(fields: [tenantId], references: [id])
-  tenantId              String @default("00000000-0000-4000-8000-000000000001")
+  id                    String  @id @default(uuid())
+  tenant                Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId              String  @default("00000000-0000-4000-8000-000000000001")
   name                  String
   legalName             String?
   operatorLicenceNumber String?
   registeredAddress     String?
-  timezone              String @default("Europe/London")
+  timezone              String  @default("Europe/London")
   branding              Json?
 
   branches Branch[]
@@ -254,10 +254,10 @@ model Company {
 }
 
 model Branch {
-  id           String   @id @default(uuid())
-  tenant       Tenant   @relation(fields: [tenantId], references: [id])
-  tenantId     String   @default("00000000-0000-4000-8000-000000000001")
-  company      Company  @relation(fields: [companyId], references: [id])
+  id           String  @id @default(uuid())
+  tenant       Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId     String  @default("00000000-0000-4000-8000-000000000001")
+  company      Company @relation(fields: [companyId], references: [id])
   companyId    String
   name         String
   address      String?
@@ -274,24 +274,24 @@ model Branch {
 }
 
 model User {
-  id           String    @id @default(uuid())
-  tenant       Tenant    @relation(fields: [tenantId], references: [id])
-  tenantId     String    @default("00000000-0000-4000-8000-000000000001")
-  company      Company?  @relation(fields: [companyId], references: [id])
-  companyId    String?
-  branch       Branch?   @relation(fields: [branchId], references: [id])
-  branchId     String?
-  email        String    @unique
-  passwordHash String
-  role         UserRole
-  roles        UserRole[] @default([])
-  branchIds    String[]   @default([])
-  firstName    String
-  lastName     String
-  phone        String?
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  failedLoginAttempts Int       @default(0)
+  id                  String     @id @default(uuid())
+  tenant              Tenant     @relation(fields: [tenantId], references: [id])
+  tenantId            String     @default("00000000-0000-4000-8000-000000000001")
+  company             Company?   @relation(fields: [companyId], references: [id])
+  companyId           String?
+  branch              Branch?    @relation(fields: [branchId], references: [id])
+  branchId            String?
+  email               String     @unique
+  passwordHash        String
+  role                UserRole
+  roles               UserRole[] @default([])
+  branchIds           String[]   @default([])
+  firstName           String
+  lastName            String
+  phone               String?
+  isActive            Boolean    @default(true)
+  lastLoginAt         DateTime?
+  failedLoginAttempts Int        @default(0)
   lockedUntil         DateTime?
   resetTokenHash      String?
   resetTokenExpiry    DateTime?
@@ -299,16 +299,16 @@ model User {
   employee   Employee? @relation("UserEmployee", fields: [employeeId], references: [id])
   employeeId String?   @unique
 
-  auditLogs            AuditLog[]
-  uploadedEmpDocs      EmployeeDocument[]       @relation("EmpDocUploadedBy")
-  uploadedVehDocs      VehicleDocument[]        @relation("VehDocUploadedBy")
-  defectReviews        DefectCase[]             @relation("DefectReviewedBy")
-  defectSignoffs       DefectCase[]             @relation("DefectSignedOffBy")
-  vorAuthorisations    VorRecord[]              @relation("VorAuthorisedBy")
-  vorSignoffs          VorRecord[]              @relation("VorSignedOffBy")
-  toolboxIssued        ToolboxTalk[]            @relation("TalkIssuedBy")
-  toolboxSignoffs      ToolboxTalk[]            @relation("TalkSignedOffBy")
-  sponsoredChanges     SponsoredWorkerChange[]  @relation("ChangeAuthorisedBy")
+  auditLogs         AuditLog[]
+  uploadedEmpDocs   EmployeeDocument[]      @relation("EmpDocUploadedBy")
+  uploadedVehDocs   VehicleDocument[]       @relation("VehDocUploadedBy")
+  defectReviews     DefectCase[]            @relation("DefectReviewedBy")
+  defectSignoffs    DefectCase[]            @relation("DefectSignedOffBy")
+  vorAuthorisations VorRecord[]             @relation("VorAuthorisedBy")
+  vorSignoffs       VorRecord[]             @relation("VorSignedOffBy")
+  toolboxIssued     ToolboxTalk[]           @relation("TalkIssuedBy")
+  toolboxSignoffs   ToolboxTalk[]           @relation("TalkSignedOffBy")
+  sponsoredChanges  SponsoredWorkerChange[] @relation("ChangeAuthorisedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -600,44 +600,44 @@ model WalkAroundCheck {
 }
 
 model WalkAroundCheckItem {
-  id      String          @id @default(uuid())
-  tenant  Tenant          @relation(fields: [tenantId], references: [id])
-  tenantId String         @default("00000000-0000-4000-8000-000000000001")
-  check   WalkAroundCheck @relation(fields: [checkId], references: [id])
-  checkId String
-  item    CheckItemType
-  status  CheckItemStatus
-  notes   String?
+  id       String          @id @default(uuid())
+  tenant   Tenant          @relation(fields: [tenantId], references: [id])
+  tenantId String          @default("00000000-0000-4000-8000-000000000001")
+  check    WalkAroundCheck @relation(fields: [checkId], references: [id])
+  checkId  String
+  item     CheckItemType
+  status   CheckItemStatus
+  notes    String?
 
   @@index([tenantId])
 }
 
 model DefectCase {
-  id                       String         @id @default(uuid())
-  tenant                   Tenant         @relation(fields: [tenantId], references: [id])
-  tenantId                 String         @default("00000000-0000-4000-8000-000000000001")
-  referenceNumber          String         @unique
-  vehicle                  Vehicle        @relation("DefectVehicle", fields: [vehicleId], references: [id])
+  id                       String           @id @default(uuid())
+  tenant                   Tenant           @relation(fields: [tenantId], references: [id])
+  tenantId                 String           @default("00000000-0000-4000-8000-000000000001")
+  referenceNumber          String           @unique
+  vehicle                  Vehicle          @relation("DefectVehicle", fields: [vehicleId], references: [id])
   vehicleId                String
-  reportedBy               Employee       @relation("DefectReporter", fields: [reportedById], references: [id])
+  reportedBy               Employee         @relation("DefectReporter", fields: [reportedById], references: [id])
   reportedById             String
   walkAroundCheck          WalkAroundCheck? @relation("CheckDefects", fields: [walkAroundCheckId], references: [id])
   walkAroundCheckId        String?
-  reportedAt               DateTime       @default(now())
+  reportedAt               DateTime         @default(now())
   defectCategory           String
   description              String
   severity                 DefectSeverity
   vehicleAllowedToContinue Boolean
-  status                   DefectStatus   @default(reported)
-  vorDecision              Boolean        @default(false)
-  reviewedBy               User?          @relation("DefectReviewedBy", fields: [reviewedById], references: [id])
+  status                   DefectStatus     @default(reported)
+  vorDecision              Boolean          @default(false)
+  reviewedBy               User?            @relation("DefectReviewedBy", fields: [reviewedById], references: [id])
   reviewedById             String?
   reviewedAt               DateTime?
   repairAction             String?
   repairGarage             String?
   dateRepaired             DateTime?
   invoiceStorageKey        String?
-  finalSignoffBy           User?          @relation("DefectSignedOffBy", fields: [finalSignoffById], references: [id])
+  finalSignoffBy           User?            @relation("DefectSignedOffBy", fields: [finalSignoffById], references: [id])
   finalSignoffById         String?
   finalSignoffAt           DateTime?
 
@@ -692,10 +692,10 @@ model VorRecord {
 }
 
 model AuditLog {
-  id            String   @id @default(uuid())
-  tenant        Tenant   @relation(fields: [tenantId], references: [id])
-  tenantId      String   @default("00000000-0000-4000-8000-000000000001")
-  user          User     @relation(fields: [userId], references: [id])
+  id            String  @id @default(uuid())
+  tenant        Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId      String  @default("00000000-0000-4000-8000-000000000001")
+  user          User    @relation(fields: [userId], references: [id])
   userId        String
   action        String
   entityType    String
@@ -754,19 +754,19 @@ model ComplianceScore {
 }
 
 model PublicLead {
-  id          String   @id @default(uuid())
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  tenantId    String   @default("00000000-0000-4000-8000-000000000001")
+  id          String    @id @default(uuid())
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  tenantId    String    @default("00000000-0000-4000-8000-000000000001")
   name        String
   email       String
   phone       String?
   company     String?
-  enquiryType String   @default("general")
+  enquiryType String    @default("general")
   message     String
   sourcePath  String?
   ipAddress   String?
   userAgent   String?
-  isResolved  Boolean  @default(false)
+  isResolved  Boolean   @default(false)
   resolvedAt  DateTime?
 
   createdAt DateTime @default(now())
@@ -797,13 +797,13 @@ model ServiceType {
 }
 
 model SystemConfig {
-  id        String  @id @default(uuid())
-  tenant    Tenant  @relation(fields: [tenantId], references: [id])
-  tenantId  String  @default("00000000-0000-4000-8000-000000000001")
-  category  String
-  key       String
-  value     Json
-  isSecret  Boolean @default(false)
+  id       String  @id @default(uuid())
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  tenantId String  @default("00000000-0000-4000-8000-000000000001")
+  category String
+  key      String
+  value    Json
+  isSecret Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -811,4 +811,210 @@ model SystemConfig {
   @@unique([tenantId, category, key])
   @@index([tenantId])
   @@index([category])
+}
+
+// ─────────────────────────────────────────
+// SHIPMENT SPINE (Phase 1)
+// New models use a scalar tenantId (FK enforced in migration SQL)
+// and are registered in src/config/database.js for tenant scoping.
+// ─────────────────────────────────────────
+
+enum ShipmentStatus {
+  quote
+  booked
+  allocated
+  collected
+  in_transit
+  out_for_delivery
+  delivered
+  failed
+  cancelled
+}
+
+enum JobStatus {
+  offered
+  accepted
+  rejected
+  en_route
+  completed
+}
+
+enum TrackingEventType {
+  booked
+  allocated
+  collected
+  in_transit
+  out_for_delivery
+  delivered
+  exception
+  note
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  overdue
+  cancelled
+}
+
+model Customer {
+  id             String  @id @default(uuid())
+  tenantId       String  @default("00000000-0000-4000-8000-000000000001")
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  billingAddress String?
+  accountType    String  @default("payg")
+  notes          String?
+  createdById    String?
+
+  shipments Shipment[]
+  invoices  Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}
+
+model Shipment {
+  id            String         @id @default(uuid())
+  tenantId      String         @default("00000000-0000-4000-8000-000000000001")
+  reference     String         @unique
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  customerId    String?
+  serviceTypeId String?
+  serviceName   String
+  status        ShipmentStatus @default(booked)
+
+  pickupContact    String?
+  pickupAddress    String
+  pickupPostcode   String?
+  deliveryContact  String?
+  deliveryAddress  String
+  deliveryPostcode String?
+
+  parcelCount   Int     @default(1)
+  weightKg      Decimal @default(0) @db.Decimal(10, 2)
+  distanceMiles Decimal @default(0) @db.Decimal(10, 2)
+
+  priceNet       Decimal @default(0) @db.Decimal(10, 2)
+  priceVat       Decimal @default(0) @db.Decimal(10, 2)
+  priceTotal     Decimal @default(0) @db.Decimal(10, 2)
+  priceBreakdown Json?
+
+  collectionDate DateTime?
+  etaWindow      String?
+  instructions   String?
+  createdById    String?
+  branchId       String?
+
+  job     Job?
+  pod     ProofOfDelivery?
+  invoice Invoice?
+  parcels Parcel[]
+  events  TrackingEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([customerId])
+}
+
+model Parcel {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("00000000-0000-4000-8000-000000000001")
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId  String
+  description String?
+  weightKg    Decimal  @default(0) @db.Decimal(10, 2)
+  qty         Int      @default(1)
+  barcode     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([shipmentId])
+}
+
+model TrackingEvent {
+  id         String            @id @default(uuid())
+  tenantId   String            @default("00000000-0000-4000-8000-000000000001")
+  shipment   Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId String
+  type       TrackingEventType
+  label      String
+  detail     String?
+  location   String?
+  actorId    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([shipmentId])
+}
+
+model Job {
+  id            String    @id @default(uuid())
+  tenantId      String    @default("00000000-0000-4000-8000-000000000001")
+  shipment      Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId    String    @unique
+  driverId      String?
+  vehicleId     String?
+  status        JobStatus @default(offered)
+  allocatedById String?
+  allocatedAt   DateTime?
+  acceptedAt    DateTime?
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([driverId])
+  @@index([vehicleId])
+}
+
+model ProofOfDelivery {
+  id              String   @id @default(uuid())
+  tenantId        String   @default("00000000-0000-4000-8000-000000000001")
+  shipment        Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId      String   @unique
+  recipientName   String?
+  signatureData   String?
+  photoStorageKey String?
+  otpVerified     Boolean  @default(false)
+  notes           String?
+  deliveredAt     DateTime @default(now())
+
+  @@index([tenantId])
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  tenantId    String        @default("00000000-0000-4000-8000-000000000001")
+  number      String        @unique
+  customer    Customer?     @relation(fields: [customerId], references: [id])
+  customerId  String?
+  shipment    Shipment?     @relation(fields: [shipmentId], references: [id])
+  shipmentId  String?       @unique
+  status      InvoiceStatus @default(issued)
+  subtotal    Decimal       @default(0) @db.Decimal(10, 2)
+  vat         Decimal       @default(0) @db.Decimal(10, 2)
+  total       Decimal       @default(0) @db.Decimal(10, 2)
+  lines       Json?
+  dueDate     DateTime?
+  issuedAt    DateTime      @default(now())
+  paidAt      DateTime?
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
 }

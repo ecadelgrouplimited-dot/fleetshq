@@ -576,32 +576,63 @@ router.post('/contact', loginLimiter, async (req, res) => {
   }
 });
 
-router.get('/track', (req, res) => {
+router.get('/track', async (req, res) => {
+  const shipmentSvc = require('../services/shipment.service');
   const trackingRef = (req.query.ref || '').trim();
-  const cleanRef = trackingRef.toUpperCase();
-  const shortHash = cleanRef.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const etaHour = 9 + (shortHash % 8);
+  let trackingResult = null;
+  if (trackingRef) {
+    const cleanRef = trackingRef.toUpperCase();
+    let shipment = null;
+    try {
+      shipment = await prisma.shipment.findUnique({
+        where: { reference: cleanRef },
+        include: { events: { orderBy: { createdAt: 'asc' } }, job: { include: { } } },
+      });
+    } catch (e) { shipment = null; }
+
+    if (shipment) {
+      const eventByType = {};
+      shipment.events.forEach((e) => { if (!eventByType[e.type]) eventByType[e.type] = e; });
+      const timeline = shipmentSvc.buildTimeline(shipment, shipment.events);
+      const checkpoints = timeline.map((t) => {
+        const ev = eventByType[t.step];
+        return {
+          label: t.label,
+          time: ev ? formatDate(ev.createdAt) : (t.state === 'active' ? 'In progress' : 'Pending'),
+          state: t.state === 'pending' ? 'idle' : t.state,
+          detail: ev?.detail || `${t.label} milestone will appear here.`,
+        };
+      });
+      let vehicleReg = 'Assigning';
+      if (shipment.job?.vehicleId) {
+        try { const v = await prisma.vehicle.findUnique({ where: { id: shipment.job.vehicleId } }); if (v) vehicleReg = v.registration; } catch (e) { /* noop */ }
+      }
+      trackingResult = {
+        reference: shipment.reference,
+        status: shipmentSvc.statusLabel(shipment.status),
+        service: shipment.serviceName,
+        etaWindow: shipment.etaWindow || (shipment.collectionDate ? formatDate(shipment.collectionDate) : 'To be confirmed'),
+        vehicle: shipment.status === 'delivered' ? 'Delivered' : vehicleReg,
+        nextAction: shipment.status === 'delivered'
+          ? 'This shipment has been delivered. Proof of delivery is on file.'
+          : 'Operations is progressing this shipment — milestones update as it moves.',
+        checkpoints,
+      };
+    } else {
+      trackingResult = {
+        reference: cleanRef,
+        status: 'Not found',
+        service: '—',
+        etaWindow: '—',
+        vehicle: '—',
+        nextAction: 'We could not find that reference. Please check it, or contact the operations desk for help.',
+        checkpoints: [],
+      };
+    }
+  }
   res.render('landing/index', {
-    page: 'track',
-    title: 'Track a shipment',
-    leadSent: false,
-    leadError: null,
-    enquiryType: 'general',
-    trackingRef,
-    trackingResult: trackingRef ? {
-      reference: cleanRef,
-      status: 'Reference received',
-      service: shortHash % 2 === 0 ? 'Dedicated transport' : 'General freight',
-      etaWindow: `Today ${etaHour}:00-${etaHour + 2}:00`,
-      vehicle: `256-${String((shortHash % 80) + 20).padStart(2, '0')}`,
-      nextAction: 'Operations will attach live milestones when the shipment spine is connected.',
-      checkpoints: [
-        { label: 'Reference received', time: 'Now', state: 'done', detail: 'Your reference is recognised by the public tracking intake.' },
-        { label: 'Operations review', time: 'Pending', state: 'active', detail: 'The dispatch desk will validate the consignment and assign movement details.' },
-        { label: 'Collection scheduled', time: 'Next', state: 'idle', detail: 'Collection time, driver, and depot details will appear here.' },
-        { label: 'Out for delivery', time: 'Later', state: 'idle', detail: 'Live progress and proof of delivery will connect in the shipment spine phase.' },
-      ],
-    } : null,
+    page: 'track', title: 'Track a shipment', leadSent: false, leadError: null,
+    enquiryType: 'general', trackingRef, trackingResult,
   });
 });
 
@@ -2195,6 +2226,204 @@ router.post('/privacy/erase', webAuth, requireRoles('super_admin', 'director'), 
 
     const employees = await prisma.employee.findMany({ select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } });
     res.render('privacy/dsar', { title: 'Data Subject Access Request', employees, query: { erased: '1' } });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ══════════════════════════════════════════════════════════════════════
+// SHIPMENT SPINE (Phase 1): quote → book → allocate → deliver → invoice
+// ══════════════════════════════════════════════════════════════════════
+const shipmentSvc = require('../services/shipment.service');
+const pricingSvc = require('../services/pricing.service');
+
+const portalRoles = ['super_admin', 'director', 'operations_manager', 'transport_manager', 'client'];
+const dispatchRoles = ['super_admin', 'director', 'operations_manager', 'transport_manager'];
+const driverJobRoles = ['super_admin', 'director', 'operations_manager', 'transport_manager', 'driver'];
+const invoiceRoles = ['super_admin', 'director', 'finance_officer'];
+const num = (v, d = 0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : d; };
+
+// ── Client portal dashboard ───────────────────────────────────────────
+router.get('/portal', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const [shipments, counts] = await Promise.all([
+      prisma.shipment.findMany({ orderBy: { createdAt: 'desc' }, take: 8, include: { customer: true, invoice: true } }),
+      prisma.shipment.groupBy({ by: ['status'], _count: { _all: true } }),
+    ]);
+    const byStatus = Object.fromEntries(counts.map((c) => [c.status, c._count._all]));
+    const total = counts.reduce((s, c) => s + c._count._all, 0);
+    const active = total - (byStatus.delivered || 0) - (byStatus.cancelled || 0);
+    res.render('portal/dashboard', { title: 'Client Portal', shipments, stats: { total, active, delivered: byStatus.delivered || 0, outForDelivery: byStatus.out_for_delivery || 0 }, svc: shipmentSvc, formatDate, path: '/portal' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Booking form ──────────────────────────────────────────────────────
+router.get('/book', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const [services, customers] = await Promise.all([
+      prisma.serviceType.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
+      prisma.customer.findMany({ orderBy: { name: 'asc' } }),
+    ]);
+    res.render('portal/book', { title: 'Book a shipment', services, customers, formatDate, path: '/book' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Live quote (AJAX) ─────────────────────────────────────────────────
+router.post('/book/quote', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const svc = req.body.serviceTypeId ? await prisma.serviceType.findUnique({ where: { id: req.body.serviceTypeId } }) : null;
+    if (!svc) return res.status(400).json({ error: 'Choose a service' });
+    const q = pricingSvc.quote(svc, num(req.body.distanceMiles), num(req.body.weightKg));
+    res.json({ ...q, service: svc.name });
+  } catch (e) { res.status(500).json({ error: 'Could not price that' }); }
+});
+
+// ── Create shipment ───────────────────────────────────────────────────
+router.post('/book', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.serviceTypeId || !b.pickupAddress || !b.deliveryAddress) {
+      return res.status(400).render('error', { title: 'Missing details', message: 'Service, pickup and delivery address are required.', code: 400 });
+    }
+    let customerId = b.customerId || null;
+    if (!customerId && (b.newCustomerName || '').trim()) {
+      const c = await prisma.customer.create({ data: { name: b.newCustomerName.trim(), email: b.newCustomerEmail || null, phone: b.newCustomerPhone || null, createdById: req.user.id } });
+      customerId = c.id;
+    }
+    const shipment = await shipmentSvc.createShipment({
+      customerId,
+      serviceTypeId: b.serviceTypeId,
+      pickupContact: b.pickupContact, pickupAddress: b.pickupAddress, pickupPostcode: b.pickupPostcode,
+      deliveryContact: b.deliveryContact, deliveryAddress: b.deliveryAddress, deliveryPostcode: b.deliveryPostcode,
+      parcelCount: parseInt(b.parcelCount, 10) || 1,
+      weightKg: num(b.weightKg), distanceMiles: num(b.distanceMiles),
+      collectionDate: b.collectionDate ? new Date(b.collectionDate) : null,
+      etaWindow: b.etaWindow || null, instructions: b.instructions || null,
+    }, req.user.id);
+    res.redirect(`/shipments/${shipment.id}`);
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Quick-create customer ─────────────────────────────────────────────
+router.post('/customers', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    await prisma.customer.create({ data: { name: (req.body.name || '').trim(), email: req.body.email || null, phone: req.body.phone || null, billingAddress: req.body.billingAddress || null, accountType: req.body.accountType || 'payg', createdById: req.user.id } });
+    res.redirect(req.body.returnTo || '/book');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Shipment list ─────────────────────────────────────────────────────
+router.get('/shipments', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const status = req.query.status;
+    const where = status ? { status } : {};
+    const shipments = await prisma.shipment.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100, include: { customer: true, job: true, invoice: true } });
+    res.render('portal/shipments', { title: 'Shipments', shipments, status: status || '', svc: shipmentSvc, formatDate, path: '/shipments' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Shipment detail + timeline ────────────────────────────────────────
+router.get('/shipments/:id', webAuth, requireRoles(...portalRoles), async (req, res) => {
+  try {
+    const shipment = await prisma.shipment.findUnique({
+      where: { id: req.params.id },
+      include: { customer: true, invoice: true, pod: true, events: { orderBy: { createdAt: 'desc' } }, job: true },
+    });
+    if (!shipment) return res.status(404).render('error', { title: 'Not found', message: 'Shipment not found.', code: 404 });
+    let driver = null; let vehicle = null;
+    if (shipment.job?.driverId) driver = await prisma.employee.findUnique({ where: { id: shipment.job.driverId }, select: { fullName: true } });
+    if (shipment.job?.vehicleId) vehicle = await prisma.vehicle.findUnique({ where: { id: shipment.job.vehicleId }, select: { registration: true } });
+    res.render('portal/shipment', { title: shipment.reference, shipment, driver, vehicle, svc: shipmentSvc, formatDate, canManage: hasRole(req.user, dispatchRoles), canInvoice: hasRole(req.user, invoiceRoles), path: '/shipments' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Dispatch board ────────────────────────────────────────────────────
+router.get('/dispatch', webAuth, requireRoles(...dispatchRoles), async (req, res) => {
+  try {
+    const [unallocated, active, drivers, vehicles] = await Promise.all([
+      prisma.shipment.findMany({ where: { status: 'booked' }, orderBy: { createdAt: 'asc' }, include: { customer: true } }),
+      prisma.shipment.findMany({ where: { status: { in: ['allocated', 'collected', 'in_transit', 'out_for_delivery'] } }, orderBy: { updatedAt: 'desc' }, include: { customer: true, job: true } }),
+      prisma.employee.findMany({ where: { isDriver: true, employmentStatus: 'active' }, orderBy: { fullName: 'asc' }, select: { id: true, fullName: true } }),
+      prisma.vehicle.findMany({ where: { status: 'active' }, orderBy: { registration: 'asc' }, select: { id: true, registration: true } }),
+    ]);
+    // resolve driver/vehicle names for active jobs
+    const empMap = Object.fromEntries(drivers.map((d) => [d.id, d.fullName]));
+    const vehMap = Object.fromEntries(vehicles.map((v) => [v.id, v.registration]));
+    res.render('dispatch/board', { title: 'Dispatch', unallocated, active, drivers, vehicles, empMap, vehMap, svc: shipmentSvc, formatDate, path: '/dispatch' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/dispatch/:id/allocate', webAuth, requireRoles(...dispatchRoles), async (req, res) => {
+  try {
+    if (!req.body.driverId || !req.body.vehicleId) return res.redirect('/dispatch');
+    await shipmentSvc.allocate(req.params.id, { driverId: req.body.driverId, vehicleId: req.body.vehicleId }, req.user.id);
+    res.redirect('/dispatch');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/shipments/:id/status', webAuth, requireRoles(...dispatchRoles), async (req, res) => {
+  try {
+    await shipmentSvc.setStatus(req.params.id, req.body.status, req.user.id);
+    res.redirect(req.body.returnTo || `/shipments/${req.params.id}`);
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Driver jobs ───────────────────────────────────────────────────────
+router.get('/driver/jobs', webAuth, requireRoles(...driverJobRoles), async (req, res) => {
+  try {
+    const where = req.user.role === 'driver' && req.user.employeeId ? { driverId: req.user.employeeId } : {};
+    const jobs = await prisma.job.findMany({
+      where: { ...where, status: { in: ['offered', 'accepted', 'en_route'] } },
+      orderBy: { allocatedAt: 'asc' },
+      include: { shipment: { include: { customer: true } } },
+    });
+    res.render('driver/jobs', { title: 'My Jobs', jobs, svc: shipmentSvc, formatDate, path: '/driver/jobs' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/jobs/:id/accept', webAuth, requireRoles(...driverJobRoles), async (req, res) => {
+  try {
+    await prisma.job.update({ where: { id: req.params.id }, data: { status: 'accepted', acceptedAt: new Date() } });
+    res.redirect('/driver/jobs');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/jobs/:id/collect', webAuth, requireRoles(...driverJobRoles), async (req, res) => {
+  try {
+    const job = await prisma.job.findUnique({ where: { id: req.params.id } });
+    if (job) await shipmentSvc.setStatus(job.shipmentId, 'collected', req.user.id);
+    res.redirect('/driver/jobs');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/jobs/:id/deliver', webAuth, requireRoles(...driverJobRoles), async (req, res) => {
+  try {
+    const job = await prisma.job.findUnique({ where: { id: req.params.id } });
+    if (job) {
+      await shipmentSvc.recordPod(job.shipmentId, { recipientName: req.body.recipientName, signatureData: req.body.signatureData, notes: req.body.notes, otpVerified: !!req.body.otpVerified }, req.user.id);
+    }
+    res.redirect('/driver/jobs');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Invoices (invoice-only MVP) ───────────────────────────────────────
+router.get('/invoices', webAuth, requireRoles(...invoiceRoles), async (req, res) => {
+  try {
+    const invoices = await prisma.invoice.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { customer: true, shipment: true } });
+    const totals = invoices.reduce((a, i) => { a.all += Number(i.total); if (i.status !== 'paid') a.outstanding += Number(i.total); return a; }, { all: 0, outstanding: 0 });
+    res.render('invoices/index', { title: 'Invoices', invoices, totals, formatDate, path: '/invoices' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/shipments/:id/invoice', webAuth, requireRoles(...invoiceRoles), async (req, res) => {
+  try {
+    await shipmentSvc.generateInvoice(req.params.id, req.user.id);
+    res.redirect(req.body.returnTo || `/shipments/${req.params.id}`);
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/invoices/:id/pay', webAuth, requireRoles(...invoiceRoles), async (req, res) => {
+  try {
+    await prisma.invoice.update({ where: { id: req.params.id }, data: { status: 'paid', paidAt: new Date() } });
+    res.redirect('/invoices');
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

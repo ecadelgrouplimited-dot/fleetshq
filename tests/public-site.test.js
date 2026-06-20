@@ -28,11 +28,28 @@ describe('public site', () => {
     expect(res.text).toContain(expectedText);
   });
 
-  it('renders the tracking stub for a supplied reference', async () => {
+  it('renders public tracking for a supplied reference', async () => {
     const res = await request(app).get('/track?ref=256-TEST-001').expect(200);
+    // Unknown references echo back and report a friendly not-found result.
     expect(res.text).toContain('256-TEST-001');
-    expect(res.text).toContain('Collection scheduled');
     expect(res.text).toContain('ETA window');
+  });
+
+  it('shows live status for a real shipment reference', async () => {
+    const svc = require('../src/services/shipment.service');
+    const created = await svc.createShipment({
+      serviceName: 'Test lane',
+      pickupAddress: '1 Test Way', deliveryAddress: '2 Test Road',
+      weightKg: 10, distanceMiles: 5,
+    }, null);
+    try {
+      const res = await request(app).get(`/track?ref=${created.reference}`).expect(200);
+      expect(res.text).toContain(created.reference);
+      expect(res.text).toContain('Booked');
+    } finally {
+      await prisma.trackingEvent.deleteMany({ where: { shipmentId: created.id } });
+      await prisma.shipment.delete({ where: { id: created.id } });
+    }
   });
 
   it('captures a contact lead', async () => {
