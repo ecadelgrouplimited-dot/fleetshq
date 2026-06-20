@@ -4,9 +4,9 @@
 </div>
 
 ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length > 0 ? `
-<div class="card mb-4" style="border-left:4px solid #ef4444">
-  <div class="card-header" style="background:#fef2f2">
-    <h3 style="color:#dc2626">⚠ PMI Overdue — ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length} Vehicle${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length !== 1 ? 's' : ''}</h3>
+<div class="card mb-4" style="border-left:4px solid var(--danger)">
+  <div class="card-header" style="background:var(--danger-bg)">
+    <h3 style="color:var(--danger-t)">⚠ PMI Overdue — ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length} Vehicle${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length !== 1 ? 's' : ''}</h3>
   </div>
   <div class="table-wrap">
     <table>
@@ -18,7 +18,7 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length > 0 ? `
             <td>${esc(v.make)} ${esc(v.model)}</td>
             <td>${esc(v.assignedDriver?.fullName || '—')}</td>
             <td>${formatDate(v.lastPmiDate)}</td>
-            <td style="color:#dc2626;font-weight:700">${formatDate(v.nextPmiDate)}</td>
+            <td style="color:var(--danger);font-weight:700">${formatDate(v.nextPmiDate)}</td>
             <td><span class="badge badge-red">${Math.abs(v.pmiDays)} days overdue</span></td>
           </tr>
         `).join('')}
@@ -29,9 +29,9 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length > 0 ? `
 ` : ''}
 
 ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length > 0 ? `
-<div class="card mb-4" style="border-left:4px solid #f59e0b">
-  <div class="card-header" style="background:#fffbeb">
-    <h3 style="color:#d97706">PMI Due Soon — ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length} Vehicle${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length !== 1 ? 's' : ''}</h3>
+<div class="card mb-4" style="border-left:4px solid var(--warning)">
+  <div class="card-header" style="background:var(--warning-bg)">
+    <h3 style="color:var(--warning-t)">PMI Due Soon — ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length} Vehicle${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length !== 1 ? 's' : ''}</h3>
   </div>
   <div class="table-wrap">
     <table>

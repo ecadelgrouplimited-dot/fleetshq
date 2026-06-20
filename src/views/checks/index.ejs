@@ -10,8 +10,8 @@
 </div>
 
 ${missedVehicles.length > 0 ? `
-<div class="card mb-4" style="border-left:4px solid #ef4444">
-  <div class="card-header" style="background:#fef2f2"><h3 style="color:#dc2626">Vehicles Without a Check Today</h3></div>
+<div class="card mb-4" style="border-left:4px solid var(--danger)">
+  <div class="card-header" style="background:var(--danger-bg)"><h3 style="color:var(--danger-t)">Vehicles Without a Check Today</h3></div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead>
@@ -38,20 +38,20 @@ ${missedVehicles.length > 0 ? `
     <table>
       <thead><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Mileage</th><th>Defects</th><th>Result</th></tr></thead>
       <tbody id="checksTableBody">
-        ${checks.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:32px;color:#64748b">No checks recorded</td></tr>` :
+        ${checks.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No checks recorded</td></tr>` :
         checks.map(c => {
           const defectItems = c.items.filter(i => i.status === 'defect_found');
           const result = c.nilDefect ? 'nil defect' : defectItems.length > 0 ? 'defects reported' : 'pass';
           return `<tr data-search-row data-search-text="${`${formatDate(c.checkDate)} ${esc(c.vehicle?.registration || '')} ${esc(c.driver?.fullName || '')} ${c.mileage || ''} ${result}`.toLowerCase()}">
-            <td style="font-weight:500"><a href="/checks/${c.id}">${formatDate(c.checkDate)}</a> <span style="color:#64748b;font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
+            <td style="font-weight:500"><a href="/checks/${c.id}">${formatDate(c.checkDate)}</a> <span style="color:var(--text-muted);font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
             <td style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${esc(c.vehicle.registration)}</a>` : c.vehicle?.registration || '-'}</td>
             <td>${esc(c.driver?.fullName)}</td>
-            <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
+            <td style="color:var(--text-muted)">${c.mileage?.toLocaleString()} mi</td>
             <td>${defectItems.length > 0 ? `<span class="badge badge-red">${defectItems.length} defect${defectItems.length !== 1 ? 's' : ''}</span>` : '<span class="badge badge-green">None</span>'}</td>
             <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defectItems.length > 0 ? '<span class="badge badge-amber">Defects Reported</span>' : '<span class="badge badge-green">Pass</span>'}</td>
           </tr>`;
         }).join('')}
-        <tr id="noChecksFound" style="display:none"><td colspan="6" style="text-align:center;padding:32px;color:#64748b">No checks match your search</td></tr>
+        <tr id="noChecksFound" style="display:none"><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No checks match your search</td></tr>
       </tbody>
     </table>
   </div>

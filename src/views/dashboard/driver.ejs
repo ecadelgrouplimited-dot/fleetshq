@@ -192,7 +192,7 @@
       <table>
         <thead><tr><th>Date</th><th>Vehicle</th><th>Result</th><th>Action</th></tr></thead>
         <tbody>
-          ${checks.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No checks submitted yet</td></tr>' : checks.map(c => {
+          ${checks.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No checks submitted yet</td></tr>' : checks.map(c => {
             const defectCount = c.items.filter(i => i.status === 'defect_found').length;
             return `<tr>
               <td><a href="/checks/${c.id}" class="fw-700">${formatDate(c.checkDate)}</a></td>
@@ -212,7 +212,7 @@
       <table>
         <thead><tr><th>Reference</th><th>Vehicle</th><th>Status</th><th>Severity</th></tr></thead>
         <tbody>
-          ${defects.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No defects reported</td></tr>' : defects.map(d => `
+          ${defects.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No defects reported</td></tr>' : defects.map(d => `
             <tr>
               <td><a href="/defects/${d.id}" class="fw-700">${esc(d.referenceNumber)}</a></td>
               <td>${esc(d.vehicle?.registration || '-')}</td>
@@ -228,68 +228,68 @@
 
 <style>
   .driver-hero { display:grid; grid-template-columns:minmax(0, 1.7fr) minmax(260px, 0.8fr); gap:16px; }
-  .driver-hero-main, .driver-hero-score { background:#fff; border:1px solid var(--border); border-radius:10px; padding:20px 22px; box-shadow:var(--shadow-sm); }
+  .driver-hero-main, .driver-hero-score { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px 22px; box-shadow:var(--shadow-sm); }
   .driver-hero-main h3 { font-size:28px; margin-top:6px; }
   .driver-hero-copy { color:var(--text-muted); line-height:1.6; margin-top:8px; max-width:780px; }
   .driver-hero-actions { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
   .driver-hero-score { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
-  .driver-readiness-ring { width:156px; height:156px; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:12px solid #dbeafe; background:#f8fbff; }
-  .driver-readiness-ring.good { border-color:#bbf7d0; background:#f0fdf4; }
-  .driver-readiness-ring.ok { border-color:#fde68a; background:#fffbeb; }
-  .driver-readiness-ring.risk { border-color:#fecaca; background:#fef2f2; }
+  .driver-readiness-ring { width:156px; height:156px; border-radius:999px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:12px solid var(--border); background:var(--surface-2); }
+  .driver-readiness-ring.good { border-color:rgba(16,185,129,.4); background:var(--success-bg); }
+  .driver-readiness-ring.ok { border-color:rgba(245,158,11,.4); background:var(--warning-bg); }
+  .driver-readiness-ring.risk { border-color:rgba(239,68,68,.4); background:var(--danger-bg); }
   .driver-readiness-value { font-size:36px; font-weight:900; color:var(--text); line-height:1; }
   .driver-readiness-label { margin-top:8px; font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
   .driver-stat-grid { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:14px; }
   .stat-link { text-decoration:none; color:var(--text); }
-  .stat-link:hover { border-color:var(--primary); background:#f8fbff; }
+  .stat-link:hover { border-color:var(--primary); background:var(--surface-2); }
   .status-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; }
-  .status-box { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:#f8fafc; }
+  .status-box { border:1px solid var(--border); border-radius:8px; padding:14px 16px; background:var(--surface-2); }
   .status-value { font-size:22px; font-weight:800; color:var(--text); margin-top:4px; }
   .status-note { color:var(--text-muted); font-size:12px; margin-top:4px; }
   .week-strip { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:8px; margin-top:18px; }
-  .week-day { border-radius:8px; padding:10px 8px; text-align:center; border:1px solid var(--border); background:#fff; }
+  .week-day { border-radius:8px; padding:10px 8px; text-align:center; border:1px solid var(--border); background:var(--card); }
   .week-day span { display:block; font-size:11px; font-weight:700; color:var(--text-muted); }
   .week-day strong { display:block; font-size:13px; margin-top:6px; }
-  .week-day.ok { background:#f0fdf4; border-color:#bbf7d0; }
-  .week-day.warn { background:#fffbeb; border-color:#fde68a; }
-  .week-day.miss { background:#fef2f2; border-color:#fecaca; }
-  .vehicle-summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:#f8fafc; }
+  .week-day.ok { background:var(--success-bg); border-color:rgba(16,185,129,.35); }
+  .week-day.warn { background:var(--warning-bg); border-color:rgba(245,158,11,.35); }
+  .week-day.miss { background:var(--danger-bg); border-color:rgba(239,68,68,.35); }
+  .vehicle-summary { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:14px 16px; border:1px solid var(--border); border-radius:8px; background:var(--surface-2); }
   .vehicle-registration { font-size:28px; font-weight:900; letter-spacing:0; }
   .vehicle-model { color:var(--text-muted); margin-top:4px; }
   .vehicle-meta { display:flex; flex-direction:column; align-items:flex-end; gap:8px; color:var(--text-muted); font-size:12px; font-weight:700; }
   .vehicle-compliance-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-top:14px; }
-  .vehicle-compliance-card { border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:#fff; }
-  .vehicle-compliance-card.green { background:#f0fdf4; border-color:#bbf7d0; }
-  .vehicle-compliance-card.amber { background:#fffbeb; border-color:#fde68a; }
-  .vehicle-compliance-card.red { background:#fef2f2; border-color:#fecaca; }
+  .vehicle-compliance-card { border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:var(--card); }
+  .vehicle-compliance-card.green { background:var(--success-bg); border-color:rgba(16,185,129,.35); }
+  .vehicle-compliance-card.amber { background:var(--warning-bg); border-color:rgba(245,158,11,.35); }
+  .vehicle-compliance-card.red { background:var(--danger-bg); border-color:rgba(239,68,68,.35); }
   .vehicle-compliance-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
   .vehicle-compliance-top span { font-size:12px; font-weight:800; color:var(--text-muted); text-transform:uppercase; }
   .vehicle-compliance-top strong { font-size:14px; font-weight:800; color:var(--text); text-align:right; }
   .vehicle-compliance-helper { margin-top:6px; font-size:12px; color:var(--text-muted); }
-  .training-progress-bar { height:14px; background:#e2e8f0; border-radius:999px; overflow:hidden; }
+  .training-progress-bar { height:14px; background:var(--border); border-radius:999px; overflow:hidden; }
   .training-progress-fill { height:100%; background:linear-gradient(90deg, #2563eb 0%, #60a5fa 100%); border-radius:999px; }
   .training-breakdown { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-top:16px; }
-  .training-chip { border:1px solid var(--border); border-radius:8px; padding:14px 12px; text-align:center; background:#fff; }
+  .training-chip { border:1px solid var(--border); border-radius:8px; padding:14px 12px; text-align:center; background:var(--card); }
   .training-chip strong { display:block; font-size:24px; font-weight:900; }
   .training-chip span { display:block; font-size:12px; color:var(--text-muted); margin-top:6px; }
-  .training-chip.completed { background:#f0fdf4; border-color:#bbf7d0; }
-  .training-chip.progress { background:#eff6ff; border-color:#bfdbfe; }
-  .training-chip.expired { background:#fef2f2; border-color:#fecaca; }
-  .training-chip.pending { background:#f8fafc; }
+  .training-chip.completed { background:var(--success-bg); border-color:rgba(16,185,129,.35); }
+  .training-chip.progress { background:rgba(37,99,235,.07); border-color:rgba(37,99,235,.2); }
+  .training-chip.expired { background:var(--danger-bg); border-color:rgba(239,68,68,.35); }
+  .training-chip.pending { background:var(--surface-2); }
   .dashboard-talks { display:flex; flex-direction:column; gap:10px; }
   .dashboard-talk-card { display:flex; justify-content:space-between; align-items:center; gap:14px; border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
-  .dashboard-talk-card.signed { background:#f8fafc; }
+  .dashboard-talk-card.signed { background:var(--surface-2); }
   .dashboard-talk-topic { font-size:15px; font-weight:800; color:var(--text); }
   .dashboard-talk-meta { font-size:12px; color:var(--text-muted); margin-top:4px; line-height:1.5; }
-  .alert-item { display:block; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:#fff; color:var(--text); text-decoration:none; }
-  .alert-item:hover { border-color:var(--primary); background:#eff6ff; }
+  .alert-item { display:block; border:1px solid var(--border); border-left-width:4px; border-radius:8px; padding:12px 14px; margin-bottom:10px; background:var(--card); color:var(--text); text-decoration:none; }
+  .alert-item:hover { border-color:var(--primary); background:var(--surface-2); }
   .alert-item.critical { border-left-color:#ef4444; }
   .alert-item.warning { border-left-color:#f59e0b; }
   .alert-item.notice { border-left-color:#3b82f6; }
   .alert-main { font-weight:700; margin-bottom:3px; }
   .alert-sub { color:var(--text-muted); font-size:13px; line-height:1.5; }
   .alert-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .alert-preview span { border:1px solid var(--border); border-radius:999px; background:#f8fafc; color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
+  .alert-preview span { border:1px solid var(--border); border-radius:999px; background:var(--surface-2); color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
   .alert-link { margin-top:10px; font-size:12px; font-weight:800; color:var(--primary); }
   .table-link { font-weight:800; color:var(--primary); text-decoration:none; }
   @media (max-width: 1200px) {

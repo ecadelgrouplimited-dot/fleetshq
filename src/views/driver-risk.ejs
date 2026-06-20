@@ -20,14 +20,14 @@
           <tr data-search-row data-search-text="${`${esc(d.fullName)} ${esc(d.department)} ${esc(d.drivingVehicle?.registration || '')} ${d.cpcExpiry ? formatDate(d.cpcExpiry) : 'not recorded'} ${d.missedChecks} ${d.riskLevel}`.toLowerCase()}">
             <td>
               <a href="/employees/${d.id}" style="font-weight:600">${esc(d.fullName)}</a>
-              <div style="font-size:11px;color:#64748b">${esc(d.department)}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${esc(d.department)}</div>
             </td>
-            <td>${d.drivingVehicle ? `<span class="badge badge-slate">${esc(d.drivingVehicle.registration)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
+            <td>${d.drivingVehicle ? `<span class="badge badge-slate">${esc(d.drivingVehicle.registration)}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
             <td>
               ${d.cpcExpiry ? `
-                <div style="font-weight:500;color:${d.cpcDays < 0 ? '#dc2626' : d.cpcDays <= 30 ? '#d97706' : '#374151'}">${formatDate(d.cpcExpiry)}</div>
+                <div style="font-weight:500;color:${d.cpcDays < 0 ? 'var(--danger)' : d.cpcDays <= 30 ? 'var(--warning)' : 'var(--text)'}">${formatDate(d.cpcExpiry)}</div>
                 ${d.cpcDays <= 30 ? `<span class="badge ${d.cpcDays < 0 ? 'badge-red' : 'badge-amber'}">${d.cpcDays < 0 ? 'EXPIRED' : d.cpcDays + 'd'}</span>` : ''}
-              ` : '<span style="color:#94a3b8">Not recorded</span>'}
+              ` : '<span style="color:var(--text-light)">Not recorded</span>'}
             </td>
             <td>
               <span class="badge ${d.missedChecks > 2 ? 'badge-red' : d.missedChecks > 0 ? 'badge-amber' : 'badge-green'}">${d.missedChecks}</span>
@@ -39,8 +39,8 @@
             </td>
           </tr>
         `).join('')}
-        ${drivers.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:#64748b">No drivers found</td></tr>' : ''}
-        <tr id="noDriverRiskFound" style="display:none"><td colspan="5" style="text-align:center;padding:32px;color:#64748b">No drivers match your search</td></tr>
+        ${drivers.length === 0 ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No drivers found</td></tr>' : ''}
+        <tr id="noDriverRiskFound" style="display:none"><td colspan="5" style="text-align:center;padding:32px;color:var(--text-muted)">No drivers match your search</td></tr>
       </tbody>
     </table>
   </div>

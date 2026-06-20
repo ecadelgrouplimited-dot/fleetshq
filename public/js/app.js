@@ -143,6 +143,54 @@ function confirmAction(message, fn, options) {
   });
 }
 
+// ── Button loading state ──────────────────────────────────────────────
+function setButtonLoading(btn, loading, loadingText) {
+  if (!btn) return;
+  if (loading) {
+    if (!btn.hasAttribute('data-orig-text')) btn.setAttribute('data-orig-text', btn.innerHTML);
+    btn.innerHTML = (loadingText || btn.getAttribute('data-loading-text') || 'Working…');
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+  } else {
+    var orig = btn.getAttribute('data-orig-text');
+    if (orig != null) { btn.innerHTML = orig; btn.removeAttribute('data-orig-text'); }
+    btn.disabled = false;
+    btn.classList.remove('is-loading');
+  }
+}
+
+// ── Global modal: ESC key + backdrop click to close ───────────────────
+// Handles any .modal-overlay with display != 'none' (excludes confirm dialog)
+(function() {
+  function closeTopModal() {
+    var overlays = Array.from(document.querySelectorAll('.modal-overlay:not(.modal-confirm-overlay)'));
+    var visible = overlays.filter(function(o) {
+      return o.style.display !== 'none' && o.style.display !== '';
+    });
+    // Also handle overlays that use flex (set by inline style when open)
+    var flexVisible = overlays.filter(function(o) {
+      return o.style.display === 'flex';
+    });
+    var target = flexVisible[flexVisible.length - 1] || visible[visible.length - 1];
+    if (target) {
+      target.style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeTopModal();
+  });
+
+  document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList.contains('modal-overlay') &&
+        !e.target.classList.contains('modal-confirm-overlay')) {
+      e.target.style.display = 'none';
+      document.body.classList.remove('modal-open');
+    }
+  });
+})();
+
 // ── Mobile nav drawer ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var sidebar = document.getElementById('appSidebar');
@@ -225,6 +273,19 @@ document.addEventListener('DOMContentLoaded', function() {
       if (label && !label.getAttribute('data-original-label')) {
         label.setAttribute('data-original-label', label.textContent);
         label.textContent = link.getAttribute('data-loading-text') || 'Working...';
+      }
+    });
+  });
+
+  // Auto-loading state on form submit buttons (prevents double-submit)
+  // Activate by adding data-loading-btn to a submit button, or data-form-loading to a form.
+  document.querySelectorAll('form[data-form-loading], form[method="post"]').forEach(function(form) {
+    form.addEventListener('submit', function() {
+      var btn = form.querySelector('button[type="submit"], button:not([type="button"])');
+      if (btn && !btn.disabled) {
+        setButtonLoading(btn, true);
+        // Restore after 10s as a safety net (if the page stays, e.g. validation error response)
+        setTimeout(function() { setButtonLoading(btn, false); }, 10000);
       }
     });
   });

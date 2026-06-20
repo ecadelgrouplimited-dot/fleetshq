@@ -47,11 +47,11 @@
   <div class="card">
     <div class="card-header"><h3>Driver Signature</h3></div>
     <div class="card-body">
-      <p style="font-size:13px;color:#64748b;margin-bottom:12px">By signing below, I confirm I have completed this walk-around check and the information recorded is accurate.</p>
-      <canvas id="sigCanvas" style="border:1.5px solid #e2e8f0;border-radius:8px;width:100%;height:160px;cursor:crosshair;touch-action:none"></canvas>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">By signing below, I confirm I have completed this walk-around check and the information recorded is accurate.</p>
+      <canvas id="sigCanvas" style="border:1.5px solid var(--border);border-radius:8px;width:100%;height:160px;cursor:crosshair;touch-action:none;display:block"></canvas>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button type="button" onclick="clearSig()" class="btn btn-ghost btn-sm">Clear</button>
-        <span style="font-size:11px;color:#94a3b8;margin-left:auto;align-self:center">Draw your signature above</span>
+        <button type="button" id="clearSigBtn" class="btn btn-ghost btn-sm">Clear</button>
+        <span style="font-size:11px;color:var(--text-light);margin-left:auto;align-self:center">Draw your signature above</span>
       </div>
     </div>
   </div>
@@ -62,7 +62,7 @@
   <div class="card-header">
     <h3>Vehicle Checklist</h3>
     <div style="display:flex;gap:8px">
-      <button type="button" onclick="setAll('ok')" class="btn btn-success btn-sm">Mark All OK</button>
+      <button type="button" id="setAllOkBtn" class="btn btn-success btn-sm">Mark All OK</button>
     </div>
   </div>
   <div class="card-body">
@@ -83,8 +83,8 @@
 </div>
 
 <div class="flex justify-between">
-  <div id="checkSummary" style="font-size:13px;color:#64748b;align-self:center">Select status for each item</div>
-  <button type="button" onclick="submitCheck()" class="btn btn-primary" style="padding:12px 32px;font-size:15px">Submit Check Record</button>
+  <div id="checkSummary" style="font-size:13px;color:var(--text-muted);align-self:center">Select status for each item</div>
+  <button type="button" id="submitCheckBtn" class="btn btn-primary" style="padding:12px 32px;font-size:15px" data-loading-text="Submitting…">Submit Check Record</button>
 </div>
 </form>
 
@@ -93,11 +93,26 @@ const items = ${JSON.stringify(CHECK_ITEMS)};
 const statuses = {};
 let signing = false; let lastX, lastY;
 
+// Wire buttons with addEventListener
+document.addEventListener('DOMContentLoaded', function() {
+  var clearBtn = document.getElementById('clearSigBtn');
+  if (clearBtn) clearBtn.addEventListener('click', clearSig);
+  var setAllBtn = document.getElementById('setAllOkBtn');
+  if (setAllBtn) setAllBtn.addEventListener('click', function() { setAll('ok'); });
+  var submitBtn = document.getElementById('submitCheckBtn');
+  if (submitBtn) submitBtn.addEventListener('click', function() {
+    submitCheck(submitBtn);
+  });
+});
+
 // Signature pad
 const canvas = document.getElementById('sigCanvas');
 const ctx2 = canvas.getContext('2d');
 canvas.width = canvas.offsetWidth * 2; canvas.height = 320;
-ctx2.scale(2,2); ctx2.strokeStyle = '#0f172a'; ctx2.lineWidth = 2; ctx2.lineCap = 'round';
+ctx2.scale(2,2);
+var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+ctx2.strokeStyle = isDark ? '#e8eef6' : '#0f172a';
+ctx2.lineWidth = 2; ctx2.lineCap = 'round';
 
 const getPos = (e) => {
   const r = canvas.getBoundingClientRect();
@@ -140,7 +155,7 @@ function updateSummary() {
   document.getElementById('defectNotes').style.display = defects > 0 ? 'block' : 'none';
 }
 
-async function submitCheck() {
+async function submitCheck(btn) {
   const vehicleId = document.getElementById('vehicleId').value;
   if (!vehicleId) { showToast('Please select a vehicle','error'); return; }
   const incomplete = items.filter(i => !statuses[i]);
@@ -150,6 +165,8 @@ async function submitCheck() {
   if (sigData === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==') {
     showToast('Please provide your signature','error'); return;
   }
+
+  if (btn) setButtonLoading(btn, true);
 
   const payload = {
     vehicleId,
@@ -166,7 +183,10 @@ async function submitCheck() {
     credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
 
   if (res.ok) { showToast('Daily check submitted successfully','success'); setTimeout(()=>window.location.href='/checks',1200); }
-  else { const err = await res.json(); showToast(err.error?.message || 'Submission failed','error'); }
+  else {
+    if (btn) setButtonLoading(btn, false);
+    const err = await res.json(); showToast(err.error?.message || 'Submission failed','error');
+  }
 }
 </script>
 ` }) %>

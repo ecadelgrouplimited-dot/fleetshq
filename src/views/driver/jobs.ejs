@@ -47,18 +47,21 @@ ${jobs.length === 0 ? `
 
 <div class="modal-overlay" id="podModal" style="display:none">
   <div class="modal">
-    <div class="modal-header"><h3>Proof of delivery — <span id="podRef"></span></h3><button type="button" class="btn btn-ghost btn-sm" onclick="closePod()">✕</button></div>
+    <div class="modal-header">
+      <h3>Proof of delivery — <span id="podRef"></span></h3>
+      <button type="button" class="btn btn-ghost btn-sm" data-close-pod aria-label="Close">✕</button>
+    </div>
     <form method="post" id="podForm">
       <input type="hidden" name="_csrf" value="${csrfToken}">
       <div class="modal-body">
-        <div class="form-group"><label class="form-label">Recipient name <span class="required">*</span></label><input class="form-control" name="recipientName" required placeholder="Who received the goods"></div>
-        <div class="form-group"><label class="form-label">Signature</label><input class="form-control" name="signatureData" placeholder="Type recipient name to sign"></div>
+        <div class="form-group"><label class="form-label">Recipient name <span class="required">*</span></label><input class="form-control" name="recipientName" id="podRecipient" required placeholder="Who received the goods" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">Signature</label><input class="form-control" name="signatureData" placeholder="Type recipient name to sign" autocomplete="off"></div>
         <label class="inline-check" style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" name="otpVerified" value="true"> OTP / ID verified at the door</label>
         <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" name="notes" placeholder="Left with… / condition…"></textarea></div>
       </div>
       <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border)">
-        <button type="button" class="btn btn-outline" onclick="closePod()">Cancel</button>
-        <button type="submit" class="btn btn-primary">Confirm delivery</button>
+        <button type="button" class="btn btn-outline" data-close-pod>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="podSubmitBtn" data-loading-text="Confirming…">Confirm delivery</button>
       </div>
     </form>
   </div>
@@ -77,9 +80,47 @@ ${jobs.length === 0 ? `
   .vcheck span { display:flex; align-items:center; gap:8px; }
   .vcheck.ok { background:var(--success-bg); color:var(--success-t); border:1px solid rgba(16,185,129,.25); }
   .vcheck.todo { background:var(--warning-bg); color:var(--warning-t); border:1px solid rgba(245,158,11,.3); }
+  @media (max-width: 500px) {
+    .job-top { flex-direction: column-reverse; }
+    .job-actions form { width: 100%; }
+    .job-actions form .btn { width: 100%; justify-content: center; }
+  }
 </style>
 <script>
-  function openPod(jobId, ref){ document.getElementById('podForm').action = '/jobs/' + jobId + '/deliver'; document.getElementById('podRef').textContent = ref; document.getElementById('podModal').style.display = 'flex'; }
-  function closePod(){ document.getElementById('podModal').style.display = 'none'; }
+(function() {
+  var podModal   = document.getElementById('podModal');
+  var podForm    = document.getElementById('podForm');
+  var podRef     = document.getElementById('podRef');
+  var submitBtn  = document.getElementById('podSubmitBtn');
+  var firstInput = document.getElementById('podRecipient');
+
+  function openPod(jobId, ref) {
+    podForm.action = '/jobs/' + jobId + '/deliver';
+    podRef.textContent = ref;
+    podModal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+    setTimeout(function() { if (firstInput) firstInput.focus(); }, 60);
+  }
+
+  function closePod() {
+    podModal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    if (submitBtn) setButtonLoading(submitBtn, false);
+    podForm.reset();
+  }
+
+  document.querySelectorAll('[data-close-pod]').forEach(function(btn) {
+    btn.addEventListener('click', closePod);
+  });
+
+  if (podForm && submitBtn) {
+    podForm.addEventListener('submit', function() {
+      setButtonLoading(submitBtn, true);
+    });
+  }
+
+  window.openPod  = openPod;
+  window.closePod = closePod;
+})();
 </script>
 ` }) %>

@@ -185,7 +185,7 @@
       <input type="hidden" id="resetUserId">
       <div class="form-group">
         <label class="form-label">User</label>
-        <div id="resetUserName" class="form-control" style="display:flex;align-items:center;background:#f8fafc"></div>
+        <div id="resetUserName" class="form-control" style="display:flex;align-items:center;background:var(--surface-2)"></div>
       </div>
       <div class="form-group">
         <label class="form-label">New Temporary Password</label>
@@ -247,16 +247,14 @@
   .fe-role { display:flex; align-items:center; gap:8px; margin-left:auto; }
   .fe-list { max-height:340px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
   .fe-row { display:flex; align-items:center; gap:12px; padding:9px 12px; border:1px solid var(--border); border-radius:10px; cursor:pointer; }
-  .fe-row:hover { background:#f8fafc; }
+  .fe-row:hover { background:var(--surface-2); }
   .fe-person { display:flex; flex-direction:column; min-width:0; flex:1; }
   .fe-person strong { font-size:13px; }
   .fe-person span { font-size:11.5px; color:var(--text-muted); }
-  .fe-alert { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:12px; }
-  #feBody code { background:#f1f5f9; padding:2px 6px; border-radius:5px; font-size:12px; font-weight:700; }
+  .fe-alert { background:var(--surface-2); border:1px solid var(--border); color:var(--text); border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:12px; }
+  #feBody code { background:var(--surface-2); padding:2px 6px; border-radius:5px; font-size:12px; font-weight:700; }
   .role-chip-list { display:flex; flex-wrap:wrap; gap:5px; }
   .form-hint { margin-top:5px; color:var(--text-muted); font-size:11.5px; }
-  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-  .btn-danger-soft:hover { background:#fee2e2; }
 </style>
 
 <script>

@@ -243,21 +243,21 @@ ${(() => {
   </div>
 
   <style>
-    .incomplete-banner { background:#fffbeb; border:1px solid #fde68a; border-radius:16px; padding:16px 18px; margin-bottom:16px; }
+    .incomplete-banner { background:var(--warning-bg); border:1px solid rgba(245,158,11,.3); border-radius:16px; padding:16px 18px; margin-bottom:16px; }
     .incomplete-head { display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; }
-    .incomplete-icon { width:38px; height:38px; flex-shrink:0; border-radius:10px; background:#fef3c7; color:#b45309; display:flex; align-items:center; justify-content:center; }
+    .incomplete-icon { width:38px; height:38px; flex-shrink:0; border-radius:10px; background:var(--warning-bg); color:var(--warning-t); display:flex; align-items:center; justify-content:center; }
     .incomplete-icon svg { width:20px; height:20px; }
-    .incomplete-head strong { font-size:14px; color:#92400e; }
-    .incomplete-head p { font-size:12.5px; color:#a16207; margin-top:2px; line-height:1.5; }
+    .incomplete-head strong { font-size:14px; color:var(--warning-t); }
+    .incomplete-head p { font-size:12.5px; color:var(--text-muted); margin-top:2px; line-height:1.5; }
     .incomplete-list { display:flex; flex-direction:column; gap:8px; }
-    .incomplete-row { display:flex; align-items:center; justify-content:space-between; gap:12px; background:#fff; border:1px solid #fde68a; border-radius:12px; padding:8px 12px; }
+    .incomplete-row { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--card); border:1px solid rgba(245,158,11,.3); border-radius:12px; padding:8px 12px; }
     .incomplete-person { display:flex; align-items:center; gap:10px; min-width:0; }
     .incomplete-person strong { display:block; font-size:13px; }
     .incomplete-person span { font-size:11.5px; color:var(--text-muted); }
     .sponsor-readiness { display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--mac-hairline); border-radius:14px; padding:8px 14px 8px 8px; box-shadow:var(--mac-shadow); }
     .sponsor-readiness-ring { width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
       background:conic-gradient(var(--success) calc(var(--pct)*1%), #e9eef6 0); }
-    .sponsor-readiness-ring span { width:34px; height:34px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--text); }
+    .sponsor-readiness-ring span { width:34px; height:34px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:var(--text); }
     .sponsor-readiness-label { font-size:12px; font-weight:700; color:var(--text); }
     .sponsor-readiness-sub { font-size:11px; color:var(--text-muted); margin-top:1px; }
     .sponsor-stat { font-family:inherit; text-align:left; }

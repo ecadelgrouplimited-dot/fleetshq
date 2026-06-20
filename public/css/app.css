@@ -602,6 +602,8 @@ tbody td a:hover { text-decoration: underline; }
 
 .btn-ghost { background: rgba(255,255,255,.7); color: var(--text-2); border: 1px solid var(--mac-hairline); box-shadow: var(--shadow-xs); }
 .btn-ghost:hover { background: #fff; color: var(--text); border-color: var(--border-md); box-shadow: var(--shadow-sm); }
+.btn-danger-soft { background: var(--danger-bg); color: var(--danger-t); border: 1px solid rgba(220,38,38,.25); }
+.btn-danger-soft:hover { filter: brightness(.96); }
 
 .btn-sm { padding: 5px 12px; font-size: 12px; }
 .btn-sm svg { width: 13px; height: 13px; }
@@ -966,7 +968,101 @@ tbody td a:hover { text-decoration: underline; }
     position: sticky; left: 0; z-index: 1;
     box-shadow: 6px 0 8px -6px rgba(15,23,42,.18);
   }
-  .table-wrap thead th:first-child { background: #f1f5f9; }
-  .table-wrap tbody td:first-child { background: #fff; }
-  .table-wrap tbody tr:hover td:first-child { background: #f8fafc; }
+  .table-wrap thead th:first-child { background: var(--surface-2); }
+  .table-wrap tbody td:first-child { background: var(--card); }
+  .table-wrap tbody tr:hover td:first-child { background: var(--surface-2); }
 }
+
+/* ══════════════════════════════════════════
+   FOCUS & ACCESSIBILITY
+══════════════════════════════════════════ */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* Remove outline for mouse clicks — only show for keyboard nav */
+:focus:not(:focus-visible) { outline: none; }
+
+/* Minimum touch targets on mobile */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .form-control, select.form-control { min-height: 44px; }
+  .check-item { min-height: 52px; }
+  .sidebar nav a { min-height: 44px; }
+}
+
+/* ══════════════════════════════════════════
+   BUTTON LOADING STATE
+══════════════════════════════════════════ */
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
+.btn.is-loading {
+  pointer-events: none;
+  opacity: .75;
+  padding-right: 38px;
+  position: relative;
+}
+.btn.is-loading::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  width: 13px; height: 13px;
+  margin-top: -6.5px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin .55s linear infinite;
+}
+
+/* ══════════════════════════════════════════
+   MODAL — shared animation & backdrop scroll lock
+══════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(8,15,30,.55);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  padding: 16px;
+  animation: overlay-in .18s ease;
+}
+@keyframes overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.modal-overlay .modal {
+  animation: modal-in .22s cubic-bezier(.34,1.3,.64,1);
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+body.modal-open { overflow: hidden; }
+
+/* ══════════════════════════════════════════
+   DARK MODE — sticky header fix
+══════════════════════════════════════════ */
+[data-theme="dark"] .table-wrap thead th:first-child { background: var(--surface-2); }
+[data-theme="dark"] .window-canvas {
+  background: linear-gradient(180deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,.01) 100%);
+}
+
+/* ══════════════════════════════════════════
+   PAGE HEAD — tighten mobile
+══════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .page-head { flex-direction: column; align-items: stretch; gap: 14px; }
+  .page-head-main { gap: 4px; }
+  .page-head-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .page-head-actions .btn { flex: 1; min-width: 120px; text-align: center; justify-content: center; }
+  .job-actions { flex-direction: column; }
+  .job-actions .btn { width: 100%; justify-content: center; }
+}
+
+/* ══════════════════════════════════════════
+   FORM LABELS — consistent sizing
+══════════════════════════════════════════ */
+.required { color: var(--danger); font-weight: 700; }
+

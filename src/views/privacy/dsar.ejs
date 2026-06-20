@@ -17,7 +17,7 @@ ${typeof query !== 'undefined' && query.erased ? '<div class="alert alert-succes
   <div class="card">
     <div class="card-header"><h3>Data Subject Access Request (DSAR)</h3></div>
     <div class="card-body">
-      <p style="font-size:14px;color:#64748b;margin-bottom:16px">Download a JSON export of all personal data held for an employee. Share with the data subject to fulfil a SAR within the 30-day deadline.</p>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Download a JSON export of all personal data held for an employee. Share with the data subject to fulfil a SAR within the 30-day deadline.</p>
       <form method="GET" action="/privacy/dsar">
         <div class="form-group">
           <label class="form-label">Select employee</label>
@@ -31,11 +31,11 @@ ${typeof query !== 'undefined' && query.erased ? '<div class="alert alert-succes
     </div>
   </div>
 
-  <div class="card" style="border-color:#fca5a5">
-    <div class="card-header" style="background:#fef2f2"><h3 style="color:#b91c1c">Right to Erasure</h3></div>
+  <div class="card" style="border-color:rgba(239,68,68,.4)">
+    <div class="card-header" style="background:var(--danger-bg)"><h3 style="color:var(--danger-t)">Right to Erasure</h3></div>
     <div class="card-body">
-      <p style="font-size:14px;color:#64748b;margin-bottom:16px">Anonymises the individual's personal identifiers (name, DOB, address, NI, passport, visa, phone, email) and removes their login account. <strong>Operational records (checks, defects, training) are retained to meet DVSA legal obligations.</strong></p>
-      <p style="font-size:13px;color:#b91c1c;margin-bottom:16px;font-weight:600">This action is irreversible.</p>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Anonymises the individual's personal identifiers (name, DOB, address, NI, passport, visa, phone, email) and removes their login account. <strong>Operational records (checks, defects, training) are retained to meet DVSA legal obligations.</strong></p>
+      <p style="font-size:13px;color:var(--danger-t);margin-bottom:16px;font-weight:600">This action is irreversible.</p>
       <form method="POST" action="/privacy/erase" onsubmit="return confirm('Are you sure? This will permanently anonymise the employee\'s personal data and cannot be undone.')">
         <input type="hidden" name="_csrf" value="${csrfToken}">
         <div class="form-group">
@@ -45,7 +45,7 @@ ${typeof query !== 'undefined' && query.erased ? '<div class="alert alert-succes
             ${(employees || []).map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}
           </select>
         </div>
-        <button type="submit" class="btn" style="background:#dc2626;color:#fff">Erase personal data</button>
+        <button type="submit" class="btn btn-danger">Erase personal data</button>
       </form>
     </div>
   </div>

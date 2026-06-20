@@ -29,7 +29,7 @@
       </div>
       <div style="margin-top:16px">
         <div class="text-sm text-muted" style="margin-bottom:6px">Description</div>
-        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:13.5px;line-height:1.6">${esc(defect.description)}</div>
+        <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13.5px;line-height:1.6">${esc(defect.description)}</div>
       </div>
     </div>
   </div>
@@ -47,21 +47,21 @@
         return `
           <div style="display:flex;align-items:center;gap:14px;margin-bottom:${i < 4 ? '12px' : '0'}">
             <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
-              background:${isDone ? (isCurrent ? '#3b82f6' : '#10b981') : '#f1f5f9'};
-              color:${isDone ? '#fff' : '#94a3b8'};font-size:12px;font-weight:700">
+              background:${isDone ? (isCurrent ? 'var(--primary)' : 'var(--success)') : 'var(--surface-2)'};
+              color:${isDone ? '#fff' : 'var(--text-light)'};font-size:12px;font-weight:700">
               ${isDone && !isCurrent ? '✓' : i + 1}
             </div>
             <div>
-              <div style="font-size:13px;font-weight:${isCurrent ? '700' : '500'};color:${isDone ? '#0f172a' : '#94a3b8'}">${labels[s]}</div>
-              ${isCurrent && defect.reviewedAt ? `<div style="font-size:11px;color:#64748b">${formatDate(defect.reviewedAt)}</div>` : ''}
+              <div style="font-size:13px;font-weight:${isCurrent ? '700' : '500'};color:${isDone ? 'var(--text)' : 'var(--text-light)'}">${labels[s]}</div>
+              ${isCurrent && defect.reviewedAt ? `<div style="font-size:11px;color:var(--text-muted)">${formatDate(defect.reviewedAt)}</div>` : ''}
             </div>
           </div>
-          ${i < 4 ? '<div style="width:2px;height:16px;background:#e2e8f0;margin-left:13px;margin-bottom:0"></div>' : ''}
+          ${i < 4 ? '<div style="width:2px;height:16px;background:var(--border);margin-left:13px;margin-bottom:0"></div>' : ''}
         `;
       }).join('')}
 
       ${defect.repairGarage ? `
-        <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:13px">
+        <div style="margin-top:16px;padding:12px;background:var(--surface-2);border-radius:8px;font-size:13px">
           <strong>Repair Garage:</strong> ${defect.repairGarage}<br>
           ${defect.repairAction ? `<strong>Action:</strong> ${defect.repairAction}` : ''}
           ${defect.dateRepaired ? `<br><strong>Date Repaired:</strong> ${formatDate(defect.dateRepaired)}` : ''}
@@ -83,7 +83,7 @@ ${defect.photos?.length > 0 ? `
   <div class="card-body" style="display:flex;flex-wrap:wrap;gap:12px">
     ${defect.photos.map(p => `
       <a href="/documents/defect-photo/${p.id}" class="defect-photo-link">
-        <img src="/documents/defect-photo/${p.id}/content" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" onerror="this.style.display='none'">
+        <img src="/documents/defect-photo/${p.id}/content" style="width:160px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" onerror="this.style.display='none'">
       </a>
     `).join('')}
   </div>

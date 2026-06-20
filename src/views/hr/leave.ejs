@@ -54,7 +54,7 @@
               <form method="post" action="/leave/${l.id}/decision" style="display:inline-flex;gap:6px">
                 <input type="hidden" name="_csrf" value="${csrfToken}">
                 <button class="btn btn-outline btn-sm" name="decision" value="approve">✓ Approve</button>
-                <button class="btn btn-outline btn-sm" name="decision" value="reject" style="color:#dc2626;border-color:#fca5a5">✕ Reject</button>
+                <button class="btn btn-outline btn-sm" name="decision" value="reject" style="color:var(--danger);border-color:rgba(220,38,38,.3)">✕ Reject</button>
               </form>` : '<span class="cell-muted">—</span>'}
             </td>
           </tr>`).join('')}

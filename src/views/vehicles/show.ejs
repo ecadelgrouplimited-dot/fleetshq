@@ -41,9 +41,9 @@
         { label: 'Tacho Calibration', date: vehicle.tachoCalibrExpiry, days: daysUntil(vehicle.tachoCalibrExpiry), critical: 30 },
       ].map(item => {
         const status = !item.date ? 'slate' : item.days < 0 ? 'danger' : item.days <= item.critical ? 'warning' : 'ok';
-        const color = status === 'danger' ? '#dc2626' : status === 'warning' ? '#d97706' : '#10b981';
+        const color = status === 'danger' ? 'var(--danger)' : status === 'warning' ? 'var(--warning)' : 'var(--success)';
         return `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f1f5f9">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
             <div style="font-size:13px;font-weight:500">${item.label}</div>
             <div style="text-align:right">
               <div style="font-weight:700;font-size:13px;color:${color}">${formatDate(item.date)}</div>
@@ -58,7 +58,7 @@
 
 ${vehicle.defects?.length > 0 ? `
 <div class="card mb-4">
-  <div class="card-header"><h3 style="color:#dc2626">Open Defects (${vehicle.defects.length})</h3></div>
+  <div class="card-header"><h3 style="color:var(--danger-t)">Open Defects (${vehicle.defects.length})</h3></div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Reference</th><th>Category</th><th>Severity</th><th>Status</th><th>Reported By</th><th></th></tr></thead>
@@ -89,14 +89,14 @@ ${vehicle.defects?.length > 0 ? `
       <thead><tr><th>Type</th><th>File</th><th>Document Date</th><th>Expiry</th><th>Uploaded</th></tr></thead>
       <tbody>
         ${vehicle.documents.length === 0
-          ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:#64748b">No documents uploaded</td></tr>`
+          ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">No documents uploaded</td></tr>`
           : vehicle.documents.map(d => `
             <tr>
               <td style="font-weight:600;text-transform:capitalize">${d.documentType.replace(/_/g,' ')}</td>
               <td><a href="/documents/vehicle-document/${d.id}" class="document-link">${esc(d.fileName)}</a></td>
               <td>${formatDate(d.documentDate)}</td>
               <td>${formatDate(d.expiryDate)}</td>
-              <td style="font-size:12px;color:#64748b">${formatDate(d.createdAt)}</td>
+              <td style="font-size:12px;color:var(--text-muted)">${formatDate(d.createdAt)}</td>
             </tr>
           `).join('')}
       </tbody>
@@ -111,13 +111,13 @@ ${vehicle.defects?.length > 0 ? `
       <thead><tr><th>Date</th><th>Driver</th><th>Mileage</th><th>Result</th></tr></thead>
       <tbody>
         ${vehicle.checks.length === 0
-          ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:#64748b">No checks recorded</td></tr>`
+          ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No checks recorded</td></tr>`
           : vehicle.checks.map(c => {
               const defects = c.items.filter(i => i.status === 'defect_found').length;
               return `<tr>
                 <td style="font-weight:500">${formatDate(c.checkDate)}</td>
                 <td>${esc(c.driver?.fullName || '—')}</td>
-                <td style="color:#64748b">${c.mileage?.toLocaleString()} mi</td>
+                <td style="color:var(--text-muted)">${c.mileage?.toLocaleString()} mi</td>
                 <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defects > 0 ? `<span class="badge badge-amber">${defects} defect(s)</span>` : '<span class="badge badge-green">Pass</span>'}</td>
               </tr>`;
             }).join('')}
@@ -201,8 +201,6 @@ async function deleteVehicleRecord() {
 }
 </script>
 <style>
-  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-  .btn-danger-soft:hover { background:#fee2e2; }
   .document-link { font-size:12px; font-weight:700; color:var(--primary); text-decoration:none; }
   .document-link:hover { text-decoration:underline; }
 </style>
