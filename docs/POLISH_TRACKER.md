@@ -216,7 +216,7 @@
 | P-02 | N+1 queries: audit `findMany` calls that loop and query | 🟡 | ⬜ audit |
 | P-03 | Image optimisation: photos served at display size | 🟢 | ⬜ planned |
 | P-04 | `chart.js` sourcemap fetch CSP `connect-src` | 🟢 | ✅ done 2026-06-20 | `https://cdn.jsdelivr.net` added to `connectSrc` |
-| P-05 | Static asset caching headers (CSS/JS/images) | 🟡 | ⬜ check nginx config |
+| P-05 | Static asset caching headers (CSS/JS/images) | 🟡 | ✅ done 2026-06-20 | Express static `max-age=30d` + ETag/Last-Modified; CSS/JS cache-busted via mtime `?v=` token (`app.locals.assetVersion`) so deploys never serve stale assets |
 | P-06 | Large list pages: server-side pagination | 🔴 | ⬜ planned |
 
 ---
@@ -269,6 +269,7 @@
 
 | Date | Item | Done by |
 |------|------|---------|
+| 2026-06-20 | P-05: Static asset caching (30d max-age + ETag); mtime-based `?v=` cache-busting on CSS/JS | Claude |
 | 2026-06-20 | S-03/CO-01/CO-02/FL-01/EM-02: onclick= sweep (vor, defects, employees, vehicles show/edit/form) | Claude |
 | 2026-06-20 | M-03–M-09: Dispatch kanban mobile; finance/exec/lms/hr/portal mobile; invoice column hide | Claude |
 | 2026-06-20 | D-02–D-04/D-06–D-07: Dark mode sweep (expenses, executive, hr, lms, my-learning) | Claude |

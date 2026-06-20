@@ -49,7 +49,35 @@ app.use(cors());
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Asset cache-busting: derive a short version token from the mtimes of the two
+// mutable assets (app.css / app.js). It changes whenever either file is
+// redeployed, so a long max-age never serves a stale stylesheet or script.
+const fs = require('fs');
+function computeAssetVersion() {
+  try {
+    const files = ['public/css/app.css', 'public/js/app.js'].map((f) =>
+      fs.statSync(path.join(__dirname, f)).mtimeMs
+    );
+    return Math.max(...files).toString(36);
+  } catch (err) {
+    return Date.now().toString(36);
+  }
+}
+app.locals.assetVersion = computeAssetVersion();
+
+// Static assets: long-lived caching. CSS/JS are cache-busted via the ?v= token
+// above, so a 30-day max-age is safe; images/fonts/favicon change rarely.
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '30d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    // Versioned CSS/JS requests carry ?v=… and can be cached immutably.
+    if (/\.(css|js|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=2592000');
+    }
+  },
+}));
 
 // CSRF: issue a double-submit token, then verify it on state-changing requests.
 const { issueToken, verifyToken } = require('./src/middleware/csrf');
