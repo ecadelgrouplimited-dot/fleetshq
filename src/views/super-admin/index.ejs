@@ -1,4 +1,4 @@
-<%
+﻿<%
   const writeAttr = canWrite ? '' : 'disabled';
   const branding = (company && company.branding) || {};
   const notificationConfig = config['notifications.email_sms'] || {};
@@ -125,7 +125,7 @@ ${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. 
     <div class="card-header"><h3>User & Access</h3><a class="btn btn-outline btn-sm" href="/users">Open user manager</a></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>User</th><th>Roles</th><th>Branches</th><th>Status</th></tr></thead>
+        <thead><tr><th scope="col">User</th><th scope="col">Roles</th><th scope="col">Branches</th><th scope="col">Status</th></tr></thead>
         <tbody>
           ${users.slice(0, 8).map(u => `
             <tr>

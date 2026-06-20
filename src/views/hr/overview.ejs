@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">HR</div>
@@ -48,7 +48,7 @@
     </div>
     ${pendingLeave.length === 0 ? `<div class="empty-state"><p>No pending leave requests</p></div>` : `
     <div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th></th></tr></thead>
+      <thead><tr><th scope="col">Employee</th><th scope="col">Type</th><th scope="col">Dates</th><th scope="col">Days</th><th scope="col"></th></tr></thead>
       <tbody>${pendingLeave.map(l => `
         <tr>
           <td style="font-weight:600">${esc(empNames[l.employeeId] || '—')}</td>
@@ -74,7 +74,7 @@
     </div>
     ${overdueEnrolments.length === 0 ? `<div class="empty-state"><p>No overdue training</p></div>` : `
     <div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Course</th><th>Assigned</th></tr></thead>
+      <thead><tr><th scope="col">Employee</th><th scope="col">Course</th><th scope="col">Assigned</th></tr></thead>
       <tbody>${overdueEnrolments.map(e => `
         <tr>
           <td style="font-weight:600">${esc(empNames[e.employeeId] || '—')}</td>
@@ -92,7 +92,7 @@
     </div>
     ${rtwWatch.length === 0 ? `<div class="empty-state"><p>No RTW or visa dates due within 60 days</p></div>` : `
     <div class="table-wrap"><table>
-      <thead><tr><th>Worker</th><th>Visa expiry</th><th>RTW follow-up</th></tr></thead>
+      <thead><tr><th scope="col">Worker</th><th scope="col">Visa expiry</th><th scope="col">RTW follow-up</th></tr></thead>
       <tbody>${rtwWatch.map(s => `
         <tr>
           <td style="font-weight:600">${esc(s.employee?.fullName || '—')}</td>

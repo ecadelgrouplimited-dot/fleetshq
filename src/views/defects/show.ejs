@@ -70,7 +70,7 @@
 
       ${(defect.status === 'repaired' && (user.role === 'transport_manager' || user.role === 'director')) ? `
         <form action="/api/v1/defects/${defect.id}/signoff" method="POST" id="signoffForm" style="margin-top:16px">
-          <button type="button" onclick="signOff()" class="btn btn-success" style="width:100%">Final Sign-Off & Close</button>
+          <button type="button" id="signOffBtn" class="btn btn-success" style="width:100%">Final Sign-Off & Close</button>
         </form>
       ` : ''}
     </div>
@@ -91,14 +91,18 @@ ${defect.photos?.length > 0 ? `
 ` : ''}
 
 <script>
-async function signOff() {
-  const res = await fetch('/api/v1/defects/${defect.id}/signoff', {
-    method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ signoffNotes: 'Signed off via dashboard' })
+(function() {
+  var btn = document.getElementById('signOffBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async function() {
+    const res = await fetch('/api/v1/defects/${defect.id}/signoff', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signoffNotes: 'Signed off via dashboard' })
+    });
+    if (res.ok) { showToast('Defect case closed successfully', 'success'); setTimeout(function() { location.reload(); }, 1200); }
+    else { showToast('Sign-off failed', 'error'); }
   });
-  if (res.ok) { showToast('Defect case closed successfully','success'); setTimeout(()=>location.reload(),1200); }
-  else { showToast('Sign-off failed','error'); }
-}
+})();
 </script>
 <style>
   .defect-photo-link { display:block; text-decoration:none; }

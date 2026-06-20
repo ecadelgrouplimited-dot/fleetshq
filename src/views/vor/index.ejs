@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <div>
     <span class="badge ${active.length > 0 ? 'badge-red' : 'badge-green'}" style="font-size:13px;padding:6px 12px">
@@ -18,14 +18,14 @@ ${active.length > 0 ? `
     <table>
       <thead>
         <tr>
-          <th>Vehicle</th>
-          <th>Off Road Since</th>
-          <th>Days Off Road</th>
-          <th>Reason</th>
-          <th>Garage</th>
-          <th>Est. Return</th>
-          <th>Authorised By</th>
-          <th>Action</th>
+          <th scope="col">Vehicle</th>
+          <th scope="col">Off Road Since</th>
+          <th scope="col">Days Off Road</th>
+          <th scope="col">Reason</th>
+          <th scope="col">Garage</th>
+          <th scope="col">Est. Return</th>
+          <th scope="col">Authorised By</th>
+          <th scope="col">Action</th>
         </tr>
       </thead>
       <tbody id="activeVorTableBody">
@@ -41,7 +41,7 @@ ${active.length > 0 ? `
             <td>${formatDate(r.estimatedReturnDate)}</td>
             <td>${esc(r.authorisedBy?.firstName)} ${esc(r.authorisedBy?.lastName)}</td>
             <td>
-              <button onclick="returnVehicle('${r.id}')" class="btn btn-success btn-sm">Return to Service</button>
+              <button class="btn btn-success btn-sm" data-vor-return="${r.id}">Return to Service</button>
             </td>
           </tr>
         `).join('')}
@@ -66,7 +66,7 @@ ${active.length > 0 ? `
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Vehicle</th><th>Off Road Date</th><th>Return Date</th><th>Duration</th><th>Authorised By</th></tr></thead>
+      <thead><tr><th scope="col">Vehicle</th><th scope="col">Off Road Date</th><th scope="col">Return Date</th><th scope="col">Duration</th><th scope="col">Authorised By</th></tr></thead>
       <tbody id="vorHistoryTableBody">
         ${history.length === 0 ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">No history</td></tr>` :
         history.map(r => {
@@ -97,24 +97,38 @@ ${active.length > 0 ? `
       </div>
     </div>
     <div class="modal-footer">
-      <button onclick="document.getElementById('returnModal').style.display='none'" class="btn btn-ghost">Cancel</button>
-      <button onclick="confirmReturn()" class="btn btn-success">Confirm Return to Service</button>
+      <button id="cancelReturnBtn" class="btn btn-ghost">Cancel</button>
+      <button id="confirmReturnBtn" class="btn btn-success">Confirm Return to Service</button>
     </div>
   </div>
 </div>
 
 <script>
-let activeVorId = null;
-function returnVehicle(id) { activeVorId = id; document.getElementById('returnModal').style.display='flex'; }
-async function confirmReturn() {
-  const notes = document.getElementById('signoffNotes').value;
-  const res = await fetch('/api/v1/vor/'+activeVorId+'/return', {
-    method:'PATCH', credentials:'same-origin', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ signoffNotes: notes })
+(function() {
+  let activeVorId = null;
+  const modal = document.getElementById('returnModal');
+
+  document.querySelectorAll('[data-vor-return]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      activeVorId = btn.getAttribute('data-vor-return');
+      modal.style.display = 'flex';
+    });
   });
-  if (res.ok) { showToast('Vehicle returned to service','success'); setTimeout(()=>location.reload(),1200); }
-  else { showToast('Failed to return vehicle','error'); }
-  document.getElementById('returnModal').style.display='none';
-}
+
+  document.getElementById('cancelReturnBtn').addEventListener('click', function() {
+    modal.style.display = 'none';
+  });
+
+  document.getElementById('confirmReturnBtn').addEventListener('click', async function() {
+    const notes = document.getElementById('signoffNotes').value;
+    const res = await fetch('/api/v1/vor/' + activeVorId + '/return', {
+      method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signoffNotes: notes })
+    });
+    if (res.ok) { showToast('Vehicle returned to service', 'success'); setTimeout(function() { location.reload(); }, 1200); }
+    else { showToast('Failed to return vehicle', 'error'); }
+    modal.style.display = 'none';
+  });
+})();
 </script>
 ` }) %>

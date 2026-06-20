@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="/reports" class="btn btn-ghost btn-sm">Back to reports</a>
   <div class="flex gap-2">
@@ -45,7 +45,7 @@
     <table class="report-table">
       <thead>
         <tr>
-          ${report.columns.map((column) => `<th>${column}</th>`).join('')}
+          ${report.columns.map((column) => `<th scope="col">${column}</th>`).join('')}
         </tr>
       </thead>
       <tbody>

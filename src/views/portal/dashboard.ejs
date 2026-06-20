@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">Client portal</div>
@@ -45,7 +45,7 @@
   ` : `
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Status</th><th>Total</th><th></th></tr></thead>
+      <thead><tr><th scope="col">Reference</th><th scope="col">Customer</th><th scope="col">Service</th><th scope="col">Status</th><th scope="col">Total</th><th scope="col"></th></tr></thead>
       <tbody>
         ${shipments.map(s => `
           <tr>

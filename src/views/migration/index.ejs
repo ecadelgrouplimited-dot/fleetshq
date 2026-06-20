@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">
@@ -53,7 +53,7 @@
   <!-- STEP 2 — Mapping -->
   <div class="wiz-panel" data-panel="2" hidden>
     <p class="wiz-lead">We matched your spreadsheet columns to the fields below. Adjust any that look wrong — required fields are marked <span class="req">*</span>.</p>
-    <div class="table-wrap"><table class="map-table"><thead><tr><th>System field</th><th>Your column</th><th>Sample</th></tr></thead><tbody id="mapBody"></tbody></table></div>
+    <div class="table-wrap"><table class="map-table"><thead><tr><th scope="col">System field</th><th scope="col">Your column</th><th scope="col">Sample</th></tr></thead><tbody id="mapBody"></tbody></table></div>
     <div class="wiz-actions">
       <button type="button" class="btn btn-ghost" data-goto="1">Back</button>
       <button type="button" class="btn btn-primary" id="toReviewBtn">Review import →</button>
@@ -68,7 +68,7 @@
       <label class="radio-pill"><input type="radio" name="dedup" value="skip" checked> Skip it (keep current)</label>
       <label class="radio-pill"><input type="radio" name="dedup" value="update"> Update it with the file</label>
     </div>
-    <div class="table-wrap preview-wrap"><table class="preview-table"><thead><tr><th>Row</th><th>Status</th><th>Key</th><th>Notes</th></tr></thead><tbody id="previewBody"></tbody></table></div>
+    <div class="table-wrap preview-wrap"><table class="preview-table"><thead><tr><th scope="col">Row</th><th scope="col">Status</th><th scope="col">Key</th><th scope="col">Notes</th></tr></thead><tbody id="previewBody"></tbody></table></div>
     <div class="wiz-actions">
       <button type="button" class="btn btn-ghost" data-goto="2">Back</button>
       <button type="button" class="btn btn-primary" id="commitBtn">Import</button>
@@ -319,7 +319,7 @@
       var entity = document.getElementById('entityType').value;
       var res = await apiCall('POST', '/api/v1/migration/import', { entity:entity, csv:document.getElementById('csvInput').value });
       var s = res.data.summary;
-      document.getElementById('resultPanel').innerHTML = '<div class="table-wrap"><table><thead><tr><th>Line</th><th>Status</th><th>Record</th><th>Message</th></tr></thead><tbody>'+
+      document.getElementById('resultPanel').innerHTML = '<div class="table-wrap"><table><thead><tr><th scope="col">Line</th><th scope="col">Status</th><th scope="col">Record</th><th scope="col">Message</th></tr></thead><tbody>'+
         res.data.results.map(function(r){ return '<tr><td>'+r.line+'</td><td><span class="badge '+(r.status==='failed'?'badge-red':r.status==='updated'?'badge-blue':'badge-green')+'">'+esc(r.status)+'</span></td><td class="fw-600">'+esc(r.key||'-')+'</td><td class="cell-muted">'+esc(r.message||'-')+'</td></tr>'; }).join('')+'</tbody></table></div>';
       showToast(s.created+' created, '+s.updated+' updated, '+s.failed+' failed', s.failed?'warning':'success');
     } catch(e){ showToast(e.message||'Import failed','error'); }

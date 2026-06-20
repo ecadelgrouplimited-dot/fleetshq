@@ -913,6 +913,8 @@ router.get('/', landingGate, webAuth, async (req, res) => {
 router.get('/employees', webAuth, requireRoles(...peopleRoles), async (req, res) => {
   try {
     const { search, status = 'active', department, type = '' } = req.query;
+    const PAGE_SIZE = 25;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const where = {};
     if (status) where.employmentStatus = status;
     if (department) where.department = { contains: department, mode: 'insensitive' };
@@ -923,7 +925,8 @@ router.get('/employees', webAuth, requireRoles(...peopleRoles), async (req, res)
       { jobTitle: { contains: search, mode: 'insensitive' } },
     ];
 
-    const [employees, departments] = await Promise.all([
+    const [total, employees, departments] = await Promise.all([
+      prisma.employee.count({ where }),
       prisma.employee.findMany({
         where,
         include: {
@@ -931,6 +934,8 @@ router.get('/employees', webAuth, requireRoles(...peopleRoles), async (req, res)
           drivingVehicle: { select: { registration: true } },
         },
         orderBy: { fullName: 'asc' },
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
       }),
       prisma.employee.findMany({ select: { department: true }, distinct: ['department'], orderBy: { department: 'asc' } }),
     ]);
@@ -942,8 +947,10 @@ router.get('/employees', webAuth, requireRoles(...peopleRoles), async (req, res)
     }));
     if (type === 'missing_docs') enriched = enriched.filter(e => e.missingDocs > 0);
 
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     res.render('employees/index', { title: 'People & Compliance', employees: enriched,
-      departments: departments.map(d => d.department), filters: { search, status, department, type } });
+      departments: departments.map(d => d.department), filters: { search, status, department, type },
+      page, totalPages, total });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -1089,10 +1096,13 @@ router.get('/training', webAuth, async (req, res) => {
 router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const { status = '', due = '' } = req.query;
+    const PAGE_SIZE = 25;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const where = {};
     if (status) where.status = status;
     else where.status = { not: 'sold' };
 
+    // For compliance filters we need all records to filter in-memory, then paginate
     const vehicles = await prisma.vehicle.findMany({
       where,
       include: {
@@ -1117,7 +1127,11 @@ router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
     if (due === 'open_defects') enriched = enriched.filter(v => v.defects.length > 0);
     if (due === 'unassigned') enriched = enriched.filter(v => !v.assignedDriver);
 
-    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: enriched, filters: { status, due }, formatDate });
+    const total = enriched.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const paged = enriched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: paged, filters: { status, due }, formatDate, page, totalPages, total });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -1163,15 +1177,31 @@ router.get('/fleet/overview', webAuth, requireRoles(...fleetRoles), async (req, 
 router.get('/fleet/fuel', webAuth, requireRoles(...fleetRoles), async (req, res) => {
   try {
     const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-    const [logs, vehicles, monthLogs] = await Promise.all([
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29); thirtyDaysAgo.setHours(0, 0, 0, 0);
+    const [logs, vehicles, monthLogs, trendLogs] = await Promise.all([
       prisma.fuelLog.findMany({ orderBy: { loggedDate: 'desc' }, take: 60 }),
       prisma.vehicle.findMany({ where: { status: { not: 'sold' } }, select: { id: true, registration: true }, orderBy: { registration: 'asc' } }),
       prisma.fuelLog.findMany({ where: { loggedDate: { gte: monthStart } } }),
+      prisma.fuelLog.findMany({ where: { loggedDate: { gte: thirtyDaysAgo } }, orderBy: { loggedDate: 'asc' } }),
     ]);
     const vehMap = Object.fromEntries(vehicles.map((v) => [v.id, v.registration]));
     const spend = monthLogs.reduce((s, f) => s + Number(f.cost), 0);
     const litres = monthLogs.reduce((s, f) => s + Number(f.litres), 0);
-    res.render('fleet/fuel', { title: 'Fuel Management', logs, vehicles, vehMap, totals: { spend, litres, ppl: litres ? spend / litres : 0, count: monthLogs.length }, canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/fuel' });
+
+    // Build 30-day daily trend
+    const fuelByDay = {};
+    trendLogs.forEach((f) => {
+      const d = new Date(f.loggedDate); d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().split('T')[0];
+      fuelByDay[key] = (fuelByDay[key] || 0) + Number(f.cost);
+    });
+    const fuelChart = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(thirtyDaysAgo); d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      return { label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), total: fuelByDay[key] || 0 };
+    });
+
+    res.render('fleet/fuel', { title: 'Fuel Management', logs, vehicles, vehMap, totals: { spend, litres, ppl: litres ? spend / litres : 0, count: monthLogs.length }, fuelChart, canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/fuel' });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2396,9 +2426,15 @@ router.post('/customers', webAuth, requireRoles(...portalRoles), async (req, res
 router.get('/shipments', webAuth, requireRoles(...portalRoles), async (req, res) => {
   try {
     const status = req.query.status;
+    const PAGE_SIZE = 25;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const where = status ? { status } : {};
-    const shipments = await prisma.shipment.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100, include: { customer: true, job: true, invoice: true } });
-    res.render('portal/shipments', { title: 'Shipments', shipments, status: status || '', svc: shipmentSvc, formatDate, path: '/shipments' });
+    const [total, shipments] = await Promise.all([
+      prisma.shipment.count({ where }),
+      prisma.shipment.findMany({ where, orderBy: { createdAt: 'desc' }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { customer: true, job: true, invoice: true } }),
+    ]);
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    res.render('portal/shipments', { title: 'Shipments', shipments, status: status || '', svc: shipmentSvc, formatDate, path: '/shipments', page, totalPages, total });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2499,9 +2535,16 @@ router.post('/jobs/:id/deliver', webAuth, requireRoles(...driverJobRoles), async
 // ── Invoices (invoice-only MVP) ───────────────────────────────────────
 router.get('/invoices', webAuth, requireRoles(...invoiceRoles), async (req, res) => {
   try {
-    const invoices = await prisma.invoice.findMany({ orderBy: { createdAt: 'desc' }, take: 100, include: { customer: true, shipment: true } });
-    const totals = invoices.reduce((a, i) => { a.all += Number(i.total); if (i.status !== 'paid') a.outstanding += Number(i.total); return a; }, { all: 0, outstanding: 0 });
-    res.render('invoices/index', { title: 'Invoices', invoices, totals, formatDate, path: '/invoices' });
+    const PAGE_SIZE = 25;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const [total, invoices, allTotals] = await Promise.all([
+      prisma.invoice.count(),
+      prisma.invoice.findMany({ orderBy: { createdAt: 'desc' }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { customer: true, shipment: true } }),
+      prisma.invoice.findMany({ select: { total: true, status: true } }),
+    ]);
+    const totals = allTotals.reduce((a, i) => { a.all += Number(i.total); if (i.status !== 'paid') a.outstanding += Number(i.total); return a; }, { all: 0, outstanding: 0 });
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    res.render('invoices/index', { title: 'Invoices', invoices, totals, formatDate, path: '/invoices', page, totalPages, total });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2739,7 +2782,7 @@ router.get('/my-learning', webAuth, async (req, res) => {
     if (!req.user.employeeId) return res.status(403).render('error', { title: 'No learner record', message: 'Your account is not linked to an employee record.', code: 403 });
     const enrolments = await prisma.courseEnrolment.findMany({ where: { employeeId: req.user.employeeId }, orderBy: { status: 'asc' }, include: { course: true } });
     const completed = enrolments.filter((e) => e.status === 'completed').length;
-    res.render('lms/my-learning', { title: 'My Learning', enrolments, completed, statusBadge: STATUS_BADGE, formatDate, path: '/my-learning' });
+    res.render('lms/my-learning', { title: 'My Learning', enrolments, completed, statusBadge: STATUS_BADGE, formatDate, path: '/my-learning', justCompleted: req.query.completed === '1' });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2747,7 +2790,7 @@ router.post('/my-learning/:id/complete', webAuth, async (req, res) => {
   try {
     const enr = await prisma.courseEnrolment.findUnique({ where: { id: req.params.id } });
     if (enr && enr.employeeId === req.user.employeeId) await completeEnrolment(req.params.id);
-    res.redirect('/my-learning');
+    res.redirect('/my-learning?completed=1');
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -2854,6 +2897,7 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
     const som = startOfMonth(now);
     const soy = startOfYear(now);
     const today = new Date(); today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0, 0, 0, 0);
 
     const [
       revenueYtd, revenueMtd, revenueTotal,
@@ -2864,6 +2908,7 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
       enrolTotal, enrolCompleted,
       openDefects, pendingLeave, onLeaveToday,
       rtwAtRisk,
+      sparkInvoices,
     ] = await Promise.all([
       prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { total: true } }),
       prisma.invoice.aggregate({ where: { createdAt: { gte: som } }, _sum: { total: true } }),
@@ -2883,6 +2928,7 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
       prisma.leaveRequest.count({ where: { status: 'pending' } }),
       prisma.leaveRequest.count({ where: { status: 'approved', startDate: { lte: today }, endDate: { gte: today } } }),
       prisma.sponsoredWorker.count({ where: { visaExpiryDate: { lte: new Date(Date.now() + 60 * 86400000) } } }),
+      prisma.invoice.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { total: true, createdAt: true }, orderBy: { createdAt: 'asc' } }),
     ]);
 
     const rvYtd = Number(revenueYtd._sum.total || 0);
@@ -2892,6 +2938,19 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
     const fleetUtil = totalVehicles > 0 ? Math.round((activeVehicles / totalVehicles) * 100) : 0;
     const trainingRate = enrolTotal > 0 ? Math.round((enrolCompleted / enrolTotal) * 100) : 0;
     const score = complianceScore ? Number(complianceScore.overallScore) : null;
+
+    // Build 7-day revenue sparkline
+    const sparkByDay = {};
+    sparkInvoices.forEach((inv) => {
+      const d = new Date(inv.createdAt); d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().split('T')[0];
+      sparkByDay[key] = (sparkByDay[key] || 0) + Number(inv.total);
+    });
+    const revenueSpark = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(sevenDaysAgo); d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      return { label: d.toLocaleDateString('en-GB', { weekday: 'short' }), total: sparkByDay[key] || 0 };
+    });
 
     res.render('executive/index', {
       title: 'Executive Overview',
@@ -2904,6 +2963,7 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
         trainingRate, pendingLeave, onLeaveToday, rtwAtRisk,
         invoiceCount: revenueTotal._count._all,
       },
+      revenueSpark,
       formatDate, path: '/executive',
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }

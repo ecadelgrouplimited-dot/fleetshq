@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div style="display:flex;gap:20px;margin-bottom:24px">
   <div class="card" style="flex:1;padding:20px;text-align:center">
     <div style="font-size:28px;font-weight:800;color:var(--success)">${drivers.filter(d=>d.completionPercent===100).length}</div>
@@ -27,7 +27,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Driver</th><th>Completion</th><th>Progress</th></tr></thead>
+        <thead><tr><th scope="col">Driver</th><th scope="col">Completion</th><th scope="col">Progress</th></tr></thead>
         <tbody id="trainingTableBody">
           ${drivers.map(d => `
             <tr data-search-row data-search-text="${`${esc(d.fullName)} ${esc(d.jobTitle)} ${d.completionPercent}% ${d.completionPercent === 100 ? 'fully inducted' : d.completionPercent > 0 ? 'in progress' : 'not started'}`.toLowerCase()}">
@@ -55,7 +55,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Topic</th><th>Date</th><th>Signed</th><th>Manager Sign-Off</th></tr></thead>
+        <thead><tr><th scope="col">Topic</th><th scope="col">Date</th><th scope="col">Signed</th><th scope="col">Manager Sign-Off</th></tr></thead>
         <tbody id="toolboxTableBody">
           ${talks.map(t => `
             <tr data-search-row data-search-text="${`${t.topic} ${formatDate(t.dateIssued)} ${t.managerSignedOff ? 'signed off' : 'pending'} ${t.totalSigned}/${t.assignments.length}`.toLowerCase()}">

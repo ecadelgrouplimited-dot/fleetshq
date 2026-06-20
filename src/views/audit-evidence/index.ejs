@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="audit-shell">
   <div class="audit-shell-top">
     <div>
@@ -107,7 +107,7 @@
       <div class="card-header"><h3>Recent Audit Trail</h3></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>When</th><th>User</th><th>Action</th><th>Record</th></tr></thead>
+          <thead><tr><th scope="col">When</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">Record</th></tr></thead>
           <tbody>
             ${recentAudit.length === 0 ? '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No audit events yet</td></tr>' : recentAudit.map(log => `
               <tr>

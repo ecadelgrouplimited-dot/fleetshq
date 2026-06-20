@@ -1,7 +1,7 @@
 <%
   const fmt = (n) => '£' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const num = (n) => Number(n || 0).toLocaleString('en-GB');
-  const plColor = (n) => n >= 0 ? '#10b981' : '#ef4444';
+  const plColor = (n) => n >= 0 ? 'var(--success)' : 'var(--danger)';
   const band = (n) => n == null ? 'slate' : n >= 85 ? 'green' : n >= 70 ? 'amber' : 'red';
 %>
 <%- include('../layouts/main', { body: `
@@ -77,6 +77,28 @@
   </div>
 </div>
 
+<div class="grid-2 mb-6">
+  <div class="card">
+    <div class="card-header"><h3>Compliance score</h3></div>
+    <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+      <div style="position:relative;width:160px;height:160px">
+        <canvas id="complianceDoughnut"></canvas>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+          <span style="font-size:26px;font-weight:800">${kpi.complianceScore != null ? kpi.complianceScore.toFixed(0) + '%' : '—'}</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:600">compliance</span>
+        </div>
+      </div>
+      <a href="/compliance" class="btn btn-outline btn-sm">View compliance</a>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Revenue — last 7 days</h3></div>
+    <div class="card-body" style="position:relative;height:200px">
+      <canvas id="revenueSparkline"></canvas>
+    </div>
+  </div>
+</div>
+
 <div class="grid-2">
   <div class="card">
     <div class="card-header"><h3>Quick navigation</h3></div>
@@ -122,10 +144,66 @@
   .watch-item.red { background:var(--danger-bg); }
   .watch-item.amber { background:var(--warning-bg); }
   .wi-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
-  .wi-dot.red { background:#ef4444; }
-  .wi-dot.amber { background:#f59e0b; }
+  .wi-dot.red { background:var(--danger); }
+  .wi-dot.amber { background:var(--warning); }
   .wi-link { margin-left:auto; color:var(--primary,#2563eb); text-decoration:none; font-weight:600; flex-shrink:0; }
   .stat-card.slate { background:var(--surface-2); }
   .stat-icon.slate { background:var(--border); color:var(--text-muted); }
+  @media (max-width:600px) { .grid-2 { grid-template-columns:1fr !important; } }
 </style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  // EX-02 Compliance doughnut
+  var compScore = ${kpi.complianceScore != null ? kpi.complianceScore.toFixed(1) : 0};
+  var compColor = compScore >= 85 ? 'var(--success)' : compScore >= 70 ? 'var(--warning)' : 'var(--danger)';
+  var dCtx = document.getElementById('complianceDoughnut');
+  if (dCtx) {
+    new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        datasets: [{
+          data: [compScore, Math.max(0, 100 - compScore)],
+          backgroundColor: [compColor, 'var(--border)'],
+          borderWidth: 0,
+        }]
+      },
+      options: {
+        cutout: '75%',
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      }
+    });
+  }
+
+  // EX-03 Revenue sparkline
+  var sparkData = ${JSON.stringify(revenueSpark)};
+  var sCtx = document.getElementById('revenueSparkline');
+  if (sCtx) {
+    new Chart(sCtx, {
+      type: 'bar',
+      data: {
+        labels: sparkData.map(function(d) { return d.label; }),
+        datasets: [{
+          label: 'Revenue (£)',
+          data: sparkData.map(function(d) { return d.total; }),
+          backgroundColor: 'var(--primary)',
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'var(--border)' }, ticks: { color: 'var(--text-muted)' } },
+          y: { grid: { color: 'var(--border)' }, ticks: { color: 'var(--text-muted)', callback: function(v) { return '£' + v.toFixed(0); } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+})();
+</script>
 ` }) %>

@@ -1,4 +1,4 @@
-<%
+﻿<%
   const statuses = [['','All'],['booked','Booked'],['allocated','Allocated'],['collected','Collected'],['in_transit','In transit'],['out_for_delivery','Out for delivery'],['delivered','Delivered'],['cancelled','Cancelled']];
 %>
 <%- include('../layouts/main', { body: `
@@ -19,7 +19,7 @@
   ${shipments.length === 0 ? `<div class="empty-state"><p>No shipments found</p><div class="empty-hint">Try a different filter or book a new shipment.</div></div>` : `
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Route</th><th>Status</th><th>Total</th><th>Invoice</th><th></th></tr></thead>
+      <thead><tr><th scope="col">Reference</th><th scope="col">Customer</th><th scope="col">Service</th><th scope="col">Route</th><th scope="col">Status</th><th scope="col">Total</th><th scope="col">Invoice</th><th scope="col"></th></tr></thead>
       <tbody>
         ${shipments.map(s => `
           <tr>
@@ -37,4 +37,11 @@
     </table>
   </div>`}
 </div>
+
+${totalPages > 1 ? `
+<div class="pagination">
+  ${page > 1 ? `<a href="?${status ? 'status=' + encodeURIComponent(status) + '&' : ''}page=${page-1}" class="btn btn-ghost btn-sm">← Prev</a>` : ''}
+  <span>Page ${page} of ${totalPages} · ${total} shipments</span>
+  ${page < totalPages ? `<a href="?${status ? 'status=' + encodeURIComponent(status) + '&' : ''}page=${page+1}" class="btn btn-primary btn-sm">Next →</a>` : ''}
+</div>` : ''}
 ` }) %>

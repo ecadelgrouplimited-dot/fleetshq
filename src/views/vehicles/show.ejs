@@ -1,9 +1,9 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
   <div class="flex gap-2">
     <a href="/fleet/${vehicle.id}/edit" class="btn btn-outline btn-sm">Edit Vehicle</a>
-    <button type="button" onclick="deleteVehicleRecord()" class="btn btn-danger-soft btn-sm">Delete</button>
+    <button type="button" id="deleteVehBtn" class="btn btn-danger-soft btn-sm">Delete</button>
     <select class="form-control" style="width:170px;height:34px;padding:5px 10px" onchange="updateVehicleStatus(this.value)">
       ${[['active','Active'],['vor','VOR'],['awaiting_repair','Awaiting Repair'],['hired','Hired'],['sold','Sold']].map(([v,l]) => `<option value="${v}" ${vehicle.status === v ? 'selected' : ''}>${l}</option>`).join('')}
     </select>
@@ -61,7 +61,7 @@ ${vehicle.defects?.length > 0 ? `
   <div class="card-header"><h3 style="color:var(--danger-t)">Open Defects (${vehicle.defects.length})</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Reference</th><th>Category</th><th>Severity</th><th>Status</th><th>Reported By</th><th></th></tr></thead>
+      <thead><tr><th scope="col">Reference</th><th scope="col">Category</th><th scope="col">Severity</th><th scope="col">Status</th><th scope="col">Reported By</th><th scope="col"></th></tr></thead>
       <tbody>
         ${vehicle.defects.map(d => `
           <tr>
@@ -82,11 +82,11 @@ ${vehicle.defects?.length > 0 ? `
 <div class="card mb-4">
   <div class="card-header">
     <h3>Maintenance Documents</h3>
-    <button class="btn btn-primary btn-sm" onclick="document.getElementById('docModal').style.display='flex'">+ Upload</button>
+    <button class="btn btn-primary btn-sm" id="openDocModalBtn">+ Upload</button>
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Type</th><th>File</th><th>Document Date</th><th>Expiry</th><th>Uploaded</th></tr></thead>
+      <thead><tr><th scope="col">Type</th><th scope="col">File</th><th scope="col">Document Date</th><th scope="col">Expiry</th><th scope="col">Uploaded</th></tr></thead>
       <tbody>
         ${vehicle.documents.length === 0
           ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">No documents uploaded</td></tr>`
@@ -108,7 +108,7 @@ ${vehicle.defects?.length > 0 ? `
   <div class="card-header"><h3>Recent Daily Checks (Last 7)</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Date</th><th>Driver</th><th>Mileage</th><th>Result</th></tr></thead>
+      <thead><tr><th scope="col">Date</th><th scope="col">Driver</th><th scope="col">Mileage</th><th scope="col">Result</th></tr></thead>
       <tbody>
         ${vehicle.checks.length === 0
           ? `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">No checks recorded</td></tr>`
@@ -131,7 +131,7 @@ ${vehicle.defects?.length > 0 ? `
   <div class="modal">
     <div class="modal-header">
       <h3>Upload Maintenance Document</h3>
-      <button onclick="document.getElementById('docModal').style.display='none'" class="btn btn-ghost btn-sm">✕</button>
+      <button id="closeDocModalBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <form id="vehDocForm">
       <div class="modal-body">
@@ -152,22 +152,34 @@ ${vehicle.defects?.length > 0 ? `
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" onclick="document.getElementById('docModal').style.display='none'" class="btn btn-ghost">Cancel</button>
-        <button type="button" onclick="uploadVehDoc()" class="btn btn-primary">Upload</button>
+        <button type="button" id="cancelDocModalBtn" class="btn btn-ghost">Cancel</button>
+        <button type="button" id="uploadVehDocBtn" class="btn btn-primary">Upload</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
-async function uploadVehDoc() {
-  const form = document.getElementById('vehDocForm');
-  const fd = new FormData(form);
-  const res = await fetch('/api/v1/vehicles/${vehicle.id}/documents', { method:'POST', body: fd,
-    credentials:'same-origin' });
-  if (res.ok) { showToast('Document uploaded','success'); document.getElementById('docModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
-  else { showToast('Upload failed','error'); }
-}
+(function() {
+  const docModal = document.getElementById('docModal');
+  const openBtn = document.getElementById('openDocModalBtn');
+  const closeBtn = document.getElementById('closeDocModalBtn');
+  const cancelBtn = document.getElementById('cancelDocModalBtn');
+  const uploadBtn = document.getElementById('uploadVehDocBtn');
+  const deleteBtn = document.getElementById('deleteVehBtn');
+
+  if (openBtn) openBtn.addEventListener('click', function() { docModal.style.display = 'flex'; });
+  if (closeBtn) closeBtn.addEventListener('click', function() { docModal.style.display = 'none'; });
+  if (cancelBtn) cancelBtn.addEventListener('click', function() { docModal.style.display = 'none'; });
+  if (uploadBtn) uploadBtn.addEventListener('click', async function() {
+    const form = document.getElementById('vehDocForm');
+    const fd = new FormData(form);
+    const res = await fetch('/api/v1/vehicles/${vehicle.id}/documents', { method: 'POST', body: fd, credentials: 'same-origin' });
+    if (res.ok) { showToast('Document uploaded', 'success'); docModal.style.display = 'none'; setTimeout(function() { location.reload(); }, 1000); }
+    else { showToast('Upload failed', 'error'); }
+  });
+  if (deleteBtn) deleteBtn.addEventListener('click', function() { deleteVehicleRecord(); });
+})();
 
 async function updateVehicleStatus(status) {
   const res = await fetch('/api/v1/vehicles/${vehicle.id}/status', {

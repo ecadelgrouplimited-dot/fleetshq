@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="/checks" class="btn btn-ghost btn-sm">Back to checks</a>
   <div class="flex gap-2">
@@ -49,7 +49,7 @@
   <div class="card-header"><h3>Inspection Items</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Item</th><th>Status</th><th>Notes</th></tr></thead>
+      <thead><tr><th scope="col">Item</th><th scope="col">Status</th><th scope="col">Notes</th></tr></thead>
       <tbody>
         ${check.items.map(item => `
           <tr>

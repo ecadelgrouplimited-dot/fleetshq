@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <p class="text-sm text-muted"><span id="visibleUserCount">${users.length}</span> of ${users.length} system users</p>
   <div class="flex gap-2">
@@ -29,7 +29,7 @@
   <div class="table-wrap">
     <table>
       <thead>
-        <tr><th>Name</th><th>Email</th><th>Roles</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
+        <tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Roles</th><th scope="col">Last Login</th><th scope="col">Status</th><th scope="col">Actions</th></tr>
       </thead>
       <tbody id="usersTableBody">
         ${users.map(u => `
@@ -190,6 +190,8 @@
       <div class="form-group">
         <label class="form-label">New Temporary Password</label>
         <input class="form-control" id="resetPasswordValue" type="password" placeholder="Minimum 8 characters">
+        <div class="pw-strength-bar" style="margin-top:8px"><div class="pw-strength-fill" id="pwStrengthFill" style="width:0%;background:var(--border)"></div></div>
+        <div id="pwStrengthLabel" style="font-size:11px;color:var(--text-muted);margin-top:4px"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -371,8 +373,30 @@
     document.getElementById('resetUserId').value = id;
     document.getElementById('resetUserName').textContent = name;
     document.getElementById('resetPasswordValue').value = '';
+    var fill = document.getElementById('pwStrengthFill');
+    if (fill) { fill.style.width = '0%'; fill.style.background = 'var(--border)'; }
+    var lbl = document.getElementById('pwStrengthLabel');
+    if (lbl) lbl.textContent = '';
     openModal('resetPasswordModal');
   }
+
+  // password strength meter
+  document.getElementById('resetPasswordValue').addEventListener('input', function () {
+    var pw = this.value;
+    var score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    var labels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'];
+    var colors = ['var(--border)', 'var(--danger)', 'var(--warning)', 'var(--warning)', 'var(--success)', 'var(--success)'];
+    var fill = document.getElementById('pwStrengthFill');
+    var label = document.getElementById('pwStrengthLabel');
+    fill.style.width = (score * 20) + '%';
+    fill.style.background = colors[score] || 'var(--border)';
+    label.textContent = pw.length ? labels[score] || '' : '';
+  });
 
   document.getElementById('submitResetPwBtn').addEventListener('click', submitPasswordReset);
 
@@ -467,7 +491,7 @@
     }).join('');
     document.getElementById('feBody').innerHTML =
       '<div class="fe-alert">' + d.summary.created + ' account(s) created · ' + d.summary.skipped + ' skipped · ' + d.summary.failed + ' failed. <strong>Copy these temporary passwords now — they are shown only once.</strong> Ask each person to change theirs after first login.</div>' +
-      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Temp password</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+      '<div class="table-wrap"><table><thead><tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">Temp password</th><th scope="col">Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     var footer = document.getElementById('feFooter');
     footer.innerHTML = (_lastCreated.length ? '<button class="btn btn-ghost" id="feDownload">Download credentials (CSV)</button>' : '') + '<button class="btn btn-primary" id="feDoneBtn">Done</button>';
     showToast(d.summary.created + ' login(s) created', d.summary.failed ? 'warning' : 'success');

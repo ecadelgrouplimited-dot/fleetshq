@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="/fleet" class="btn btn-ghost btn-sm">← Back to Fleet</a>
 </div>
@@ -10,7 +10,7 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length > 0 ? `
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Registration</th><th>Make/Model</th><th>Driver</th><th>Last PMI</th><th>Next PMI</th><th>Days Overdue</th></tr></thead>
+      <thead><tr><th scope="col">Registration</th><th scope="col">Make/Model</th><th scope="col">Driver</th><th scope="col">Last PMI</th><th scope="col">Next PMI</th><th scope="col">Days Overdue</th></tr></thead>
       <tbody>
         ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).map(v => `
           <tr>
@@ -35,7 +35,7 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Registration</th><th>Make/Model</th><th>Driver</th><th>Last PMI</th><th>Next PMI</th><th>Days Until</th></tr></thead>
+      <thead><tr><th scope="col">Registration</th><th scope="col">Make/Model</th><th scope="col">Driver</th><th scope="col">Last PMI</th><th scope="col">Next PMI</th><th scope="col">Days Until</th></tr></thead>
       <tbody>
         ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).map(v => `
           <tr>
@@ -57,7 +57,7 @@ ${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).
   <div class="card-header"><h3>Full PMI Schedule</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Registration</th><th>Make/Model</th><th>Driver</th><th>PMI Interval</th><th>Last PMI</th><th>Next PMI</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">Registration</th><th scope="col">Make/Model</th><th scope="col">Driver</th><th scope="col">PMI Interval</th><th scope="col">Last PMI</th><th scope="col">Next PMI</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${vehicles.map(v => {
           const badge = !v.nextPmiDate ? 'badge-slate' : v.pmiDays < 0 ? 'badge-red' : v.pmiDays <= 14 ? 'badge-amber' : 'badge-green';

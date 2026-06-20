@@ -92,5 +92,6 @@ ${(canManage || canInvoice) ? `
   .ste p { margin:3px 0 0; color:var(--text-muted); font-size:13px; }
   .info-row { display:flex; gap:24px; flex-wrap:wrap; }
   .info-item { min-width:90px; }
+  @media (max-width:600px) { .ship-timeline { overflow-x:hidden; } .ste { flex-direction:column; gap:8px; } .ste-h { flex-direction:column; gap:4px; } }
 </style>
 ` }) %>

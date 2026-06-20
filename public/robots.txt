@@ -1,0 +1,20 @@
+User-agent: *
+Disallow: /login
+Disallow: /dashboard
+Disallow: /employees
+Disallow: /fleet
+Disallow: /dispatch
+Disallow: /finance
+Disallow: /invoices
+Disallow: /shipments
+Disallow: /compliance
+Disallow: /hr
+Disallow: /lms
+Disallow: /reports
+Disallow: /super-admin
+Disallow: /executive
+Disallow: /portal
+Disallow: /my-learning
+Disallow: /api/
+
+Sitemap: https://256logisticsltd.com/sitemap.xml

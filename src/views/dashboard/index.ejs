@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="dashboard-shell">
   <section class="dashboard-hero">
     <div class="dashboard-hero-main">
@@ -256,11 +256,11 @@
         <table>
           <thead>
             <tr>
-              <th>Reference</th>
-              <th>Vehicle</th>
-              <th>Severity</th>
-              <th>Status</th>
-              <th>Open</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Vehicle</th>
+              <th scope="col">Severity</th>
+              <th scope="col">Status</th>
+              <th scope="col">Open</th>
             </tr>
           </thead>
           <tbody>
@@ -431,7 +431,21 @@ const chartData = ${JSON.stringify(chartData)};
 const scores = ${JSON.stringify(score)};
 
 const overallColors = gaugeColors(scores.overall);
-drawGauge('gaugeOverall', scores.overall, 'rgba(255,255,255,0.1)', overallColors.fill);
+(function() {
+  var gaugeEl = document.getElementById('gaugeOverall');
+  if (!gaugeEl) return;
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) {
+        drawGauge('gaugeOverall', scores.overall, 'rgba(255,255,255,0.1)', overallColors.fill);
+        observer.disconnect();
+      }
+    }, { threshold: 0.1 });
+    observer.observe(gaugeEl);
+  } else {
+    drawGauge('gaugeOverall', scores.overall, 'rgba(255,255,255,0.1)', overallColors.fill);
+  }
+})();
 
 new Chart(document.getElementById('operationsTrendChart'), {
   type: 'bar',

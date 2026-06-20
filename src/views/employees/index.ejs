@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <!-- Page header -->
 <div class="flex items-center justify-between mb-6">
   <div>
@@ -55,14 +55,14 @@
     <table>
       <thead>
         <tr>
-          <th>Employee</th>
-          <th>Role</th>
-          <th>Department</th>
-          <th>Start Date</th>
-          <th>Vehicle</th>
-          <th>Documents</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th data-sort="0" style="cursor:pointer;user-select:none">Employee <span class="sort-icon">↕</span></th>
+          <th data-sort="1" style="cursor:pointer;user-select:none">Role <span class="sort-icon">↕</span></th>
+          <th data-sort="2" style="cursor:pointer;user-select:none">Department <span class="sort-icon">↕</span></th>
+          <th data-sort="3" style="cursor:pointer;user-select:none">Start Date <span class="sort-icon">↕</span></th>
+          <th scope="col">Vehicle</th>
+          <th scope="col">Documents</th>
+          <th data-sort="6" style="cursor:pointer;user-select:none">Status <span class="sort-icon">↕</span></th>
+          <th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody id="employeesTableBody">
@@ -132,7 +132,35 @@
   </div>
 </div>
 
+${totalPages > 1 ? `
+<div class="pagination">
+  ${page > 1 ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page-1}" class="btn btn-ghost btn-sm">← Prev</a>` : ''}
+  <span>Page ${page} of ${totalPages} · ${total} employees</span>
+  ${page < totalPages ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page+1}" class="btn btn-primary btn-sm">Next →</a>` : ''}
+</div>` : ''}
+
 <script>
+(function() {
+  var lastCol = -1, lastDir = 1;
+  document.querySelectorAll('th[data-sort]').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = parseInt(th.getAttribute('data-sort'), 10);
+      var dir = (col === lastCol) ? -lastDir : 1;
+      lastCol = col; lastDir = dir;
+      var tbody = document.getElementById('employeesTableBody');
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr[data-search-row]'));
+      rows.sort(function(a, b) {
+        var aText = (a.cells[col] ? a.cells[col].textContent : '').trim().toLowerCase();
+        var bText = (b.cells[col] ? b.cells[col].textContent : '').trim().toLowerCase();
+        return aText < bText ? -dir : aText > bText ? dir : 0;
+      });
+      rows.forEach(function(r) { tbody.appendChild(r); });
+      document.querySelectorAll('th[data-sort] .sort-icon').forEach(function(ic) { ic.textContent = '↕'; });
+      th.querySelector('.sort-icon').textContent = dir === 1 ? '↑' : '↓';
+    });
+  });
+})();
+
 document.querySelectorAll('[data-del-employee]').forEach(b => b.addEventListener('click', () => deleteEmployee(b.dataset.id, b.dataset.name)));
 async function deleteEmployee(id, name) {
   const confirmed = await showConfirmDialog({
@@ -158,5 +186,6 @@ async function deleteEmployee(id, name) {
 </script>
 
 <style>
+  .sort-icon { font-size:11px; color:var(--text-light); margin-left:4px; }
 </style>
 ` }) %>

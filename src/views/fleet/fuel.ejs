@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">Fleet manager</div>
@@ -12,6 +12,13 @@
   <div class="stat-card green"><div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h6a2 2 0 002-2V7M3 7l2-3h6l2 3M3 7h10"/></svg></div><div><div class="stat-value">£${totals.spend.toFixed(2)}</div><div class="stat-label">Spend this month</div></div></div>
   <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></div><div><div class="stat-value">${totals.litres.toFixed(0)} L</div><div class="stat-label">Litres this month</div></div></div>
   <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m2 5a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v9"/></svg></div><div><div class="stat-value">£${totals.ppl.toFixed(2)}</div><div class="stat-label">Avg per litre</div><div class="stat-sub">${totals.count} fill-up${totals.count === 1 ? '' : 's'}</div></div></div>
+</div>
+
+<div class="card mb-6">
+  <div class="card-header"><h3>30-day fuel spend</h3></div>
+  <div class="card-body" style="position:relative;height:200px">
+    <canvas id="fuelChart"></canvas>
+  </div>
 </div>
 
 <div class="grid-2">
@@ -43,7 +50,7 @@
     ${logs.length === 0 ? `<div class="empty-state"><p>No fuel logged yet</p><div class="empty-hint">Logged fill-ups appear here with cost and efficiency.</div></div>` : `
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Vehicle</th><th>Litres</th><th>Cost</th><th>£/L</th><th>Odometer</th></tr></thead>
+        <thead><tr><th scope="col">Date</th><th scope="col">Vehicle</th><th scope="col">Litres</th><th scope="col">Cost</th><th scope="col">£/L</th><th scope="col">Odometer</th></tr></thead>
         <tbody>
           ${logs.map(l => `
             <tr>
@@ -60,4 +67,38 @@
     </div>`}
   </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  var data = ${JSON.stringify(fuelChart)};
+  var ctx = document.getElementById('fuelChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(function(d) { return d.label; }),
+      datasets: [{
+        label: 'Fuel spend (£)',
+        data: data.map(function(d) { return d.total; }),
+        borderColor: 'var(--primary)',
+        backgroundColor: 'rgba(37,99,235,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'var(--border)' }, ticks: { color: 'var(--text-muted)', maxTicksLimit: 8 } },
+        y: { grid: { color: 'var(--border)' }, ticks: { color: 'var(--text-muted)', callback: function(v) { return '£' + v.toFixed(0); } }, beginAtZero: true }
+      }
+    }
+  });
+})();
+</script>
 ` }) %>

@@ -107,11 +107,12 @@
 
 <div class="flex justify-between">
   <a href="/employees" class="btn btn-ghost">Cancel</a>
-  <button type="button" onclick="submitEmployee()" class="btn btn-primary" style="padding:12px 32px">Save Employee Record</button>
+  <button type="button" id="submitEmployeeBtn" class="btn btn-primary" style="padding:12px 32px">Save Employee Record</button>
 </div>
 </form>
 
 <script>
+document.getElementById('submitEmployeeBtn').addEventListener('click', submitEmployee);
 async function submitEmployee() {
   const form = document.getElementById('empForm');
   const fd = new FormData(form);

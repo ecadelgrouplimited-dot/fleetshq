@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <a href="${user.role === 'driver' ? '/' : '/employees'}" class="btn btn-ghost btn-sm">${user.role === 'driver' ? 'Back to Dashboard' : '← Back to Employees'}</a>
   <div class="flex gap-2">
@@ -8,7 +8,7 @@
     ${emp.isSponsored ? '<span class="badge badge-purple" style="font-size:13px;padding:6px 12px">Sponsored Worker</span>' : ''}
     ${emp.isDriver ? '<span class="badge badge-blue" style="font-size:13px;padding:6px 12px">Driver</span>' : ''}
     ${['director','hr_manager'].includes(user.role) ? `<a href="/employees/${emp.id}/edit" class="btn btn-outline btn-sm">Edit Record</a>` : ''}
-    ${['director','hr_manager'].includes(user.role) ? `<button type="button" onclick="deleteEmployeeRecord()" class="btn btn-danger-soft btn-sm">Delete</button>` : ''}
+    ${['director','hr_manager'].includes(user.role) ? `<button type="button" id="deleteEmpBtn" class="btn btn-danger-soft btn-sm">Delete</button>` : ''}
     ${['director','hr_manager'].includes(user.role) ? `
       <select class="form-control" style="width:150px;height:32px;padding:4px 10px" onchange="updateEmployeeStatus(this.value)">
         ${[['active','Active'],['on_leave','On Leave'],['suspended','Suspended'],['terminated','Terminated']].map(([v,l]) => `<option value="${v}" ${emp.employmentStatus === v ? 'selected' : ''}>${l}</option>`).join('')}
@@ -84,13 +84,13 @@
 <div class="card mb-4">
   <div class="card-header">
     <h3>Employment Documents</h3>
-    ${['director','hr_manager'].includes(user.role) ? `<button class="btn btn-primary btn-sm" onclick="document.getElementById('uploadModal').style.display='flex'">
+    ${['director','hr_manager'].includes(user.role) ? `<button class="btn btn-primary btn-sm" id="openUploadModalBtn">
       + Upload Document
     </button>` : ''}
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Document Type</th><th>File</th><th>Expiry Date</th><th>Uploaded</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">Document Type</th><th scope="col">File</th><th scope="col">Expiry Date</th><th scope="col">Uploaded</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${emp.documents.length === 0
           ? `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">No documents uploaded yet</td></tr>`
@@ -141,7 +141,7 @@ ${emp.sponsoredWorker ? `
       <hr class="divider">
       <div class="section-title">Change Log</div>
       <table>
-        <thead><tr><th>Change Type</th><th>From</th><th>To</th><th>Effective Date</th><th>Reported to HO</th></tr></thead>
+        <thead><tr><th scope="col">Change Type</th><th scope="col">From</th><th scope="col">To</th><th scope="col">Effective Date</th><th scope="col">Reported to HO</th></tr></thead>
         <tbody>
           ${emp.sponsoredWorker.changes.map(c => `
             <tr>
@@ -165,7 +165,7 @@ ${['director','hr_manager'].includes(user.role) ? `
   <div class="modal">
     <div class="modal-header">
       <h3>Upload Document</h3>
-      <button onclick="document.getElementById('uploadModal').style.display='none'" class="btn btn-ghost btn-sm">✕</button>
+      <button id="closeUploadModalBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <form action="/api/v1/employees/${emp.id}/documents" method="POST" enctype="multipart/form-data" id="uploadForm">
       <div class="modal-body">
@@ -191,7 +191,7 @@ ${['director','hr_manager'].includes(user.role) ? `
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" onclick="document.getElementById('uploadModal').style.display='none'" class="btn btn-ghost">Cancel</button>
+        <button type="button" id="cancelUploadModalBtn" class="btn btn-ghost">Cancel</button>
         <button type="submit" class="btn btn-primary">Upload</button>
       </div>
     </form>
@@ -199,17 +199,29 @@ ${['director','hr_manager'].includes(user.role) ? `
 </div>
 ` : ''}
 <script>
-const uploadForm = document.getElementById('uploadForm');
-if (uploadForm) {
-  uploadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const res = await fetch(e.target.action, { method:'POST', body: fd,
-      credentials: 'same-origin' });
-    if (res.ok) { showToast('Document uploaded successfully','success'); document.getElementById('uploadModal').style.display='none'; setTimeout(()=>location.reload(),1000); }
-    else { showToast('Upload failed','error'); }
-  });
-}
+(function() {
+  const uploadModal = document.getElementById('uploadModal');
+  const openBtn = document.getElementById('openUploadModalBtn');
+  const closeBtn = document.getElementById('closeUploadModalBtn');
+  const cancelBtn = document.getElementById('cancelUploadModalBtn');
+  if (openBtn) openBtn.addEventListener('click', function() { uploadModal.style.display = 'flex'; });
+  if (closeBtn) closeBtn.addEventListener('click', function() { uploadModal.style.display = 'none'; });
+  if (cancelBtn) cancelBtn.addEventListener('click', function() { uploadModal.style.display = 'none'; });
+
+  const deleteBtn = document.getElementById('deleteEmpBtn');
+  if (deleteBtn) deleteBtn.addEventListener('click', function() { deleteEmployeeRecord(); });
+
+  const uploadForm = document.getElementById('uploadForm');
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const res = await fetch(e.target.action, { method: 'POST', body: fd, credentials: 'same-origin' });
+      if (res.ok) { showToast('Document uploaded successfully', 'success'); uploadModal.style.display = 'none'; setTimeout(function() { location.reload(); }, 1000); }
+      else { showToast('Upload failed', 'error'); }
+    });
+  }
+})();
 
 async function updateEmployeeStatus(status) {
   const res = await fetch('/api/v1/employees/${emp.id}/status', {

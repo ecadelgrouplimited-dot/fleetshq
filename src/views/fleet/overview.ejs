@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">Fleet manager</div>
@@ -36,7 +36,7 @@
   ${expiring.length === 0 ? `<div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><p>Nothing due in the next 30 days</p><div class="empty-hint">MOT, PMI, insurance, road tax and tacho calibration are all clear.</div></div>` : `
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Vehicle</th><th>Item</th><th>Due</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">Vehicle</th><th scope="col">Item</th><th scope="col">Due</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${expiring.map(e => `
           <tr>

@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="grid-2 mb-4">
   <div class="card">
     <div class="card-header"><h3>Company & System</h3></div>
@@ -33,7 +33,7 @@
   <div class="card-header"><h3>Role Access Matrix</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Role</th><th>Primary Access</th><th>Operational Focus</th></tr></thead>
+      <thead><tr><th scope="col">Role</th><th scope="col">Primary Access</th><th scope="col">Operational Focus</th></tr></thead>
       <tbody>
         ${[
           ['Director', 'All modules, reports, users, settings', 'Overall compliance control and sign-off'],

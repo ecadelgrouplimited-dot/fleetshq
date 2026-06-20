@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 ${(() => {
   const rows = workers.map(w => {
     const visaDays = daysUntil(w.visaExpiryDate);
@@ -137,13 +137,13 @@ ${(() => {
       <table class="sponsor-table">
         <thead>
           <tr>
-            <th>Worker</th>
-            <th>CoS / SOC</th>
-            <th>Visa Expiry</th>
-            <th>RTW Follow-Up</th>
-            <th>Salary Match</th>
-            <th>Changes</th>
-            <th>Status</th>
+            <th scope="col">Worker</th>
+            <th scope="col">CoS / SOC</th>
+            <th scope="col">Visa Expiry</th>
+            <th scope="col">RTW Follow-Up</th>
+            <th scope="col">Salary Match</th>
+            <th scope="col">Changes</th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody id="sponsorBody">

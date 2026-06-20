@@ -92,11 +92,12 @@
 
 <div class="flex justify-between">
   <a href="${vehicle ? `/fleet/${vehicle.id}` : '/fleet'}" class="btn btn-ghost">Cancel</a>
-  <button type="button" onclick="saveVehicle()" class="btn btn-primary" style="padding:10px 32px">${vehicle ? 'Save Changes' : 'Add Vehicle to Fleet'}</button>
+  <button type="button" id="saveVehicleBtn" class="btn btn-primary" style="padding:10px 32px">${vehicle ? 'Save Changes' : 'Add Vehicle to Fleet'}</button>
 </div>
 </form>
 
 <script>
+document.getElementById('saveVehicleBtn').addEventListener('click', saveVehicle);
 async function saveVehicle() {
   const form = document.getElementById('vehicleForm');
   const body = Object.fromEntries(new FormData(form).entries());

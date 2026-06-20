@@ -1,4 +1,4 @@
-<%- include('layouts/main', { body: `
+﻿<%- include('layouts/main', { body: `
 <div class="card mb-4">
   <div class="card-body" style="padding:14px 20px">
     <div style="display:flex;gap:12px;align-items:end;justify-content:space-between;flex-wrap:wrap">
@@ -14,7 +14,7 @@
 <div class="card">
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Driver</th><th>Vehicle</th><th>CPC Expiry</th><th>Missed Checks</th><th>Risk Level</th></tr></thead>
+      <thead><tr><th scope="col">Driver</th><th scope="col">Vehicle</th><th scope="col">CPC Expiry</th><th scope="col">Missed Checks</th><th scope="col">Risk Level</th></tr></thead>
       <tbody id="driverRiskTableBody">
         ${drivers.map(d => `
           <tr data-search-row data-search-text="${`${esc(d.fullName)} ${esc(d.department)} ${esc(d.drivingVehicle?.registration || '')} ${d.cpcExpiry ? formatDate(d.cpcExpiry) : 'not recorded'} ${d.missedChecks} ${d.riskLevel}`.toLowerCase()}">

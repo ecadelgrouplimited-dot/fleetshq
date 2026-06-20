@@ -1,4 +1,4 @@
-<%
+﻿<%
   const sc = score || {};
   const ov = sc.overallScore != null ? Number(sc.overallScore) : null;
   const band = (n) => n == null ? 'slate' : n >= 85 ? 'green' : n >= 70 ? 'amber' : 'red';
@@ -55,7 +55,7 @@
     <div class="card-header"><h3>Right-to-work &amp; visa watch</h3><a class="btn btn-outline btn-sm" href="/sponsored-workers">All sponsored</a></div>
     ${sponsored.length === 0 ? `<div class="empty-state"><div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><p>No RTW or visa dates due soon</p></div>` : `
     <div class="table-wrap"><table>
-      <thead><tr><th>Worker</th><th>Visa expiry</th><th>RTW follow-up</th></tr></thead>
+      <thead><tr><th scope="col">Worker</th><th scope="col">Visa expiry</th><th scope="col">RTW follow-up</th></tr></thead>
       <tbody>${sponsored.map(s => `
         <tr>
           <td style="font-weight:600">${esc(s.employee ? s.employee.fullName : '—')}</td>

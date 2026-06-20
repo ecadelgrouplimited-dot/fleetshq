@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="page-head">
   <div class="page-head-main">
     <div class="page-eyebrow">LMS</div>
@@ -75,11 +75,14 @@
   ${enrolments.length === 0 ? `<div class="card"><div class="empty-state"><p>No enrolments yet</p></div></div>` : `
   <div class="card">
     <div class="table-wrap"><table>
-      <thead><tr><th>Employee</th><th>Course</th><th>Status</th><th>Assigned</th><th>Completed</th><th>Expires</th><th>Certificate</th><th></th></tr></thead>
-      <tbody>${enrolments.map(e => `
+      <thead><tr><th scope="col">Employee</th><th scope="col">Course</th><th scope="col">Progress</th><th scope="col">Status</th><th scope="col">Assigned</th><th scope="col">Completed</th><th scope="col">Expires</th><th scope="col">Certificate</th><th scope="col"></th></tr></thead>
+      <tbody>${enrolments.map(e => {
+        const progressPct = e.status === 'completed' ? 100 : e.status === 'in_progress' ? 50 : 0;
+        return `
         <tr>
           <td style="font-weight:600">${esc(empNames[e.employeeId] || '—')}</td>
           <td>${esc(e.course?.title || '—')}</td>
+          <td style="min-width:80px"><div class="pw-strength-bar"><div class="pw-strength-fill" style="width:${progressPct}%;background:${progressPct === 100 ? 'var(--success)' : progressPct > 0 ? 'var(--warning)' : 'var(--border)'}"></div></div><div style="font-size:11px;color:var(--text-muted);margin-top:2px">${progressPct}%</div></td>
           <td><span class="badge ${statusBadge[e.status] || 'badge-slate'}">${esc(e.status.replace('_',' '))}</span></td>
           <td class="cell-muted">${formatDate(e.assignedAt)}</td>
           <td class="cell-muted">${e.completedAt ? formatDate(e.completedAt) : '—'}</td>
@@ -91,7 +94,8 @@
               <button class="btn btn-outline btn-sm">Mark complete</button>
             </form>` : ''}
           </td>
-        </tr>`).join('')}
+        </tr>`;
+      }).join('')}
       </tbody>
     </table></div>
   </div>`}
@@ -128,7 +132,7 @@ ${canEdit ? `
   .tab-btn.active,.tab-btn:hover { color:var(--text); border-bottom-color:var(--primary); }
   .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
   .course-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:10px; }
-  .course-card.mandatory { border-left:3px solid #ef4444; }
+  .course-card.mandatory { border-left:3px solid var(--danger); }
   .course-cat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
   .course-title { font-size:16px; font-weight:700; color:var(--text); }
   .course-meta { display:flex; gap:6px; flex-wrap:wrap; }

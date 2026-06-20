@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <div>
     ${missedVehicles.length > 0 ? `<span class="badge badge-red" style="font-size:13px;padding:6px 12px">${missedVehicles.length} vehicle${missedVehicles.length !== 1 ? 's' : ''} with no check today</span>` : '<span class="badge badge-green" style="font-size:13px;padding:6px 12px">All vehicles checked today</span>'}
@@ -14,7 +14,7 @@ ${missedVehicles.length > 0 ? `
   <div class="card-header" style="background:var(--danger-bg)"><h3 style="color:var(--danger-t)">Vehicles Without a Check Today</h3></div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Vehicle</th><th>Driver</th><th>Status</th></tr></thead>
+      <thead><tr><th scope="col">Vehicle</th><th scope="col">Driver</th><th scope="col">Status</th></tr></thead>
       <tbody>
         ${missedVehicles.map(v => `
           <tr>
@@ -36,7 +36,7 @@ ${missedVehicles.length > 0 ? `
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>Date</th><th>Vehicle</th><th>Driver</th><th>Mileage</th><th>Defects</th><th>Result</th></tr></thead>
+      <thead><tr><th scope="col">Date</th><th scope="col">Vehicle</th><th scope="col">Driver</th><th scope="col">Mileage</th><th scope="col">Defects</th><th scope="col">Result</th></tr></thead>
       <tbody id="checksTableBody">
         ${checks.length === 0 ? `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--text-muted)">No checks recorded</td></tr>` :
         checks.map(c => {

@@ -1,4 +1,4 @@
-<%- include('../layouts/main', { body: `
+﻿<%- include('../layouts/main', { body: `
 <div class="flex items-center justify-between mb-6">
   <p class="text-sm text-muted"><span id="visibleVehicleCount">${vehicles.length}</span> of ${vehicles.length} vehicles in fleet</p>
   <div class="flex gap-2">
@@ -61,8 +61,8 @@
     <table>
       <thead>
         <tr>
-          <th>Vehicle</th><th>Driver</th><th>MOT Expiry</th>
-          <th>Next PMI</th><th>Insurance</th><th>Defects</th><th>Status</th><th>Actions</th>
+          <th scope="col">Vehicle</th><th scope="col">Driver</th><th scope="col">MOT Expiry</th>
+          <th scope="col">Next PMI</th><th scope="col">Insurance</th><th scope="col">Defects</th><th scope="col">Status</th><th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody id="vehiclesTableBody">
@@ -122,6 +122,13 @@
     </table>
   </div>
 </div>
+
+${totalPages > 1 ? `
+<div class="pagination">
+  ${page > 1 ? `<a href="?status=${encodeURIComponent(filters.status||'')}&due=${encodeURIComponent(filters.due||'')}&page=${page-1}" class="btn btn-ghost btn-sm">← Prev</a>` : ''}
+  <span>Page ${page} of ${totalPages} · ${total} vehicles</span>
+  ${page < totalPages ? `<a href="?status=${encodeURIComponent(filters.status||'')}&due=${encodeURIComponent(filters.due||'')}&page=${page+1}" class="btn btn-primary btn-sm">Next →</a>` : ''}
+</div>` : ''}
 
 <style>
   .reg-link { font-weight: 800; font-size: 15px; font-family: ui-monospace, monospace; letter-spacing: -.5px; color: var(--primary); text-decoration: none; }
