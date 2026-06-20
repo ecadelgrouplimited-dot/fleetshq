@@ -35,6 +35,9 @@ const tenantScopedModels = new Set([
   'ProofOfDelivery',
   'Invoice',
   'FuelLog',
+  'LeaveRequest',
+  'Course',
+  'CourseEnrolment',
 ]);
 
 const readOperations = new Set([

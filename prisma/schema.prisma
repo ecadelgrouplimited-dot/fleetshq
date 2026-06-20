@@ -1042,3 +1042,95 @@ model FuelLog {
   @@index([vehicleId])
   @@index([loggedDate])
 }
+
+// ─────────────────────────────────────────
+// PEOPLE & LEARNING (Phase 3) — scalar tenantId/employeeId, registered in database.js
+// ─────────────────────────────────────────
+
+enum LeaveType {
+  annual
+  sick
+  emergency
+  unpaid
+  other
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum EnrolmentStatus {
+  assigned
+  in_progress
+  completed
+  expired
+}
+
+model LeaveRequest {
+  id         String      @id @default(uuid())
+  tenantId   String      @default("00000000-0000-4000-8000-000000000001")
+  employeeId String
+  type       LeaveType   @default(annual)
+  startDate  DateTime    @db.Date
+  endDate    DateTime    @db.Date
+  days       Decimal     @default(0) @db.Decimal(5, 1)
+  reason     String?
+  status     LeaveStatus @default(pending)
+  approverId String?
+  decidedAt  DateTime?
+  notes      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+model Course {
+  id             String  @id @default(uuid())
+  tenantId       String  @default("00000000-0000-4000-8000-000000000001")
+  title          String
+  category       String
+  description    String?
+  mandatory      Boolean @default(false)
+  validityMonths Int?
+  contentUrl     String?
+  isActive       Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  enrolments CourseEnrolment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([isActive])
+}
+
+model CourseEnrolment {
+  id                String          @id @default(uuid())
+  tenantId          String          @default("00000000-0000-4000-8000-000000000001")
+  course            Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId          String
+  employeeId        String
+  status            EnrolmentStatus @default(assigned)
+  assignedAt        DateTime        @default(now())
+  completedAt       DateTime?
+  expiryDate        DateTime?
+  score             Int?
+  certificateNumber String?
+  assignedById      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, employeeId])
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([status])
+}

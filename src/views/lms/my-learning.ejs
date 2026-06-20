@@ -1,0 +1,89 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">My learning</div>
+    <h1>My training record</h1>
+    <p class="page-sub">${enrolments.length} course${enrolments.length === 1 ? '' : 's'} assigned · ${completed} completed.</p>
+  </div>
+</div>
+
+${enrolments.length === 0 ? `
+<div class="card"><div class="empty-state">
+  <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg></div>
+  <p>No training assigned yet</p>
+  <div class="empty-hint">Your manager will assign training. It will appear here.</div>
+</div></div>` : `
+
+<div class="my-learning-grid">
+
+  ${enrolments.filter(e => e.status !== 'completed').length > 0 ? `
+  <div class="learning-section">
+    <h2 class="section-heading">To complete</h2>
+    <div class="course-list">
+      ${enrolments.filter(e => e.status !== 'completed').map(e => `
+        <div class="learning-card pending">
+          <div class="lc-left">
+            <div class="lc-cat">${esc(e.course?.category || '')}</div>
+            <div class="lc-title">${esc(e.course?.title || '—')}</div>
+            <div class="lc-meta">
+              <span class="badge ${statusBadge[e.status] || 'badge-slate'}">${esc(e.status.replace('_',' '))}</span>
+              <span class="cell-muted">Assigned ${formatDate(e.assignedAt)}</span>
+              ${e.course?.mandatory ? `<span class="badge badge-red">Mandatory</span>` : ''}
+            </div>
+            ${e.course?.description ? `<p class="lc-desc">${esc(e.course.description)}</p>` : ''}
+          </div>
+          <div class="lc-right">
+            ${e.course?.contentUrl ? `<a class="btn btn-outline btn-sm" href="${esc(e.course.contentUrl)}" target="_blank" rel="noopener">Open course ↗</a>` : ''}
+            <form method="post" action="/my-learning/${e.id}/complete" style="margin-top:8px">
+              <input type="hidden" name="_csrf" value="${csrfToken}">
+              <button class="btn btn-primary btn-sm">Mark complete</button>
+            </form>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>` : ''}
+
+  ${enrolments.filter(e => e.status === 'completed').length > 0 ? `
+  <div class="learning-section">
+    <h2 class="section-heading">Completed</h2>
+    <div class="course-list">
+      ${enrolments.filter(e => e.status === 'completed').map(e => `
+        <div class="learning-card done">
+          <div class="lc-left">
+            <div class="lc-cat">${esc(e.course?.category || '')}</div>
+            <div class="lc-title">${esc(e.course?.title || '—')}</div>
+            <div class="lc-meta">
+              <span class="badge badge-green">Completed</span>
+              <span class="cell-muted">${formatDate(e.completedAt)}</span>
+              ${e.expiryDate ? `<span class="badge ${daysUntil(e.expiryDate) <= 30 ? 'badge-amber' : 'badge-blue'}">Expires ${formatDate(e.expiryDate)}</span>` : ''}
+            </div>
+          </div>
+          <div class="lc-right">
+            ${e.certificateNumber ? `
+            <div class="cert-chip">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+              <span>${esc(e.certificateNumber)}</span>
+            </div>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>` : ''}
+
+</div>`}
+
+<style>
+  .my-learning-grid { display:flex; flex-direction:column; gap:32px; }
+  .section-heading { font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin:0 0 12px; }
+  .course-list { display:flex; flex-direction:column; gap:12px; }
+  .learning-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
+  .learning-card.pending { border-left:3px solid var(--primary,#2563eb); }
+  .learning-card.done { opacity:.9; }
+  .lc-left { display:flex; flex-direction:column; gap:6px; flex:1; min-width:0; }
+  .lc-cat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
+  .lc-title { font-size:16px; font-weight:700; color:var(--text); }
+  .lc-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:13px; }
+  .lc-desc { font-size:13px; color:var(--text-muted); margin:0; }
+  .lc-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+  .cert-chip { display:inline-flex; align-items:center; gap:6px; background:var(--success-bg); color:var(--text); border:1px solid rgba(16,185,129,.3); border-radius:20px; padding:4px 12px; font-size:12px; font-weight:700; font-family:monospace; }
+</style>
+` }) %>

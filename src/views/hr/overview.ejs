@@ -1,0 +1,128 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">HR</div>
+    <h1>HR overview</h1>
+    <p class="page-sub">Headcount, leave, training and right-to-work — all in one view.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/employees">Employees</a>
+    <a class="btn btn-outline" href="/leave">Leave</a>
+    <a class="btn btn-primary" href="/lms">LMS</a>
+  </div>
+</div>
+
+<div class="stat-grid mb-6">
+  <div class="stat-card blue">
+    <div class="stat-icon blue">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+    </div>
+    <div><div class="stat-value">${stats.totalEmployees}</div><div class="stat-label">Total employees</div><div class="stat-sub">${stats.activeEmployees} active</div></div>
+  </div>
+  <div class="stat-card amber">
+    <div class="stat-icon amber">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    </div>
+    <div><div class="stat-value">${stats.pendingLeave}</div><div class="stat-label">Leave pending approval</div><div class="stat-sub">${stats.onLeaveToday} on leave today</div></div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-icon green">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+    </div>
+    <div><div class="stat-value">${stats.completedEnrolments}</div><div class="stat-label">Training completions</div><div class="stat-sub">${stats.overdueEnrolments} overdue</div></div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-icon red">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div><div class="stat-value">${stats.rtwAtRisk}</div><div class="stat-label">RTW / visa at risk</div><div class="stat-sub">within 60 days</div></div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Pending leave requests</h3>
+      <a class="btn btn-outline btn-sm" href="/leave">All leave</a>
+    </div>
+    ${pendingLeave.length === 0 ? `<div class="empty-state"><p>No pending leave requests</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th></th></tr></thead>
+      <tbody>${pendingLeave.map(l => `
+        <tr>
+          <td style="font-weight:600">${esc(empNames[l.employeeId] || '—')}</td>
+          <td class="cell-muted">${esc(l.type)}</td>
+          <td class="cell-muted">${formatDate(l.startDate)} – ${formatDate(l.endDate)}</td>
+          <td>${Number(l.days)}</td>
+          <td>
+            <form method="post" action="/leave/${l.id}/decision" style="display:inline-flex;gap:6px">
+              <input type="hidden" name="_csrf" value="${csrfToken}">
+              <button class="btn btn-outline btn-sm" name="decision" value="approve">✓</button>
+              <button class="btn btn-outline btn-sm" name="decision" value="reject" style="color:#dc2626;border-color:#fca5a5">✕</button>
+            </form>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Overdue training</h3>
+      <a class="btn btn-outline btn-sm" href="/lms">LMS</a>
+    </div>
+    ${overdueEnrolments.length === 0 ? `<div class="empty-state"><p>No overdue training</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Course</th><th>Assigned</th></tr></thead>
+      <tbody>${overdueEnrolments.map(e => `
+        <tr>
+          <td style="font-weight:600">${esc(empNames[e.employeeId] || '—')}</td>
+          <td class="cell-muted">${esc(e.course?.title || '—')}</td>
+          <td><span class="badge badge-amber">${formatDate(e.assignedAt)}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>RTW &amp; visa watch</h3>
+      <a class="btn btn-outline btn-sm" href="/sponsored-workers">All</a>
+    </div>
+    ${rtwWatch.length === 0 ? `<div class="empty-state"><p>No RTW or visa dates due within 60 days</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Worker</th><th>Visa expiry</th><th>RTW follow-up</th></tr></thead>
+      <tbody>${rtwWatch.map(s => `
+        <tr>
+          <td style="font-weight:600">${esc(s.employee?.fullName || '—')}</td>
+          <td><span class="badge ${daysUntil(s.visaExpiryDate) <= 30 ? 'badge-red' : 'badge-amber'}">${formatDate(s.visaExpiryDate)}</span></td>
+          <td class="cell-muted">${s.rightToWorkFollowupDate ? formatDate(s.rightToWorkFollowupDate) : '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Quick links</h3></div>
+    <div class="card-body">
+      <div class="quick-link-grid">
+        <a class="quick-link" href="/employees"><span class="ql-icon">👥</span><span>Employees</span></a>
+        <a class="quick-link" href="/leave"><span class="ql-icon">📅</span><span>Leave</span></a>
+        <a class="quick-link" href="/lms"><span class="ql-icon">🎓</span><span>LMS</span></a>
+        <a class="quick-link" href="/onboarding"><span class="ql-icon">🆕</span><span>Onboarding</span></a>
+        <a class="quick-link" href="/sponsored-workers"><span class="ql-icon">🛂</span><span>Sponsored workers</span></a>
+        <a class="quick-link" href="/driver-risk"><span class="ql-icon">⚠️</span><span>Driver risk</span></a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .quick-link-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .quick-link { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:16px 8px; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); font-size:13px; font-weight:600; transition:background .15s; }
+  .quick-link:hover { background:var(--surface-3,var(--card)); }
+  .ql-icon { font-size:20px; }
+</style>
+` }) %>

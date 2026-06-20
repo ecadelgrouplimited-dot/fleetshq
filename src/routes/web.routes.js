@@ -2544,4 +2544,176 @@ router.get('/compliance', webAuth, requireRoles(...complianceOverviewRoles), asy
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
+// ══════════════════════════════════════════════════════════════════════
+// PHASE 3: PEOPLE & LEARNING
+// ══════════════════════════════════════════════════════════════════════
+const hrPanelRoles = ['super_admin', 'director', 'hr_manager'];
+const lmsAdminRoles = ['super_admin', 'director', 'hr_manager', 'trainer'];
+const calcDays = (start, end) => Math.max(1, Math.round((new Date(end) - new Date(start)) / 86400000) + 1);
+const LEAVE_BADGE = { pending: 'badge-amber', approved: 'badge-green', rejected: 'badge-red', cancelled: 'badge-slate' };
+const empNameMap = async (ids) => {
+  const list = ids.length ? await prisma.employee.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, fullName: true } }) : [];
+  return Object.fromEntries(list.map((e) => [e.id, e.fullName]));
+};
+
+// ── Leave management ──────────────────────────────────────────────────
+router.get('/leave', webAuth, async (req, res) => {
+  try {
+    const isHr = hasRole(req.user, hrPanelRoles);
+    const mine = req.user.employeeId
+      ? await prisma.leaveRequest.findMany({ where: { employeeId: req.user.employeeId }, orderBy: { createdAt: 'desc' } })
+      : [];
+    const all = isHr ? await prisma.leaveRequest.findMany({ orderBy: [{ status: 'asc' }, { startDate: 'asc' }], take: 100 }) : [];
+    const names = await empNameMap([...all.map((l) => l.employeeId), ...mine.map((l) => l.employeeId)]);
+    const employees = isHr ? await prisma.employee.findMany({ where: { employmentStatus: 'active' }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }) : [];
+    res.render('hr/leave', { title: 'Leave Management', isHr, mine, all, names, employees, badge: LEAVE_BADGE, canSelfRequest: !!req.user.employeeId, formatDate, path: '/leave' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/leave', webAuth, async (req, res) => {
+  try {
+    const isHr = hasRole(req.user, hrPanelRoles);
+    const employeeId = (isHr && req.body.employeeId) ? req.body.employeeId : req.user.employeeId;
+    if (!employeeId || !req.body.startDate || !req.body.endDate) return res.redirect('/leave');
+    await prisma.leaveRequest.create({
+      data: {
+        employeeId,
+        type: req.body.type || 'annual',
+        startDate: new Date(req.body.startDate),
+        endDate: new Date(req.body.endDate),
+        days: calcDays(req.body.startDate, req.body.endDate),
+        reason: req.body.reason || null,
+        status: 'pending',
+      },
+    });
+    res.redirect('/leave');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/leave/:id/decision', webAuth, requireRoles(...hrPanelRoles), async (req, res) => {
+  try {
+    const status = req.body.decision === 'approve' ? 'approved' : 'rejected';
+    await prisma.leaveRequest.update({ where: { id: req.params.id }, data: { status, approverId: req.user.id, decidedAt: new Date(), notes: req.body.notes || null } });
+    res.redirect('/leave');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── HR overview (panel home) ──────────────────────────────────────────
+router.get('/hr', webAuth, requireRoles(...hrPanelRoles), async (req, res) => {
+  try {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const in60 = new Date(); in60.setDate(in60.getDate() + 60);
+    const [
+      totalEmployees, activeEmployees, pendingLeave, onLeaveToday,
+      completedEnrolments, overdueEnrolments, rtwWatch,
+    ] = await Promise.all([
+      prisma.employee.count(),
+      prisma.employee.count({ where: { employmentStatus: 'active' } }),
+      prisma.leaveRequest.findMany({ where: { status: 'pending' }, orderBy: { startDate: 'asc' }, take: 10 }),
+      prisma.leaveRequest.count({ where: { status: 'approved', startDate: { lte: today }, endDate: { gte: today } } }),
+      prisma.courseEnrolment.count({ where: { status: 'completed' } }),
+      prisma.courseEnrolment.findMany({ where: { status: { in: ['assigned', 'in_progress'] } }, orderBy: { assignedAt: 'asc' }, take: 10, include: { course: { select: { title: true } } } }),
+      prisma.sponsoredWorker.findMany({ where: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] }, include: { employee: { select: { fullName: true } } }, orderBy: { visaExpiryDate: 'asc' }, take: 10 }),
+    ]);
+    const allEmpIds = [
+      ...pendingLeave.map((l) => l.employeeId),
+      ...overdueEnrolments.map((e) => e.employeeId),
+    ];
+    const empNames = await empNameMap(allEmpIds);
+    res.render('hr/overview', {
+      title: 'HR Overview',
+      stats: {
+        totalEmployees, activeEmployees,
+        pendingLeave: pendingLeave.length, onLeaveToday,
+        completedEnrolments, overdueEnrolments: overdueEnrolments.length,
+        rtwAtRisk: rtwWatch.length,
+      },
+      pendingLeave, overdueEnrolments, rtwWatch, empNames,
+      badge: LEAVE_BADGE, formatDate, path: '/hr',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── LMS admin ─────────────────────────────────────────────────────────
+const STATUS_BADGE = { assigned: 'badge-slate', in_progress: 'badge-blue', completed: 'badge-green', expired: 'badge-red' };
+
+router.get('/lms', webAuth, requireRoles(...lmsAdminRoles), async (req, res) => {
+  try {
+    const [courses, enrolments, employees] = await Promise.all([
+      prisma.course.findMany({ orderBy: { sortOrder: 'asc' }, include: { _count: { select: { enrolments: true } } } }),
+      prisma.courseEnrolment.findMany({ orderBy: { updatedAt: 'desc' }, take: 100, include: { course: { select: { title: true, category: true } } } }),
+      prisma.employee.findMany({ where: { employmentStatus: 'active' }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }),
+    ]);
+    const enrolCounts = Object.fromEntries(courses.map((c) => [c.id, c._count.enrolments]));
+    const empNames = await empNameMap(enrolments.map((e) => e.employeeId));
+    const canEdit = hasRole(req.user, lmsAdminRoles);
+    res.render('lms/index', {
+      title: 'Learning Management', courses, enrolments, employees, empNames, enrolCounts, canEdit,
+      statusBadge: STATUS_BADGE, formatDate, path: '/lms',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/lms/courses', webAuth, requireRoles(...lmsAdminRoles), async (req, res) => {
+  try {
+    await prisma.course.create({ data: { title: (req.body.title || '').trim(), category: req.body.category || 'General', description: req.body.description || null, mandatory: req.body.mandatory === '1', validityMonths: req.body.validityMonths ? parseInt(req.body.validityMonths, 10) : null, contentUrl: req.body.contentUrl || null } });
+    res.redirect('/lms');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/lms/assign', webAuth, requireRoles(...lmsAdminRoles), async (req, res) => {
+  try {
+    let courseIds = req.body.courseIds;
+    if (!Array.isArray(courseIds)) courseIds = courseIds ? [courseIds] : [];
+    let employeeIds = req.body.employeeIds;
+    if (!Array.isArray(employeeIds)) employeeIds = employeeIds ? [employeeIds] : [];
+    if (req.body.assignAll === '1') {
+      const all = await prisma.employee.findMany({ where: { employmentStatus: 'active' }, select: { id: true } });
+      employeeIds = all.map((e) => e.id);
+    }
+    for (const courseId of courseIds) {
+      for (const employeeId of employeeIds) {
+        await prisma.courseEnrolment.upsert({
+          where: { courseId_employeeId: { courseId, employeeId } },
+          update: {},
+          create: { courseId, employeeId, status: 'assigned', assignedById: req.user.id },
+        });
+      }
+    }
+    res.redirect('/lms');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+async function completeEnrolment(id) {
+  const enr = await prisma.courseEnrolment.findUnique({ where: { id }, include: { course: true } });
+  if (!enr) return;
+  let expiryDate = null;
+  if (enr.course.validityMonths) { expiryDate = new Date(); expiryDate.setMonth(expiryDate.getMonth() + enr.course.validityMonths); }
+  const cert = `CERT-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  await prisma.courseEnrolment.update({ where: { id }, data: { status: 'completed', completedAt: new Date(), expiryDate, certificateNumber: cert } });
+}
+
+router.post('/lms/enrolments/:id/complete', webAuth, requireRoles(...lmsAdminRoles), async (req, res) => {
+  try { await completeEnrolment(req.params.id); res.redirect('/lms'); }
+  catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── My Learning (learner self-service) ────────────────────────────────
+router.get('/my-learning', webAuth, async (req, res) => {
+  try {
+    if (!req.user.employeeId) return res.status(403).render('error', { title: 'No learner record', message: 'Your account is not linked to an employee record.', code: 403 });
+    const enrolments = await prisma.courseEnrolment.findMany({ where: { employeeId: req.user.employeeId }, orderBy: { status: 'asc' }, include: { course: true } });
+    const completed = enrolments.filter((e) => e.status === 'completed').length;
+    res.render('lms/my-learning', { title: 'My Learning', enrolments, completed, statusBadge: STATUS_BADGE, formatDate, path: '/my-learning' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/my-learning/:id/complete', webAuth, async (req, res) => {
+  try {
+    const enr = await prisma.courseEnrolment.findUnique({ where: { id: req.params.id } });
+    if (enr && enr.employeeId === req.user.employeeId) await completeEnrolment(req.params.id);
+    res.redirect('/my-learning');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 module.exports = router;

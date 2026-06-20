@@ -1,0 +1,160 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">LMS</div>
+    <h1>Learning management</h1>
+    <p class="page-sub">${courses.length} course${courses.length === 1 ? '' : 's'} · ${enrolments.length} enrolment${enrolments.length === 1 ? '' : 's'} tracked.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/my-learning">My learning</a>
+  </div>
+</div>
+
+<div class="tab-strip mb-6" id="lms-tabs">
+  <button class="tab-btn active" data-tab="courses">Course catalogue</button>
+  <button class="tab-btn" data-tab="assign">Assign training</button>
+  <button class="tab-btn" data-tab="enrolments">Enrolments</button>
+  ${canEdit ? `<button class="tab-btn" data-tab="new-course">New course</button>` : ''}
+</div>
+
+<div id="tab-courses" class="tab-panel">
+  ${courses.length === 0 ? `<div class="card"><div class="empty-state"><p>No courses yet</p><div class="empty-hint">Create your first course using the New Course tab.</div></div></div>` : `
+  <div class="card-grid">${courses.map(c => `
+    <div class="course-card ${c.mandatory ? 'mandatory' : ''}">
+      <div class="course-cat">${esc(c.category)}</div>
+      <div class="course-title">${esc(c.title)}</div>
+      <div class="course-meta">
+        ${c.mandatory ? `<span class="badge badge-red">Mandatory</span>` : `<span class="badge badge-slate">Optional</span>`}
+        ${c.validityMonths ? `<span class="badge badge-blue">${c.validityMonths}mo validity</span>` : ''}
+      </div>
+      ${c.description ? `<p class="course-desc">${esc(c.description)}</p>` : ''}
+      <div class="course-enrol">
+        <span class="cell-muted">${(enrolCounts[c.id] || 0)} enrolled</span>
+        ${c.contentUrl ? `<a class="btn btn-outline btn-sm" href="${esc(c.contentUrl)}" target="_blank" rel="noopener">Open content ↗</a>` : ''}
+      </div>
+    </div>`).join('')}
+  </div>`}
+</div>
+
+<div id="tab-assign" class="tab-panel" style="display:none">
+  <div class="card">
+    <div class="card-header"><h3>Assign training</h3></div>
+    <div class="card-body">
+      <form method="post" action="/lms/assign">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-group">
+          <label class="form-label">Courses <span class="required">*</span></label>
+          <div class="checkbox-list">
+            ${courses.map(c => `
+              <label class="checkbox-item">
+                <input type="checkbox" name="courseIds" value="${esc(c.id)}">
+                <span>${esc(c.title)}${c.mandatory ? ' <span class="badge badge-red" style="font-size:11px">Mandatory</span>' : ''}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employees <span class="required">*</span></label>
+          <label class="checkbox-item mb-2" style="font-weight:700">
+            <input type="checkbox" name="assignAll" value="1" id="assignAll"> <span>All employees</span>
+          </label>
+          <div class="checkbox-list" id="empCheckboxes">
+            ${employees.map(e => `
+              <label class="checkbox-item">
+                <input type="checkbox" name="employeeIds" value="${esc(e.id)}">
+                <span>${esc(e.fullName)}</span>
+              </label>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-primary">Assign training</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="tab-enrolments" class="tab-panel" style="display:none">
+  ${enrolments.length === 0 ? `<div class="card"><div class="empty-state"><p>No enrolments yet</p></div></div>` : `
+  <div class="card">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Employee</th><th>Course</th><th>Status</th><th>Assigned</th><th>Completed</th><th>Expires</th><th>Certificate</th><th></th></tr></thead>
+      <tbody>${enrolments.map(e => `
+        <tr>
+          <td style="font-weight:600">${esc(empNames[e.employeeId] || '—')}</td>
+          <td>${esc(e.course?.title || '—')}</td>
+          <td><span class="badge ${statusBadge[e.status] || 'badge-slate'}">${esc(e.status.replace('_',' '))}</span></td>
+          <td class="cell-muted">${formatDate(e.assignedAt)}</td>
+          <td class="cell-muted">${e.completedAt ? formatDate(e.completedAt) : '—'}</td>
+          <td class="cell-muted">${e.expiryDate ? `<span class="badge ${daysUntil(e.expiryDate) <= 30 ? 'badge-amber' : 'badge-slate'}">${formatDate(e.expiryDate)}</span>` : '—'}</td>
+          <td class="cell-muted" style="font-family:monospace">${e.certificateNumber || '—'}</td>
+          <td>${e.status !== 'completed' ? `
+            <form method="post" action="/lms/enrolments/${e.id}/complete">
+              <input type="hidden" name="_csrf" value="${csrfToken}">
+              <button class="btn btn-outline btn-sm">Mark complete</button>
+            </form>` : ''}
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>
+  </div>`}
+</div>
+
+${canEdit ? `
+<div id="tab-new-course" class="tab-panel" style="display:none">
+  <div class="card">
+    <div class="card-header"><h3>New course</h3></div>
+    <div class="card-body">
+      <form method="post" action="/lms/courses">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Title <span class="required">*</span></label><input class="form-control" name="title" required placeholder="Course title"></div>
+          <div class="form-group"><label class="form-label">Category <span class="required">*</span></label><input class="form-control" name="category" required placeholder="e.g. Safety, Compliance, Driving"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Description</label><textarea class="form-control" name="description" placeholder="Brief description of the course…"></textarea></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Validity (months)</label><input class="form-control" type="number" min="1" name="validityMonths" placeholder="Leave blank = no expiry"></div>
+          <div class="form-group"><label class="form-label">Content URL</label><input class="form-control" type="url" name="contentUrl" placeholder="https://…"></div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-item"><input type="checkbox" name="mandatory" value="1"><span>Mandatory for all employees</span></label>
+        </div>
+        <button class="btn btn-primary">Create course</button>
+      </form>
+    </div>
+  </div>
+</div>` : ''}
+
+<style>
+  .tab-strip { display:flex; gap:6px; border-bottom:1px solid var(--border); padding-bottom:0; }
+  .tab-btn { padding:8px 16px; background:none; border:none; border-bottom:2px solid transparent; color:var(--text-muted); font-size:14px; font-weight:600; cursor:pointer; margin-bottom:-1px; transition:color .15s,border-color .15s; }
+  .tab-btn.active,.tab-btn:hover { color:var(--text); border-bottom-color:var(--primary); }
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .course-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; flex-direction:column; gap:10px; }
+  .course-card.mandatory { border-left:3px solid #ef4444; }
+  .course-cat { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); }
+  .course-title { font-size:16px; font-weight:700; color:var(--text); }
+  .course-meta { display:flex; gap:6px; flex-wrap:wrap; }
+  .course-desc { font-size:13px; color:var(--text-muted); margin:0; }
+  .course-enrol { display:flex; align-items:center; justify-content:space-between; margin-top:auto; font-size:13px; }
+  .checkbox-list { display:flex; flex-direction:column; gap:6px; max-height:240px; overflow-y:auto; border:1px solid var(--border); border-radius:8px; padding:10px; }
+  .checkbox-item { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; }
+  .checkbox-item input[type=checkbox] { width:16px; height:16px; flex-shrink:0; }
+  .mb-2 { margin-bottom:8px; }
+</style>
+
+<script>
+  (function(){
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panels = { courses: 'tab-courses', assign: 'tab-assign', enrolments: 'tab-enrolments', 'new-course': 'tab-new-course' };
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        Object.values(panels).forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+        const p = document.getElementById(panels[btn.dataset.tab]);
+        if(p) p.style.display = '';
+      });
+    });
+    const allChk = document.getElementById('assignAll');
+    if(allChk) allChk.addEventListener('change', function(){ document.getElementById('empCheckboxes').style.opacity = this.checked ? '.4' : '1'; });
+  })();
+</script>
+` }) %>

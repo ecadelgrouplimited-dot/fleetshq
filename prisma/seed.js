@@ -93,6 +93,25 @@ async function main() {
     });
   }
 
+  const courses = [
+    ['Driver Induction', 'Induction', 'Company induction for new drivers.', true, 12, 10],
+    ['Health & Safety', 'Safety', 'Workplace and on-road health & safety essentials.', true, 12, 20],
+    ['Manual Handling', 'Safety', 'Safe lifting, loading and handling.', true, 24, 30],
+    ['Road Safety', 'Driving', 'Defensive driving and road risk awareness.', true, 12, 40],
+    ['GDPR Awareness', 'Compliance', 'Data protection responsibilities.', true, 24, 50],
+    ['Cybersecurity Awareness', 'Compliance', 'Phishing, passwords and device security.', false, 24, 60],
+    ['Dangerous Goods Awareness', 'Driving', 'ADR awareness for hazardous loads.', false, 12, 70],
+    ['Customer Service', 'Service', 'Professional conduct at the door and depot.', false, null, 80],
+  ];
+  for (const [title, category, description, mandatory, validityMonths, sortOrder] of courses) {
+    const existing = await prisma.course.findFirst({ where: { tenantId: tenant.id, title } });
+    if (existing) {
+      await prisma.course.update({ where: { id: existing.id }, data: { category, description, mandatory, validityMonths, sortOrder, isActive: true } });
+    } else {
+      await prisma.course.create({ data: { tenantId: tenant.id, title, category, description, mandatory, validityMonths, sortOrder, isActive: true } });
+    }
+  }
+
   console.log(`✓ Super Admin account ready: ${user.email} (id ${user.id})`);
 }
 

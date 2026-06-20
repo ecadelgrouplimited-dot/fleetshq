@@ -1,0 +1,87 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">HR</div>
+    <h1>Leave management</h1>
+    <p class="page-sub">${isHr ? `${all.length} request${all.length === 1 ? '' : 's'} · manage approvals and bookings across the team.` : 'Your leave requests.'}</p>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  ${(isHr || canSelfRequest) ? `
+  <div class="card">
+    <div class="card-header"><h3>${isHr ? 'New leave request' : 'Request leave'}</h3></div>
+    <div class="card-body">
+      <form method="post" action="/leave">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        ${isHr ? `<div class="form-group"><label class="form-label">Employee <span class="required">*</span></label>
+          <select class="form-control" name="employeeId" required>
+            <option value="">Choose employee…</option>
+            ${employees.map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}
+          </select></div>` : ''}
+        <div class="form-group"><label class="form-label">Leave type</label>
+          <select class="form-control" name="type">
+            ${[['annual','Annual'],['sick','Sick'],['emergency','Emergency'],['unpaid','Unpaid'],['other','Other']].map(([val,lbl]) => `<option value="${val}">${lbl}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Start date <span class="required">*</span></label><input class="form-control" type="date" name="startDate" id="startDate" required></div>
+          <div class="form-group"><label class="form-label">End date <span class="required">*</span></label><input class="form-control" type="date" name="endDate" id="endDate" required></div>
+        </div>
+        <div class="form-group"><label class="form-label">Reason</label><textarea class="form-control" name="reason" placeholder="Optional reason or notes…"></textarea></div>
+        <button class="btn btn-primary">Submit request</button>
+      </form>
+    </div>
+  </div>` : ''}
+
+  <div class="${isHr || canSelfRequest ? '' : 'span-2 '}">
+
+    ${isHr ? `
+    <div class="card mb-4">
+      <div class="card-header"><h3>All requests</h3></div>
+      ${all.length === 0 ? `<div class="empty-state"><p>No leave requests</p></div>` : `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead>
+        <tbody>${all.map(l => `
+          <tr>
+            <td style="font-weight:600">${esc(names[l.employeeId] || '—')}</td>
+            <td class="cell-muted">${esc(l.type)}</td>
+            <td class="cell-muted">${formatDate(l.startDate)} – ${formatDate(l.endDate)}</td>
+            <td>${Number(l.days)}</td>
+            <td><span class="badge ${badge[l.status] || 'badge-slate'}">${esc(l.status)}</span></td>
+            <td>${l.status === 'pending' ? `
+              <form method="post" action="/leave/${l.id}/decision" style="display:inline-flex;gap:6px">
+                <input type="hidden" name="_csrf" value="${csrfToken}">
+                <button class="btn btn-outline btn-sm" name="decision" value="approve">✓ Approve</button>
+                <button class="btn btn-outline btn-sm" name="decision" value="reject" style="color:#dc2626;border-color:#fca5a5">✕ Reject</button>
+              </form>` : '<span class="cell-muted">—</span>'}
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`}
+    </div>` : ''}
+
+    ${mine.length > 0 ? `
+    <div class="card">
+      <div class="card-header"><h3>My requests</h3></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead>
+        <tbody>${mine.map(l => `
+          <tr>
+            <td style="font-weight:600">${esc(l.type)}</td>
+            <td class="cell-muted">${formatDate(l.startDate)} – ${formatDate(l.endDate)}</td>
+            <td>${Number(l.days)}</td>
+            <td><span class="badge ${badge[l.status] || 'badge-slate'}">${esc(l.status)}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>` : (!isHr ? `<div class="card"><div class="empty-state"><p>No leave requests</p><div class="empty-hint">Your approved leave will show here.</div></div></div>` : '')}
+
+  </div>
+</div>
+
+<style>
+  .span-2 { grid-column: 1 / -1; }
+</style>
+` }) %>

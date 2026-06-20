@@ -28,14 +28,14 @@ const PANEL_LABELS = {
 const PANEL_HOME = {
   super_admin: '/super-admin',
   executive: '/',
-  hr: '/employees',
+  hr: '/hr',
   client: '/portal',
   driver: '/driver/jobs',
   dispatch: '/dispatch',
   fleet: '/fleet/overview',
   finance: '/invoices',
   compliance: '/compliance',
-  lms: '/training',
+  lms: '/lms',
 };
 
 const ROLE_PANELS = {
