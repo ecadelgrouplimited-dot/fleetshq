@@ -6,7 +6,7 @@
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M9 20H4v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
       From employees
     </button>
-    <button class="btn btn-primary" onclick="document.getElementById('addUserModal').style.display='flex'">
+    <button class="btn btn-primary" id="openAddUserBtn">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
       Add User
     </button>
@@ -18,9 +18,9 @@
     <div class="filter-form">
       <div class="filter-search">
         <label class="form-label">Search users</label>
-        <input class="form-control" data-live-search="#usersTableBody" data-live-count="#visibleUserCount" data-live-empty="#noUsersFound" placeholder="Name, email, role, status...">
+        <input class="form-control" id="userSearch" data-live-search="#usersTableBody" data-live-count="#visibleUserCount" data-live-empty="#noUsersFound" placeholder="Name, email, role, status...">
       </div>
-      <button class="btn btn-ghost" type="button" onclick="document.querySelector('[data-live-search]').value='';document.querySelector('[data-live-search]').dispatchEvent(new Event('input'))">Clear</button>
+      <button class="btn btn-ghost" type="button" id="clearSearchBtn">Clear</button>
     </div>
   </div>
 </div>
@@ -80,7 +80,7 @@
   <div class="modal">
     <div class="modal-header">
       <h3>Add System User</h3>
-      <button onclick="document.getElementById('addUserModal').style.display='none'" class="btn btn-ghost btn-sm">✕</button>
+      <button id="closeAddUserBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -117,8 +117,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button onclick="document.getElementById('addUserModal').style.display='none'" class="btn btn-ghost">Cancel</button>
-      <button onclick="createUser()" class="btn btn-primary">Create User</button>
+      <button id="cancelAddUserBtn" class="btn btn-ghost">Cancel</button>
+      <button id="createUserBtn" class="btn btn-primary">Create User</button>
     </div>
   </div>
 </div>
@@ -128,7 +128,7 @@
   <div class="modal">
     <div class="modal-header">
       <h3>Edit User</h3>
-      <button onclick="closeModal('editUserModal')" class="btn btn-ghost btn-sm">âœ•</button>
+      <button id="closeEditUserBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="editUserId">
@@ -168,8 +168,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button onclick="closeModal('editUserModal')" class="btn btn-ghost">Cancel</button>
-      <button onclick="saveUserEdit()" class="btn btn-primary">Save Changes</button>
+      <button id="cancelEditUserBtn" class="btn btn-ghost">Cancel</button>
+      <button id="saveEditUserBtn" class="btn btn-primary">Save Changes</button>
     </div>
   </div>
 </div>
@@ -179,7 +179,7 @@
   <div class="modal">
     <div class="modal-header">
       <h3>Reset Password</h3>
-      <button onclick="closeModal('resetPasswordModal')" class="btn btn-ghost btn-sm">âœ•</button>
+      <button id="closeResetPwBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="resetUserId">
@@ -193,8 +193,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button onclick="closeModal('resetPasswordModal')" class="btn btn-ghost">Cancel</button>
-      <button onclick="submitPasswordReset()" class="btn btn-primary">Reset Password</button>
+      <button id="cancelResetPwBtn" class="btn btn-ghost">Cancel</button>
+      <button id="submitResetPwBtn" class="btn btn-primary">Reset Password</button>
     </div>
   </div>
 </div>
@@ -204,7 +204,7 @@
   <div class="modal" style="max-width:700px">
     <div class="modal-header">
       <h3>Create logins from employees</h3>
-      <button onclick="closeModal('fromEmployeesModal')" class="btn btn-ghost btn-sm">✕</button>
+      <button id="closeFromEmployeesBtn" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div class="modal-body" id="feBody">
       ${eligibleEmployees.length === 0 ? `
@@ -235,7 +235,7 @@
       `}
     </div>
     <div class="modal-footer" id="feFooter">
-      <button onclick="closeModal('fromEmployeesModal')" class="btn btn-ghost">Cancel</button>
+      <button id="cancelFromEmployeesBtn" class="btn btn-ghost">Cancel</button>
       ${eligibleEmployees.length ? `<button class="btn btn-primary" id="feCreateBtn" disabled><span id="feCount">0</span> selected — Create logins</button>` : ''}
     </div>
   </div>
@@ -255,175 +255,234 @@
   #feBody code { background:#f1f5f9; padding:2px 6px; border-radius:5px; font-size:12px; font-weight:700; }
   .role-chip-list { display:flex; flex-wrap:wrap; gap:5px; }
   .form-hint { margin-top:5px; color:var(--text-muted); font-size:11.5px; }
+  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+  .btn-danger-soft:hover { background:#fee2e2; }
 </style>
 
 <script>
-document.querySelectorAll('[data-edit-user]').forEach(b => b.addEventListener('click', () => openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true', b.dataset.roles, b.dataset.branches)));
-document.querySelectorAll('[data-reset-user]').forEach(b => b.addEventListener('click', () => openResetPassword(b.dataset.id, b.dataset.name)));
-document.querySelectorAll('[data-toggle-user]').forEach(b => b.addEventListener('click', () => toggleUser(b.dataset.id, b.dataset.to === 'true')));
-document.querySelectorAll('[data-delete-user]').forEach(b => b.addEventListener('click', () => confirmDeleteUser(b.dataset.id, b.dataset.name)));
-function closeModal(id) {
-  document.getElementById(id).style.display = 'none';
-}
+(function () {
+  // ── helpers ──────────────────────────────────────────────────────────
+  function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+  function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
 
-async function createUser() {
-  const selectedRoles = Array.prototype.slice.call(document.getElementById('uRoles').selectedOptions).map(o => o.value);
-  const body = {
-    firstName: document.getElementById('uFirstName').value,
-    lastName: document.getElementById('uLastName').value,
-    email: document.getElementById('uEmail').value,
-    password: document.getElementById('uPass').value,
-    role: selectedRoles[0],
-    roles: selectedRoles,
-    branchIds: Array.prototype.slice.call(document.getElementById('uBranchIds').selectedOptions).map(o => o.value),
-  };
-  const res = await fetch('/api/v1/users', {
-    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+  // ── search / clear ───────────────────────────────────────────────────
+  document.getElementById('clearSearchBtn').addEventListener('click', function () {
+    var s = document.getElementById('userSearch');
+    s.value = '';
+    s.dispatchEvent(new Event('input'));
   });
-  if (res.ok) { showToast('User created successfully', 'success'); setTimeout(() => location.reload(), 1200); }
-  else { const e = await res.json(); showToast(e.error?.message || 'Failed', 'error'); }
-  document.getElementById('addUserModal').style.display = 'none';
-}
 
-function openEditUser(id, firstName, lastName, phone, isActive, roles, branches) {
-  document.getElementById('editUserId').value = id;
-  document.getElementById('editFirstName').value = firstName;
-  document.getElementById('editLastName').value = lastName;
-  document.getElementById('editPhone').value = phone || '';
-  document.getElementById('editIsActive').checked = Boolean(isActive);
-  var selectedRoles = String(roles || '').split(',').filter(Boolean);
-  Array.prototype.slice.call(document.getElementById('editRoles').options).forEach(function(option){
-    option.selected = selectedRoles.indexOf(option.value) !== -1;
-  });
-  var selectedBranches = String(branches || '').split(',').filter(Boolean);
-  Array.prototype.slice.call(document.getElementById('editBranchIds').options).forEach(function(option){
-    option.selected = selectedBranches.indexOf(option.value) !== -1;
-  });
-  document.getElementById('editUserModal').style.display = 'flex';
-}
+  // ── open/close modals ────────────────────────────────────────────────
+  document.getElementById('openAddUserBtn').addEventListener('click', function () { openModal('addUserModal'); });
+  document.getElementById('closeAddUserBtn').addEventListener('click', function () { closeModal('addUserModal'); });
+  document.getElementById('cancelAddUserBtn').addEventListener('click', function () { closeModal('addUserModal'); });
 
-async function saveUserEdit() {
-  const id = document.getElementById('editUserId').value;
-  const selectedRoles = Array.prototype.slice.call(document.getElementById('editRoles').selectedOptions).map(o => o.value);
-  const body = {
-    firstName: document.getElementById('editFirstName').value,
-    lastName: document.getElementById('editLastName').value,
-    phone: document.getElementById('editPhone').value,
-    isActive: document.getElementById('editIsActive').checked,
-    role: selectedRoles[0],
-    roles: selectedRoles,
-    branchIds: Array.prototype.slice.call(document.getElementById('editBranchIds').selectedOptions).map(o => o.value),
-  };
-  const res = await fetch('/api/v1/users/' + id, {
-    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (res.ok) { showToast('User updated successfully', 'success'); setTimeout(() => location.reload(), 1000); }
-  else { const e = await res.json(); showToast(e.error?.message || 'Update failed', 'error'); }
-  closeModal('editUserModal');
-}
+  document.getElementById('closeEditUserBtn').addEventListener('click', function () { closeModal('editUserModal'); });
+  document.getElementById('cancelEditUserBtn').addEventListener('click', function () { closeModal('editUserModal'); });
 
-function openResetPassword(id, name) {
-  document.getElementById('resetUserId').value = id;
-  document.getElementById('resetUserName').textContent = name;
-  document.getElementById('resetPasswordValue').value = '';
-  document.getElementById('resetPasswordModal').style.display = 'flex';
-}
+  document.getElementById('closeResetPwBtn').addEventListener('click', function () { closeModal('resetPasswordModal'); });
+  document.getElementById('cancelResetPwBtn').addEventListener('click', function () { closeModal('resetPasswordModal'); });
 
-async function submitPasswordReset() {
-  const id = document.getElementById('resetUserId').value;
-  const newPassword = document.getElementById('resetPasswordValue').value;
-  const res = await fetch('/api/v1/users/' + id + '/reset-password', {
-    method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ newPassword }),
-  });
-  if (res.ok) { showToast('Password reset successfully', 'success'); }
-  else { const e = await res.json(); showToast(e.error?.message || 'Reset failed', 'error'); }
-  closeModal('resetPasswordModal');
-}
+  document.getElementById('closeFromEmployeesBtn').addEventListener('click', function () { closeModal('fromEmployeesModal'); });
+  document.getElementById('cancelFromEmployeesBtn').addEventListener('click', function () { closeModal('fromEmployeesModal'); });
 
-async function toggleUser(id, active) {
-  const res = await fetch('/api/v1/users/' + id, {
-    method: 'PUT', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ isActive: active }),
+  // ── row action buttons ───────────────────────────────────────────────
+  document.querySelectorAll('[data-edit-user]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      openEditUser(b.dataset.id, b.dataset.first, b.dataset.last, b.dataset.phone, b.dataset.active === 'true', b.dataset.roles, b.dataset.branches);
+    });
   });
-  if (res.ok) { showToast(active ? 'User reactivated' : 'User deactivated', 'success'); setTimeout(() => location.reload(), 1000); }
-  else {
-    const e = await res.json();
-    showToast(e.error?.message || 'Action failed', 'error');
+  document.querySelectorAll('[data-reset-user]').forEach(function (b) {
+    b.addEventListener('click', function () { openResetPassword(b.dataset.id, b.dataset.name); });
+  });
+  document.querySelectorAll('[data-toggle-user]').forEach(function (b) {
+    b.addEventListener('click', function () { toggleUser(b.dataset.id, b.dataset.to === 'true'); });
+  });
+  document.querySelectorAll('[data-delete-user]').forEach(function (b) {
+    b.addEventListener('click', function () { confirmDeleteUser(b.dataset.id, b.dataset.name); });
+  });
+
+  // ── create user ──────────────────────────────────────────────────────
+  document.getElementById('createUserBtn').addEventListener('click', createUser);
+
+  async function createUser() {
+    var selectedRoles = Array.prototype.slice.call(document.getElementById('uRoles').selectedOptions).map(function (o) { return o.value; });
+    var body = {
+      firstName: document.getElementById('uFirstName').value,
+      lastName:  document.getElementById('uLastName').value,
+      email:     document.getElementById('uEmail').value,
+      password:  document.getElementById('uPass').value,
+      role:      selectedRoles[0],
+      roles:     selectedRoles,
+      branchIds: Array.prototype.slice.call(document.getElementById('uBranchIds').selectedOptions).map(function (o) { return o.value; }),
+    };
+    var res = await fetch('/api/v1/users', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    closeModal('addUserModal');
+    if (res.ok) { showToast('User created successfully', 'success'); setTimeout(function () { location.reload(); }, 1200); }
+    else { var e = await res.json(); showToast((e.error && e.error.message) || 'Failed', 'error'); }
   }
-}
 
-async function confirmDeleteUser(id, name) {
-  const confirmed = await showConfirmDialog({
-    title: 'Delete User Account',
-    message: 'Delete the user account for ' + name + '? This only works when the user has no audit-owned records.',
-    confirmLabel: 'Delete User',
-    cancelLabel: 'Cancel',
-    tone: 'danger'
-  });
-  if (!confirmed) return;
-  const res = await fetch('/api/v1/users/' + id, {
-    method: 'DELETE', credentials: 'same-origin',
-  });
-  if (res.ok) { showToast('User deleted successfully', 'success'); setTimeout(() => location.reload(), 1000); }
-  else {
-    const e = await res.json();
-    showToast(e.error?.message || 'Delete failed', 'error');
+  // ── edit user ────────────────────────────────────────────────────────
+  function openEditUser(id, firstName, lastName, phone, isActive, roles, branches) {
+    document.getElementById('editUserId').value = id;
+    document.getElementById('editFirstName').value = firstName;
+    document.getElementById('editLastName').value = lastName;
+    document.getElementById('editPhone').value = phone || '';
+    document.getElementById('editIsActive').checked = Boolean(isActive);
+    var selectedRoles = String(roles || '').split(',').filter(Boolean);
+    Array.prototype.slice.call(document.getElementById('editRoles').options).forEach(function (o) {
+      o.selected = selectedRoles.indexOf(o.value) !== -1;
+    });
+    var selectedBranches = String(branches || '').split(',').filter(Boolean);
+    Array.prototype.slice.call(document.getElementById('editBranchIds').options).forEach(function (o) {
+      o.selected = selectedBranches.indexOf(o.value) !== -1;
+    });
+    openModal('editUserModal');
   }
-}
 
-// ── Create logins from employees ──────────────────────────────────────
-(function(){
-  var modal = document.getElementById('fromEmployeesModal');
-  var openBtn = document.getElementById('fromEmployeesBtn');
-  if (openBtn) openBtn.addEventListener('click', function(){ modal.style.display = 'flex'; });
+  document.getElementById('saveEditUserBtn').addEventListener('click', saveUserEdit);
+
+  async function saveUserEdit() {
+    var id = document.getElementById('editUserId').value;
+    var selectedRoles = Array.prototype.slice.call(document.getElementById('editRoles').selectedOptions).map(function (o) { return o.value; });
+    var body = {
+      firstName: document.getElementById('editFirstName').value,
+      lastName:  document.getElementById('editLastName').value,
+      phone:     document.getElementById('editPhone').value,
+      isActive:  document.getElementById('editIsActive').checked,
+      role:      selectedRoles[0],
+      roles:     selectedRoles,
+      branchIds: Array.prototype.slice.call(document.getElementById('editBranchIds').selectedOptions).map(function (o) { return o.value; }),
+    };
+    closeModal('editUserModal');
+    var res = await fetch('/api/v1/users/' + id, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) { showToast('User updated successfully', 'success'); setTimeout(function () { location.reload(); }, 1000); }
+    else { var e = await res.json(); showToast((e.error && e.error.message) || 'Update failed', 'error'); }
+  }
+
+  // ── reset password ───────────────────────────────────────────────────
+  function openResetPassword(id, name) {
+    document.getElementById('resetUserId').value = id;
+    document.getElementById('resetUserName').textContent = name;
+    document.getElementById('resetPasswordValue').value = '';
+    openModal('resetPasswordModal');
+  }
+
+  document.getElementById('submitResetPwBtn').addEventListener('click', submitPasswordReset);
+
+  async function submitPasswordReset() {
+    var id = document.getElementById('resetUserId').value;
+    var newPassword = document.getElementById('resetPasswordValue').value;
+    closeModal('resetPasswordModal');
+    var res = await fetch('/api/v1/users/' + id + '/reset-password', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newPassword: newPassword }),
+    });
+    if (res.ok) { showToast('Password reset successfully', 'success'); }
+    else { var e = await res.json(); showToast((e.error && e.error.message) || 'Reset failed', 'error'); }
+  }
+
+  // ── toggle active / delete ───────────────────────────────────────────
+  async function toggleUser(id, active) {
+    var res = await fetch('/api/v1/users/' + id, {
+      method: 'PUT', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive: active }),
+    });
+    if (res.ok) { showToast(active ? 'User reactivated' : 'User deactivated', 'success'); setTimeout(function () { location.reload(); }, 1000); }
+    else { var e = await res.json(); showToast((e.error && e.error.message) || 'Action failed', 'error'); }
+  }
+
+  async function confirmDeleteUser(id, name) {
+    var confirmed = await showConfirmDialog({
+      title: 'Delete User Account',
+      message: 'Delete the user account for ' + name + '? This only works when the user has no audit-owned records.',
+      confirmLabel: 'Delete User',
+      cancelLabel: 'Cancel',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+    var res = await fetch('/api/v1/users/' + id, {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+    if (res.ok) { showToast('User deleted successfully', 'success'); setTimeout(function () { location.reload(); }, 1000); }
+    else { var e = await res.json(); showToast((e.error && e.error.message) || 'Delete failed', 'error'); }
+  }
+
+  // ── create logins from employees ─────────────────────────────────────
+  var feModal   = document.getElementById('fromEmployeesModal');
+  var openFeBtn = document.getElementById('fromEmployeesBtn');
+  if (openFeBtn) openFeBtn.addEventListener('click', function () { openModal('fromEmployeesModal'); });
+
   var selectAll = document.getElementById('feSelectAll');
   var createBtn = document.getElementById('feCreateBtn');
-  function escJs(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function checks(){ return Array.prototype.slice.call(document.querySelectorAll('.fe-check')); }
-  function updateCount(){ var n = checks().filter(function(c){return c.checked;}).length; var el=document.getElementById('feCount'); if(el) el.textContent=n; if(createBtn) createBtn.disabled = n===0; }
-  if (selectAll) selectAll.addEventListener('change', function(){ checks().forEach(function(c){ c.checked = selectAll.checked; }); updateCount(); });
-  if (modal) modal.addEventListener('change', function(e){ if(e.target.classList && e.target.classList.contains('fe-check')) updateCount(); });
+
+  function escJs(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function checks() { return Array.prototype.slice.call(document.querySelectorAll('.fe-check')); }
+  function updateCount() {
+    var n = checks().filter(function (c) { return c.checked; }).length;
+    var el = document.getElementById('feCount');
+    if (el) el.textContent = n;
+    if (createBtn) createBtn.disabled = n === 0;
+  }
+
+  if (selectAll) selectAll.addEventListener('change', function () { checks().forEach(function (c) { c.checked = selectAll.checked; }); updateCount(); });
+  if (feModal)   feModal.addEventListener('change', function (e) { if (e.target.classList && e.target.classList.contains('fe-check')) updateCount(); });
   updateCount();
 
-  if (createBtn) createBtn.addEventListener('click', async function(){
-    var ids = checks().filter(function(c){return c.checked;}).map(function(c){return c.value;});
+  if (createBtn) createBtn.addEventListener('click', async function () {
+    var ids = checks().filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
     if (!ids.length) return;
     var role = document.getElementById('feRole').value;
     createBtn.disabled = true; createBtn.textContent = 'Creating…';
     try {
       var res = await apiCall('POST', '/api/v1/users/from-employees', { employeeIds: ids, role: role });
       renderResults(res.data, role);
-    } catch(e){ showToast(e.message || 'Failed to create logins', 'error'); createBtn.disabled = false; updateCount(); }
+    } catch (e) { showToast(e.message || 'Failed to create logins', 'error'); createBtn.disabled = false; updateCount(); }
   });
 
-  function renderResults(d, role){
-    var created = d.results.filter(function(r){ return r.status === 'created'; });
-    var rows = d.results.map(function(r){
-      var badge = r.status==='created'?'badge-green':r.status==='skipped'?'badge-amber':'badge-red';
-      var pw = r.tempPassword ? '<code>'+escJs(r.tempPassword)+'</code>' : '<span class="cell-muted">'+escJs(r.message||'-')+'</span>';
-      return '<tr><td class="fw-600">'+escJs(r.name||'-')+'</td><td class="cell-muted">'+escJs(r.email||'-')+'</td><td>'+pw+'</td><td><span class="badge '+badge+'">'+r.status+'</span></td></tr>';
+  // use event delegation for the dynamically-injected "Done" button
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'feDoneBtn') location.reload();
+    if (e.target && e.target.id === 'feDownload') downloadCsv(e.target);
+  });
+
+  var _lastCreated = [];
+  var _lastRole = '';
+
+  function renderResults(d, role) {
+    _lastCreated = d.results.filter(function (r) { return r.status === 'created'; });
+    _lastRole = role;
+    var rows = d.results.map(function (r) {
+      var badge = r.status === 'created' ? 'badge-green' : r.status === 'skipped' ? 'badge-amber' : 'badge-red';
+      var pw = r.tempPassword ? '<code>' + escJs(r.tempPassword) + '</code>' : '<span class="cell-muted">' + escJs(r.message || '-') + '</span>';
+      return '<tr><td class="fw-600">' + escJs(r.name || '-') + '</td><td class="cell-muted">' + escJs(r.email || '-') + '</td><td>' + pw + '</td><td><span class="badge ' + badge + '">' + r.status + '</span></td></tr>';
     }).join('');
     document.getElementById('feBody').innerHTML =
-      '<div class="fe-alert">'+d.summary.created+' account(s) created · '+d.summary.skipped+' skipped · '+d.summary.failed+' failed. <strong>Copy these temporary passwords now — they are shown only once.</strong> Ask each person to change theirs after first login.</div>'+
-      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Temp password</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+      '<div class="fe-alert">' + d.summary.created + ' account(s) created · ' + d.summary.skipped + ' skipped · ' + d.summary.failed + ' failed. <strong>Copy these temporary passwords now — they are shown only once.</strong> Ask each person to change theirs after first login.</div>' +
+      '<div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Temp password</th><th>Status</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     var footer = document.getElementById('feFooter');
-    footer.innerHTML = (created.length ? '<button class="btn btn-ghost" id="feDownload">Download credentials (CSV)</button>' : '') + '<button class="btn btn-primary" onclick="location.reload()">Done</button>';
-    var dl = document.getElementById('feDownload');
-    if (dl) dl.addEventListener('click', function(){
-      var csv = 'name,email,temp_password,role\\n' + created.map(function(r){ return '"'+String(r.name||'').replace(/"/g,'""')+'","'+r.email+'","'+r.tempPassword+'","'+role+'"'; }).join('\\n');
-      var blob = new Blob([csv], { type:'text/csv;charset=utf-8' });
-      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '256-new-logins.csv'; a.click(); URL.revokeObjectURL(a.href);
-    });
+    footer.innerHTML = (_lastCreated.length ? '<button class="btn btn-ghost" id="feDownload">Download credentials (CSV)</button>' : '') + '<button class="btn btn-primary" id="feDoneBtn">Done</button>';
     showToast(d.summary.created + ' login(s) created', d.summary.failed ? 'warning' : 'success');
+  }
+
+  function downloadCsv() {
+    var csv = 'name,email,temp_password,role\\n' + _lastCreated.map(function (r) {
+      return '"' + String(r.name || '').replace(/"/g, '""') + '","' + r.email + '","' + r.tempPassword + '","' + _lastRole + '"';
+    }).join('\\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = '256-new-logins.csv'; a.click(); URL.revokeObjectURL(a.href);
   }
 })();
 </script>
-
-<style>
-  .btn-danger-soft { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
-  .btn-danger-soft:hover { background:#fee2e2; }
-</style>
 ` }) %>
