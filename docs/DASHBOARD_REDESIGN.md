@@ -259,10 +259,17 @@ Decisions confirmed 2026-06-22: **branding = "256 Compliance Hub" + shield**, **
 - ✅ **M1 Fleet register** DONE 2026-06-22: 8-card KPI strip (Total/VOR/MOT/Insurance/Road Tax/Tacho/PMI/
   Open Defects) + vehicle thumbnails (Phase A) + Road Tax & Tacho columns w/ colour-coded badges. Verified,
   deployed.
-- ⏳ **M3 Daily checks & defects**: 6-card KPI strip, **defect photo gallery (buildable today)**, avatars,
-  vehicle thumbnails, defect-workflow stepper.
-- ⏳ **M8 Finance**: KPI sparklines, costs doughnut, W/M/Y toggle.
-- ⏳ **M7 Fuel**: per-vehicle MPG sparklines + efficiency gauge (AdBlue deferred to DM-8).
+- ✅ **M3 Daily checks & defects** DONE 2026-06-22: 6-card KPI strip, 7-step defect-workflow stepper,
+  open-defect cards w/ vehicle thumbnails + photo counts, **recent defect photo gallery** (served via the
+  authenticated photo route), driver avatars + vehicle thumbnails in the check-status table. Role-aware.
+- ✅ **M8 Finance** DONE 2026-06-22: 30-day sparklines on Revenue/Expenses/Net-P&L KPI cards + Costs
+  Breakdown doughnut beside the category bars.
+- ✅ **M7 Fuel** DONE 2026-06-22: Fuel Efficiency gauge (fleet-avg MPG vs 12 MPG benchmark) + Fleet Fuel
+  Performance table (per-vehicle MPG from odometer deltas, cost/mile, MPG-trend sparklines, status band).
+  AdBlue still deferred to DM-8.
+
+**Phase B complete** (2026-06-22). Remaining mockups (M2 Maintenance enrich, M4/M5 Driver Risk, M6 Compliance
+Tasks, M9 Incidents, M10 Rota) need new data models — they belong to Phases C–E.
 
 ### Phase C — High-leverage new model  · ~M
 - **DM-5 Compliance Tasks (M6)**: build the model + panel. Unlocks "Upcoming Tasks"/"My Tasks" rails across
