@@ -248,14 +248,21 @@ milestones.
 > Migration: `20260622092020_phase_a_entity_images` (two nullable columns — additive, backward-compatible).
 
 ### Phase B — Restyle the panels we already have  · ~M  (the "few adjustments" the client means)
-- **M0 Main dashboard**: light 5-card top row + 8-tile Compliance Overview + Top Risk Drivers w/ avatars +
-  keep trend/alerts. (Trailers/Tasks degrade gracefully until DM-4/DM-5 land.)
-- **M1 Fleet register**: 8-card KPI strip, vehicle thumbnails, colour-coded expiry columns, right rail,
-  photo in the detail header.
-- **M3 Daily checks & defects**: 6-card KPI strip, **defect photo gallery (buildable today)**, avatars,
+Decisions confirmed 2026-06-22: **branding = "256 Compliance Hub" + shield**, **default theme = light**
+(dark stays a toggle), **Trailers card hidden** until a Trailer model exists.
+
+- ✅ **Global shell** DONE 2026-06-22: rebrand to "256 Compliance Hub"; light is now the default theme.
+- ✅ **M0 Main dashboard** DONE 2026-06-22: light KPI row (gauge w/ month delta + Drivers/Vehicles/Alerts
+  with real "needs attention" counts) + 8-tile Compliance Overview (MOT/PMI/Insurance/Road Tax/Tacho/CPC/
+  RTW-Visa/Training, all from real data) + Compliance Trend line + Alerts feed + Operations Pulse + Open
+  Defects. Trailers omitted per decision. Verified light+dark, deployed.
+- ✅ **M1 Fleet register** DONE 2026-06-22: 8-card KPI strip (Total/VOR/MOT/Insurance/Road Tax/Tacho/PMI/
+  Open Defects) + vehicle thumbnails (Phase A) + Road Tax & Tacho columns w/ colour-coded badges. Verified,
+  deployed.
+- ⏳ **M3 Daily checks & defects**: 6-card KPI strip, **defect photo gallery (buildable today)**, avatars,
   vehicle thumbnails, defect-workflow stepper.
-- **M8 Finance**: KPI sparklines, costs doughnut, W/M/Y toggle.
-- **M7 Fuel**: per-vehicle MPG sparklines + efficiency gauge (AdBlue deferred to DM-8).
+- ⏳ **M8 Finance**: KPI sparklines, costs doughnut, W/M/Y toggle.
+- ⏳ **M7 Fuel**: per-vehicle MPG sparklines + efficiency gauge (AdBlue deferred to DM-8).
 
 ### Phase C — High-leverage new model  · ~M
 - **DM-5 Compliance Tasks (M6)**: build the model + panel. Unlocks "Upcoming Tasks"/"My Tasks" rails across
