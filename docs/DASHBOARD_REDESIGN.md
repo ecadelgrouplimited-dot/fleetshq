@@ -271,9 +271,14 @@ Decisions confirmed 2026-06-22: **branding = "256 Compliance Hub" + shield**, **
 **Phase B complete** (2026-06-22). Remaining mockups (M2 Maintenance enrich, M4/M5 Driver Risk, M6 Compliance
 Tasks, M9 Incidents, M10 Rota) need new data models — they belong to Phases C–E.
 
-### Phase C — High-leverage new model  · ~M
-- **DM-5 Compliance Tasks (M6)**: build the model + panel. Unlocks "Upcoming Tasks"/"My Tasks" rails across
-  the app — do this before driver-risk because more screens depend on it.
+### Phase C — High-leverage new model  · ~M  ✅ DONE 2026-06-22
+- ✅ **DM-5 Compliance Tasks (M6)**: `ComplianceTask` + `ComplianceSubtask` + `ComplianceTaskEvidence`
+  (migration `20260622145706_phase_c_compliance_tasks`). Full panel: 6 KPI cards, tasks table w/ assignee
+  avatars + overdue/priority colouring, status doughnut, by-category, my-tasks + critical-deadline rails,
+  task detail w/ live subtask progress + evidence upload + status actions + workflow stepper, New Task modal.
+  CRUD routes (create/status/subtask-toggle/evidence/delete) for manager roles. Sidebar link added.
+- ✅ **Cross-panel payoff**: main dashboard now shows an "Upcoming Compliance Tasks" card. Verified
+  end-to-end (create → list → KPIs → detail → subtask toggle → status → evidence), deployed.
 
 ### Phase D — Driver Risk  · ~M/L
 - **DM-7** infringement/debrief/points/score models → **M4 list** + **M5 profile** (incl. debrief-letter PDF).
