@@ -112,8 +112,24 @@ const CHECK_ITEM_LABELS = {
   reflectors: 'Reflectors',
 };
 
+// Compliance tasks (Phase C)
+const TASK_CATEGORIES = ['vehicle_compliance', 'driver_compliance', 'tachograph', 'insurance', 'health_safety', 'training', 'licensing', 'other'];
+const TASK_CATEGORY_LABELS = {
+  vehicle_compliance: 'Vehicle Compliance',
+  driver_compliance: 'Driver Compliance',
+  tachograph: 'Tachograph',
+  insurance: 'Insurance',
+  health_safety: 'Health & Safety',
+  training: 'Training',
+  licensing: 'Licensing',
+  other: 'Other',
+};
+const TASK_PRIORITIES = ['low', 'medium', 'high', 'critical'];
+const TASK_STATUSES = ['not_started', 'in_progress', 'completed', 'cancelled'];
+
 module.exports = {
   ROLES, PERMISSIONS, DEFECT_STATUS_TRANSITIONS,
   ALERT_THRESHOLDS, TRAINING_TYPES, TRAINING_LABELS,
   CHECK_ITEMS, CHECK_ITEM_LABELS,
+  TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES,
 };

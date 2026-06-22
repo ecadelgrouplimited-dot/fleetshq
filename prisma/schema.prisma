@@ -1172,3 +1172,82 @@ model Expense {
   @@index([expenseDate])
   @@index([category])
 }
+
+// ─────────────────────────────────────────
+// COMPLIANCE TASKS (Phase C — panel M6)
+// ─────────────────────────────────────────
+
+enum TaskPriority {
+  low
+  medium
+  high
+  critical
+}
+
+enum TaskStatus {
+  not_started
+  in_progress
+  completed
+  cancelled
+}
+
+enum TaskCategory {
+  vehicle_compliance
+  driver_compliance
+  tachograph
+  insurance
+  health_safety
+  training
+  licensing
+  other
+}
+
+model ComplianceTask {
+  id          String       @id @default(uuid())
+  tenantId    String       @default("00000000-0000-4000-8000-000000000001")
+  title       String
+  description String?
+  category    TaskCategory @default(other)
+  priority    TaskPriority @default(medium)
+  status      TaskStatus   @default(not_started)
+  dueDate     DateTime?
+  // Scalar references (resolved in the route, like FuelLog/LeaveRequest) to keep
+  // this addition isolated from the existing models.
+  assigneeId  String?
+  vehicleId   String?
+  createdById String?
+  completedAt DateTime?
+
+  subtasks ComplianceSubtask[]
+  evidence ComplianceTaskEvidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([assigneeId])
+}
+
+model ComplianceSubtask {
+  id        String         @id @default(uuid())
+  task      ComplianceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId    String
+  title     String
+  done      Boolean        @default(false)
+  createdAt DateTime       @default(now())
+
+  @@index([taskId])
+}
+
+model ComplianceTaskEvidence {
+  id           String         @id @default(uuid())
+  task         ComplianceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId       String
+  storageKey   String
+  fileName     String
+  uploadedById String?
+  createdAt    DateTime       @default(now())
+
+  @@index([taskId])
+}

@@ -7,7 +7,7 @@ const { verify } = require('../config/jwt');
 const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
 const { UPLOAD_DIR, upload } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
-const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
+const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS, TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES } = require('../utils/constants');
 const loginLimiter = require('../middleware/loginLimiter');
 const { esc } = require('../utils/escapeHtml');
 const { avatar, vehicleThumb, kpiDelta, expiryClass, expiryDate, sparkline } = require('../utils/uiHelpers');
@@ -1022,13 +1022,24 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       },
     ];
 
+    // Upcoming compliance tasks (Phase C) — next open tasks by due date.
+    const upcomingRaw = await prisma.complianceTask.findMany({
+      where: { status: { notIn: ['completed', 'cancelled'] } },
+      orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      take: 6,
+    });
+    const upcomingTasks = upcomingRaw.map((t) => ({
+      id: t.id, title: t.title, priority: t.priority, dueDate: t.dueDate,
+      isOverdue: t.dueDate && new Date(t.dueDate) < new Date(),
+    }));
+
     res.render('dashboard/index', {
       title: 'Dashboard',
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
         driverCount, driverActions, vehicleActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
-      complianceTiles, complianceTrend, scoreDelta,
+      complianceTiles, complianceTrend, scoreDelta, upcomingTasks,
       alerts, alertGroups, recentDefects, chartData, healthCards,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
@@ -2799,6 +2810,153 @@ router.post('/invoices/:id/remind', webAuth, requireRoles(...invoiceRoles), asyn
   } catch (e) {
     res.status(500).json({ error: e.message || 'Could not send reminder' });
   }
+});
+
+// ── Compliance Tasks (Phase C — panel M6) ─────────────────
+const taskManageRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager'];
+
+// Derive a task's effective status (overdue is computed, not stored).
+function decorateTask(t, empMap, vehMap) {
+  const now = new Date();
+  const isOverdue = t.dueDate && new Date(t.dueDate) < now && t.status !== 'completed' && t.status !== 'cancelled';
+  const subDone = t.subtasks ? t.subtasks.filter(s => s.done).length : 0;
+  const subTotal = t.subtasks ? t.subtasks.length : 0;
+  return {
+    ...t,
+    assignee: t.assigneeId ? empMap[t.assigneeId] || null : null,
+    vehicleReg: t.vehicleId ? vehMap[t.vehicleId] || null : null,
+    isOverdue,
+    effStatus: isOverdue ? 'overdue' : t.status,
+    subDone, subTotal,
+    progressPct: subTotal ? Math.round((subDone / subTotal) * 100) : (t.status === 'completed' ? 100 : t.status === 'in_progress' ? 50 : 0),
+  };
+}
+
+router.get('/compliance-tasks', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    const now = new Date();
+    const startToday = new Date(); startToday.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(startToday); weekEnd.setDate(weekEnd.getDate() + 7);
+    const monthEnd = new Date(startToday); monthEnd.setDate(monthEnd.getDate() + 30);
+    const monthStart = startOfMonth(now);
+
+    const [tasks, employees, vehicles] = await Promise.all([
+      prisma.complianceTask.findMany({
+        include: { subtasks: { orderBy: { createdAt: 'asc' } }, evidence: { orderBy: { createdAt: 'desc' } } },
+        orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
+      }),
+      prisma.employee.findMany({ where: { employmentStatus: 'active' }, select: { id: true, fullName: true, photoStorageKey: true }, orderBy: { fullName: 'asc' } }),
+      prisma.vehicle.findMany({ where: { status: { not: 'sold' } }, select: { id: true, registration: true }, orderBy: { registration: 'asc' } }),
+    ]);
+    const empMap = Object.fromEntries(employees.map(e => [e.id, e]));
+    const vehMap = Object.fromEntries(vehicles.map(v => [v.id, v.registration]));
+    const decorated = tasks.map(t => decorateTask(t, empMap, vehMap));
+
+    const active = decorated.filter(t => t.status !== 'cancelled');
+    const completed = decorated.filter(t => t.status === 'completed');
+    const kpis = {
+      total: active.length,
+      overdue: decorated.filter(t => t.isOverdue).length,
+      dueThisWeek: decorated.filter(t => t.dueDate && new Date(t.dueDate) >= startToday && new Date(t.dueDate) <= weekEnd && t.status !== 'completed').length,
+      dueThisMonth: decorated.filter(t => t.dueDate && new Date(t.dueDate) >= startToday && new Date(t.dueDate) <= monthEnd && t.status !== 'completed').length,
+      completedThisMonth: completed.filter(t => t.completedAt && new Date(t.completedAt) >= monthStart).length,
+      onTrackPct: active.length ? Math.round((active.filter(t => !t.isOverdue).length / active.length) * 100) : 100,
+    };
+    // Status mix for the doughnut
+    const statusMix = { not_started: 0, in_progress: 0, completed: 0, overdue: 0 };
+    decorated.forEach(t => { if (t.status !== 'cancelled') statusMix[t.effStatus] = (statusMix[t.effStatus] || 0) + 1; });
+    // Category breakdown
+    const byCategory = {};
+    active.forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + 1; });
+    const categoryRows = Object.entries(byCategory).map(([k, v]) => ({ key: k, label: TASK_CATEGORY_LABELS[k] || k, count: v })).sort((a, b) => b.count - a.count);
+
+    const myTasks = req.user.employeeId ? decorated.filter(t => t.assigneeId === req.user.employeeId && t.status !== 'completed' && t.status !== 'cancelled').slice(0, 6) : [];
+    const criticalDeadlines = decorated.filter(t => t.status !== 'completed' && t.status !== 'cancelled' && (t.priority === 'critical' || t.priority === 'high' || t.isOverdue))
+      .sort((a, b) => (a.dueDate ? new Date(a.dueDate) : Infinity) - (b.dueDate ? new Date(b.dueDate) : Infinity)).slice(0, 6);
+
+    const selectedId = req.query.task;
+    const selected = (selectedId && decorated.find(t => t.id === selectedId)) || decorated.find(t => t.status !== 'completed') || decorated[0] || null;
+
+    res.render('compliance-tasks/index', {
+      title: 'Compliance Tasks', tasks: decorated, kpis, statusMix, categoryRows, myTasks, criticalDeadlines, selected,
+      employees, vehicles, categories: TASK_CATEGORIES, categoryLabels: TASK_CATEGORY_LABELS, priorities: TASK_PRIORITIES,
+      formatDate, path: '/compliance-tasks',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/compliance-tasks', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    const { title, description, category, priority, dueDate, assigneeId, vehicleId, subtasks } = req.body;
+    if (!title || !title.trim()) return res.redirect('/compliance-tasks');
+    const task = await prisma.complianceTask.create({
+      data: {
+        title: title.trim(),
+        description: description?.trim() || null,
+        category: TASK_CATEGORIES.includes(category) ? category : 'other',
+        priority: TASK_PRIORITIES.includes(priority) ? priority : 'medium',
+        dueDate: dueDate ? new Date(dueDate) : null,
+        assigneeId: assigneeId || null,
+        vehicleId: vehicleId || null,
+        createdById: req.user.id,
+      },
+    });
+    // Optional newline-separated subtasks
+    const subLines = (subtasks || '').split('\n').map(s => s.trim()).filter(Boolean).slice(0, 20);
+    if (subLines.length) {
+      await prisma.complianceSubtask.createMany({ data: subLines.map(s => ({ taskId: task.id, title: s })) });
+    }
+    res.redirect('/compliance-tasks?task=' + task.id);
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/compliance-tasks/:id/status', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    const status = TASK_STATUSES.includes(req.body.status) ? req.body.status : 'not_started';
+    await prisma.complianceTask.update({
+      where: { id: req.params.id },
+      data: { status, completedAt: status === 'completed' ? new Date() : null },
+    });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ success: false, error: 'Could not update task.' }); }
+});
+
+router.post('/compliance-tasks/:id/subtasks/:sid/toggle', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    const sub = await prisma.complianceSubtask.findUnique({ where: { id: req.params.sid } });
+    if (!sub) return res.status(404).json({ success: false });
+    await prisma.complianceSubtask.update({ where: { id: req.params.sid }, data: { done: !sub.done } });
+    res.json({ success: true, done: !sub.done });
+  } catch (e) { res.status(500).json({ success: false }); }
+});
+
+router.post('/compliance-tasks/:id/evidence', webAuth, requireRoles(...taskManageRoles),
+  (req, res, next) => { req.uploadSubdir = `compliance-tasks/${req.params.id}`; next(); },
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      if (!req.file) return res.redirect('/compliance-tasks?task=' + req.params.id);
+      const storageKey = path.relative(process.cwd(), req.file.path).split(path.sep).join('/');
+      await prisma.complianceTaskEvidence.create({ data: { taskId: req.params.id, storageKey, fileName: req.file.originalname, uploadedById: req.user.id } });
+      res.redirect('/compliance-tasks?task=' + req.params.id);
+    } catch (e) { res.redirect('/compliance-tasks?task=' + req.params.id); }
+  });
+
+router.get('/compliance-tasks/:id/evidence/:eid/content', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    const ev = await prisma.complianceTaskEvidence.findFirst({ where: { id: req.params.eid, taskId: req.params.id } });
+    if (!ev) return res.status(404).end();
+    const absolutePath = path.resolve(process.cwd(), ev.storageKey);
+    if (!absolutePath.startsWith(path.resolve(process.cwd(), UPLOAD_DIR)) || !fs.existsSync(absolutePath)) return res.status(404).end();
+    return res.sendFile(absolutePath);
+  } catch (e) { return res.status(404).end(); }
+});
+
+router.post('/compliance-tasks/:id/delete', webAuth, requireRoles(...taskManageRoles), async (req, res) => {
+  try {
+    await prisma.complianceTask.delete({ where: { id: req.params.id } });
+    res.redirect('/compliance-tasks');
+  } catch (e) { res.redirect('/compliance-tasks'); }
 });
 
 // ── Compliance & Safety overview (panel home) ─────────────

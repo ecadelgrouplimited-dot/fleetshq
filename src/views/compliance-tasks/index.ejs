@@ -1,0 +1,341 @@
+<%
+  const prioBadge = { critical: 'badge-red', high: 'badge-amber', medium: 'badge-blue', low: 'badge-slate' };
+  const statusBadge = { completed: 'badge-green', in_progress: 'badge-blue', not_started: 'badge-slate', overdue: 'badge-red', cancelled: 'badge-slate' };
+  const statusLabel = { completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started', overdue: 'Overdue', cancelled: 'Cancelled' };
+%>
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-4">
+  <p class="text-sm text-muted">${kpis.total} active task${kpis.total === 1 ? '' : 's'} · ${kpis.onTrackPct}% on track</p>
+  <button class="btn btn-primary" id="newTaskBtn">
+    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:15px;height:15px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+    New Task
+  </button>
+</div>
+
+<!-- KPI strip -->
+<div class="ct-kpis mb-4">
+  ${[
+    { label: 'Total Tasks', value: kpis.total, tone: 'blue', sub: 'All active' },
+    { label: 'Overdue', value: kpis.overdue, tone: kpis.overdue > 0 ? 'red' : 'green', sub: 'Past due date' },
+    { label: 'Due This Week', value: kpis.dueThisWeek, tone: kpis.dueThisWeek > 0 ? 'amber' : 'green', sub: 'Next 7 days' },
+    { label: 'Due This Month', value: kpis.dueThisMonth, tone: 'blue', sub: 'Next 30 days' },
+    { label: 'Completed (mo.)', value: kpis.completedThisMonth, tone: 'green', sub: 'This month' },
+    { label: 'On Track', value: kpis.onTrackPct + '%', tone: kpis.onTrackPct >= 85 ? 'green' : kpis.onTrackPct >= 60 ? 'amber' : 'red', sub: 'Not overdue' },
+  ].map(k => `
+    <div class="ct-kpi ${k.tone}">
+      <div class="ct-kpi-value">${k.value}</div>
+      <div class="ct-kpi-label">${k.label}</div>
+      <div class="ct-kpi-sub">${k.sub}</div>
+    </div>`).join('')}
+</div>
+
+<div class="ct-main mb-4">
+  <!-- Tasks table -->
+  <div class="card">
+    <div class="card-header">
+      <h3>Tasks</h3>
+      <input class="form-control" style="max-width:280px" data-live-search="#taskTableBody" data-live-empty="#noTasks" placeholder="Search tasks...">
+    </div>
+    ${tasks.length === 0 ? `
+      <div class="empty-state" style="padding:48px 14px">
+        <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg></div>
+        <p>No compliance tasks yet</p>
+        <div class="empty-hint">Create your first task to start tracking compliance work.</div>
+      </div>
+    ` : `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Task</th><th scope="col">Category</th><th scope="col">Priority</th><th scope="col">Due</th><th scope="col">Assignee</th><th scope="col">Status</th></tr></thead>
+        <tbody id="taskTableBody">
+          ${tasks.map(t => `
+            <tr data-search-row data-search-text="${`${esc(t.title)} ${esc(categoryLabels[t.category] || '')} ${t.priority} ${t.assignee ? esc(t.assignee.fullName) : ''} ${t.effStatus}`.toLowerCase()}" style="cursor:pointer" onclick="location.href='/compliance-tasks?task=${t.id}'">
+              <td>
+                <a href="/compliance-tasks?task=${t.id}" style="font-weight:700">${esc(t.title)}</a>
+                ${t.vehicleReg ? `<div class="cell-muted" style="font-size:11px;font-family:ui-monospace,monospace">${esc(t.vehicleReg)}</div>` : ''}
+              </td>
+              <td><span class="badge badge-slate">${esc(categoryLabels[t.category] || t.category)}</span></td>
+              <td><span class="badge ${prioBadge[t.priority] || 'badge-slate'}">${t.priority}</span></td>
+              <td class="cell-muted">${t.dueDate ? `<span style="${t.isOverdue ? 'color:var(--danger);font-weight:700' : ''}">${formatDate(t.dueDate)}</span>` : '—'}</td>
+              <td>${t.assignee ? avatar(t.assignee, { size: 28, withName: true }) : '<span class="text-light">Unassigned</span>'}</td>
+              <td><span class="badge ${statusBadge[t.effStatus]}">${statusLabel[t.effStatus]}</span></td>
+            </tr>`).join('')}
+          <tr id="noTasks" style="display:none"><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No tasks match your search</td></tr>
+        </tbody>
+      </table>
+    </div>`}
+  </div>
+
+  <!-- Right rail: status doughnut + categories -->
+  <div class="ct-rail">
+    <div class="card">
+      <div class="card-header"><h3>Task Status</h3></div>
+      <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="position:relative;width:150px;height:150px">
+          <canvas id="statusChart" width="150" height="150"></canvas>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <span style="font-size:26px;font-weight:900">${kpis.total}</span>
+            <span style="font-size:10px;color:var(--text-muted);font-weight:600">tasks</span>
+          </div>
+        </div>
+        <div class="ct-legend">
+          ${[['not_started','Not Started','#94a3b8'],['in_progress','In Progress','#2563eb'],['completed','Completed','#10b981'],['overdue','Overdue','#ef4444']].map(([k,l,c]) => `
+            <div class="ct-legend-row"><span class="ct-legend-dot" style="background:${c}"></span><span>${l}</span><strong>${statusMix[k] || 0}</strong></div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>By Category</h3></div>
+      <div class="card-body">
+        ${categoryRows.length === 0 ? '<div class="cell-muted" style="font-size:13px">No active tasks</div>' : categoryRows.map(c => `
+          <div class="ct-cat-row"><span>${esc(c.label)}</span><strong>${c.count}</strong></div>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ct-main mb-4">
+  <!-- My tasks + critical deadlines -->
+  <div class="card">
+    <div class="card-header"><h3>My Assigned Tasks</h3></div>
+    <div class="card-body">
+      ${myTasks.length === 0 ? '<div class="cell-muted" style="font-size:13px;padding:8px 0">Nothing assigned to you right now.</div>' : myTasks.map(t => `
+        <a href="/compliance-tasks?task=${t.id}" class="ct-list-item">
+          <span class="ct-list-dot ${statusBadge[t.effStatus]}"></span>
+          <span class="ct-list-body"><strong>${esc(t.title)}</strong><span>${t.dueDate ? 'Due ' + formatDate(t.dueDate) : 'No due date'}</span></span>
+          <span class="badge ${prioBadge[t.priority]}">${t.priority}</span>
+        </a>`).join('')}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Critical Deadlines</h3></div>
+    <div class="card-body">
+      ${criticalDeadlines.length === 0 ? '<div class="cell-muted" style="font-size:13px;padding:8px 0">No critical or overdue tasks. </div>' : criticalDeadlines.map(t => `
+        <a href="/compliance-tasks?task=${t.id}" class="ct-list-item">
+          <span class="ct-list-dot ${t.isOverdue ? 'badge-red' : 'badge-amber'}"></span>
+          <span class="ct-list-body"><strong>${esc(t.title)}</strong><span>${t.assignee ? esc(t.assignee.fullName) + ' · ' : ''}${t.dueDate ? formatDate(t.dueDate) : 'No due date'}</span></span>
+          <span class="badge ${t.isOverdue ? 'badge-red' : statusBadge[t.effStatus]}">${t.isOverdue ? 'Overdue' : statusLabel[t.effStatus]}</span>
+        </a>`).join('')}
+    </div>
+  </div>
+</div>
+
+${selected ? `
+<!-- Task detail panel -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Task Details</h3>
+    <span class="badge ${statusBadge[selected.effStatus]}">${statusLabel[selected.effStatus]}</span>
+  </div>
+  <div class="card-body">
+    <div class="ct-detail">
+      <div>
+        <div class="ct-detail-title">${esc(selected.title)}</div>
+        ${selected.description ? `<p class="ct-detail-desc">${esc(selected.description)}</p>` : ''}
+        <div class="ct-detail-meta">
+          <div><span>Category</span><strong>${esc(categoryLabels[selected.category] || selected.category)}</strong></div>
+          <div><span>Priority</span><strong style="text-transform:capitalize">${selected.priority}</strong></div>
+          <div><span>Due</span><strong style="${selected.isOverdue ? 'color:var(--danger)' : ''}">${selected.dueDate ? formatDate(selected.dueDate) : '—'}</strong></div>
+          <div><span>Assignee</span><strong>${selected.assignee ? esc(selected.assignee.fullName) : 'Unassigned'}</strong></div>
+          ${selected.vehicleReg ? `<div><span>Vehicle</span><strong style="font-family:ui-monospace,monospace">${esc(selected.vehicleReg)}</strong></div>` : ''}
+        </div>
+
+        ${selected.subTotal > 0 ? `
+        <div class="ct-subtasks">
+          <div class="ct-sub-head">Subtasks <span>${selected.subDone}/${selected.subTotal}</span></div>
+          <div class="progress-bar" style="margin:6px 0 12px"><div class="progress-bar-fill green" style="width:${selected.progressPct}%"></div></div>
+          ${selected.subtasks.map(s => `
+            <label class="ct-subtask">
+              <input type="checkbox" ${s.done ? 'checked' : ''} data-subtoggle data-task="${selected.id}" data-sub="${s.id}">
+              <span class="${s.done ? 'ct-sub-done' : ''}">${esc(s.title)}</span>
+            </label>`).join('')}
+        </div>` : ''}
+
+        <div class="ct-evidence">
+          <div class="ct-sub-head">Evidence <span>${selected.evidence.length}</span></div>
+          ${selected.evidence.length === 0 ? '<div class="cell-muted" style="font-size:12px;margin:6px 0">No evidence uploaded yet.</div>' : `
+          <div class="ct-evidence-list">
+            ${selected.evidence.map(e => `
+              <a href="/compliance-tasks/${selected.id}/evidence/${e.id}/content" target="_blank" rel="noopener" class="ct-evidence-item">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z"/></svg>
+                <span>${esc(e.fileName)}</span>
+              </a>`).join('')}
+          </div>`}
+          <form method="post" action="/compliance-tasks/${selected.id}/evidence" enctype="multipart/form-data" class="ct-evidence-form">
+            <input type="hidden" name="_csrf" value="${csrfToken}">
+            <input type="file" name="file" class="form-control" style="max-width:280px" required>
+            <button class="btn btn-outline btn-sm">Upload evidence</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="ct-detail-side">
+        <div class="ct-status-actions">
+          <div class="form-label">Update status</div>
+          ${['not_started','in_progress','completed','cancelled'].map(s => `
+            <button class="btn btn-sm ${selected.status === s ? 'btn-primary' : 'btn-outline'}" data-setstatus data-task="${selected.id}" data-status="${s}">${statusLabel[s]}</button>
+          `).join('')}
+        </div>
+        <!-- Task workflow stepper -->
+        <div class="ct-workflow">
+          <div class="form-label" style="margin-bottom:8px">Workflow</div>
+          ${[['Created','done'],['Assigned', selected.assigneeId ? 'done' : 'todo'],['In Progress', (selected.status==='in_progress'||selected.status==='completed') ? 'done' : 'todo'],['Evidence', selected.evidence.length ? 'done' : 'todo'],['Completed', selected.status==='completed' ? 'done' : 'todo']].map((s,i,arr) => `
+            <div class="ct-wf-step ${s[1]}"><span class="ct-wf-num">${s[1]==='done' ? '✓' : i+1}</span><span class="ct-wf-label">${s[0]}</span></div>
+            ${i < arr.length-1 ? `<div class="ct-wf-line ${s[1]==='done' ? 'done' : ''}"></div>` : ''}
+          `).join('')}
+        </div>
+        <form method="post" action="/compliance-tasks/${selected.id}/delete" onsubmit="return confirm('Delete this task?')" style="margin-top:14px">
+          <input type="hidden" name="_csrf" value="${csrfToken}">
+          <button class="btn btn-danger-soft btn-sm" type="submit">Delete task</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>` : ''}
+
+<!-- New task modal -->
+<div id="taskModal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header"><h3>New Compliance Task</h3><button type="button" id="closeTaskModal" class="btn btn-ghost btn-sm">✕</button></div>
+    <form method="post" action="/compliance-tasks">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="modal-body">
+        <div class="form-group"><label class="form-label">Title <span class="required">*</span></label>
+          <input class="form-control" name="title" required placeholder="e.g. PMI Inspection — PO21 XHZ">
+        </div>
+        <div class="form-group"><label class="form-label">Description</label>
+          <textarea class="form-control" name="description" rows="2" placeholder="What needs doing?"></textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Category</label>
+            <select class="form-control" name="category">${categories.map(c => `<option value="${c}">${esc(categoryLabels[c])}</option>`).join('')}</select>
+          </div>
+          <div class="form-group"><label class="form-label">Priority</label>
+            <select class="form-control" name="priority">${priorities.map(p => `<option value="${p}" ${p === 'medium' ? 'selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Due date</label><input class="form-control" type="date" name="dueDate"></div>
+          <div class="form-group"><label class="form-label">Assignee</label>
+            <select class="form-control" name="assigneeId"><option value="">Unassigned</option>${employees.map(e => `<option value="${e.id}">${esc(e.fullName)}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Related vehicle</label>
+          <select class="form-control" name="vehicleId"><option value="">None</option>${vehicles.map(v => `<option value="${v.id}">${esc(v.registration)}</option>`).join('')}</select>
+        </div>
+        <div class="form-group"><label class="form-label">Subtasks <span style="font-weight:500;color:var(--text-light)">(one per line, optional)</span></label>
+          <textarea class="form-control" name="subtasks" rows="3" placeholder="Book inspection&#10;Upload certificate&#10;Sign off"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="cancelTaskModal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create task</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .ct-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
+  .ct-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .ct-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .ct-kpi.blue::before { background:var(--primary); } .ct-kpi.green::before { background:var(--success); }
+  .ct-kpi.amber::before { background:var(--warning); } .ct-kpi.red::before { background:var(--danger); }
+  .ct-kpi-value { font-size:24px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .ct-kpi.amber .ct-kpi-value { color:var(--warning); } .ct-kpi.red .ct-kpi-value { color:var(--danger); }
+  .ct-kpi-label { font-size:12px; font-weight:700; margin-top:6px; }
+  .ct-kpi-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .ct-main { display:grid; grid-template-columns:1fr 320px; gap:16px; align-items:start; }
+  .ct-rail { display:flex; flex-direction:column; gap:16px; }
+  .ct-legend { width:100%; display:flex; flex-direction:column; gap:7px; }
+  .ct-legend-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .ct-legend-row strong { margin-left:auto; }
+  .ct-legend-dot { width:9px; height:9px; border-radius:50%; }
+  .ct-cat-row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .ct-cat-row:last-child { border-bottom:none; }
+  .ct-list-item { display:flex; align-items:center; gap:10px; padding:10px 6px; border-bottom:1px solid var(--border); text-decoration:none; color:var(--text); }
+  .ct-list-item:last-child { border-bottom:none; } .ct-list-item:hover { background:var(--surface-2); }
+  .ct-list-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .ct-list-dot.badge-green { background:var(--success); } .ct-list-dot.badge-blue { background:var(--primary); }
+  .ct-list-dot.badge-amber { background:var(--warning); } .ct-list-dot.badge-red { background:var(--danger); } .ct-list-dot.badge-slate { background:var(--text-light); }
+  .ct-list-body { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .ct-list-body strong { font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ct-list-body span { font-size:11px; color:var(--text-muted); }
+  .ct-detail { display:grid; grid-template-columns:1fr 260px; gap:24px; }
+  .ct-detail-title { font-size:18px; font-weight:800; }
+  .ct-detail-desc { color:var(--text-muted); font-size:13.5px; margin-top:6px; line-height:1.6; }
+  .ct-detail-meta { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; margin:16px 0; }
+  .ct-detail-meta div { display:flex; flex-direction:column; }
+  .ct-detail-meta span { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+  .ct-detail-meta strong { font-size:14px; margin-top:2px; }
+  .ct-sub-head { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); display:flex; gap:8px; align-items:center; }
+  .ct-sub-head span { background:var(--surface-2); border-radius:999px; padding:1px 8px; font-size:11px; }
+  .ct-subtasks { margin:16px 0; } .ct-evidence { margin-top:16px; }
+  .ct-subtask { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:13.5px; cursor:pointer; }
+  .ct-subtask input { width:17px; height:17px; }
+  .ct-sub-done { text-decoration:line-through; color:var(--text-muted); }
+  .ct-evidence-list { display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+  .ct-evidence-item { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--primary); text-decoration:none; }
+  .ct-evidence-item svg { width:15px; height:15px; }
+  .ct-evidence-form { display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .ct-detail-side { border-left:1px solid var(--border); padding-left:20px; }
+  .ct-status-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
+  .ct-workflow { display:flex; flex-direction:column; }
+  .ct-wf-step { display:flex; align-items:center; gap:10px; }
+  .ct-wf-num { width:26px; height:26px; border-radius:50%; background:var(--surface-2); border:2px solid var(--border-md); color:var(--text-muted); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .ct-wf-step.done .ct-wf-num { background:var(--success); border-color:var(--success); color:#fff; }
+  .ct-wf-label { font-size:13px; font-weight:600; }
+  .ct-wf-line { width:2px; height:14px; background:var(--border); margin-left:12px; }
+  .ct-wf-line.done { background:var(--success); }
+  @media (max-width:1100px) { .ct-kpis { grid-template-columns:repeat(3,1fr); } .ct-main { grid-template-columns:1fr; } .ct-detail { grid-template-columns:1fr; } .ct-detail-side { border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:20px; } }
+  @media (max-width:560px) { .ct-kpis { grid-template-columns:repeat(2,1fr); } }
+</style>
+
+<script>
+(function() {
+  var modal = document.getElementById('taskModal');
+  document.getElementById('newTaskBtn').addEventListener('click', function() { modal.style.display = 'flex'; });
+  document.getElementById('closeTaskModal').addEventListener('click', function() { modal.style.display = 'none'; });
+  document.getElementById('cancelTaskModal').addEventListener('click', function() { modal.style.display = 'none'; });
+
+  document.querySelectorAll('[data-setstatus]').forEach(function(btn) {
+    btn.addEventListener('click', async function(e) {
+      e.stopPropagation();
+      var res = await fetch('/compliance-tasks/' + btn.dataset.task + '/status', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': '${csrfToken}' },
+        body: JSON.stringify({ status: btn.dataset.status })
+      });
+      if (res.ok) { showToast('Status updated', 'success'); setTimeout(function() { location.reload(); }, 500); }
+      else showToast('Could not update status', 'error');
+    });
+  });
+
+  document.querySelectorAll('[data-subtoggle]').forEach(function(cb) {
+    cb.addEventListener('change', async function() {
+      var res = await fetch('/compliance-tasks/' + cb.dataset.task + '/subtasks/' + cb.dataset.sub + '/toggle', {
+        method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': '${csrfToken}' }
+      });
+      if (res.ok) { var data = await res.json(); cb.nextElementSibling.classList.toggle('ct-sub-done', data.done); }
+      else { cb.checked = !cb.checked; showToast('Could not update subtask', 'error'); }
+    });
+  });
+
+  var statusEl = document.getElementById('statusChart');
+  if (statusEl && window.Chart) {
+    var mix = ${JSON.stringify(statusMix)};
+    new Chart(statusEl.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['Not Started','In Progress','Completed','Overdue'],
+        datasets: [{ data: [mix.not_started||0, mix.in_progress||0, mix.completed||0, mix.overdue||0],
+          backgroundColor: ['#94a3b8','#2563eb','#10b981','#ef4444'], borderWidth: 2,
+          borderColor: document.documentElement.getAttribute('data-theme') === 'dark' ? '#0f1d35' : '#ffffff' }] },
+      options: { cutout: '72%', plugins: { legend: { display: false } } }
+    });
+  }
+})();
+</script>
+` }) %>
