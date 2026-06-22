@@ -80,7 +80,7 @@
           <tr data-search-row data-search-text="${`${esc(e.fullName)} ${esc(e.jobTitle)} ${esc(e.department)} ${esc(e.email || '')} ${esc(e.drivingVehicle?.registration || '')} ${e.employmentStatus} ${e.isDriver ? 'driver' : ''} ${e.isSponsored ? 'sponsored' : ''}`.toLowerCase()}">
             <td>
               <div style="display:flex;align-items:center;gap:10px">
-                <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3b82f6,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${esc(e.fullName.charAt(0))}</div>
+                ${avatar(e, { size: 34 })}
                 <div>
                   <a href="/employees/${e.id}" style="font-weight:700;font-size:13.5px">${esc(e.fullName)}</a>
                   <div style="margin-top:3px;display:flex;gap:4px">

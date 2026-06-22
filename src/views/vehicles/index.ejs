@@ -69,8 +69,13 @@
         ${vehicles.map(v => `
         <tr data-search-row data-search-text="${`${esc(v.registration)} ${esc(v.make)} ${esc(v.model)} ${v.year} ${esc(v.assignedDriver?.fullName || '')} ${v.status}`.toLowerCase()}">
           <td>
-            <a href="/fleet/${v.id}" class="reg-link">${esc(v.registration)}</a>
-            <div class="cell-muted" style="margin-top:2px">${v.year} ${esc(v.make)} ${esc(v.model)}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              ${vehicleThumb(v, { size: 40 })}
+              <div>
+                <a href="/fleet/${v.id}" class="reg-link">${esc(v.registration)}</a>
+                <div class="cell-muted" style="margin-top:2px">${v.year} ${esc(v.make)} ${esc(v.model)}</div>
+              </div>
+            </div>
           </td>
           <td>
             ${v.assignedDriver

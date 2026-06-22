@@ -5,11 +5,12 @@ const path = require('path');
 const prisma = require('../config/database');
 const { verify } = require('../config/jwt');
 const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
-const { UPLOAD_DIR } = require('../config/storage');
+const { UPLOAD_DIR, upload } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS } = require('../utils/constants');
 const loginLimiter = require('../middleware/loginLimiter');
 const { esc } = require('../utils/escapeHtml');
+const { avatar, vehicleThumb, kpiDelta, expiryClass, expiryDate, sparkline } = require('../utils/uiHelpers');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { checkPassword } = require('../utils/passwordPolicy');
@@ -35,6 +36,14 @@ const webAuth = (req, res, next) => {
     res.locals.esc = esc;
     res.locals.panels = getUserPanels(payload);
     res.locals.roleLabel = roleLabel;
+    // Phase A dashboard-redesign UI helpers (avatars, vehicle thumbs, KPI deltas,
+    // colour-coded expiry dates, sparklines).
+    res.locals.avatar = avatar;
+    res.locals.vehicleThumb = vehicleThumb;
+    res.locals.kpiDelta = kpiDelta;
+    res.locals.expiryClass = expiryClass;
+    res.locals.expiryDate = expiryDate;
+    res.locals.sparkline = sparkline;
     next();
   });
 };
@@ -482,6 +491,74 @@ router.get('/documents/:kind/:id/download', webAuth, async (req, res) => {
     return res.status(404).render('error', { title: 'Not found', message: 'The requested document could not be found.', code: 404 });
   }
 });
+
+// ── Entity images (Phase A: vehicle photos + driver avatars) ───────────────
+// Images live in the private uploads dir and are served only to authenticated
+// users, like documents. Upload is fetch-based (FormData) so the CSRF header is
+// present before multer parses the multipart body.
+const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+const serveEntityImage = (storageKey, res) => {
+  if (!storageKey) return res.status(404).end();
+  const absolutePath = getAbsoluteStoragePath(storageKey);
+  if (!absolutePath.startsWith(path.resolve(process.cwd(), UPLOAD_DIR)) || !fs.existsSync(absolutePath)) {
+    return res.status(404).end();
+  }
+  res.set('Cache-Control', 'private, max-age=300');
+  return res.sendFile(absolutePath);
+};
+
+// Vehicle photo
+router.get('/fleet/:id/photo', webAuth, async (req, res) => {
+  try {
+    const v = await prisma.vehicle.findUnique({ where: { id: req.params.id }, select: { imageStorageKey: true } });
+    return serveEntityImage(v && v.imageStorageKey, res);
+  } catch (e) { return res.status(404).end(); }
+});
+
+router.post('/fleet/:id/photo', webAuth, requireRoles(...transportRoles),
+  (req, res, next) => { req.uploadSubdir = `vehicles/${req.params.id}`; next(); },
+  upload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file || !IMAGE_MIME.has(req.file.mimetype)) {
+        return res.status(400).json({ success: false, error: 'Please upload a JPG, PNG or WebP image.' });
+      }
+      const v = await prisma.vehicle.findUnique({ where: { id: req.params.id }, select: { id: true } });
+      if (!v) return res.status(404).json({ success: false, error: 'Vehicle not found.' });
+      const storageKey = path.relative(process.cwd(), req.file.path).split(path.sep).join('/');
+      await prisma.vehicle.update({ where: { id: req.params.id }, data: { imageStorageKey: storageKey } });
+      return res.json({ success: true, url: `/fleet/${req.params.id}/photo?t=${Date.now()}` });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: 'Could not save the photo.' });
+    }
+  });
+
+// Employee avatar
+router.get('/employees/:id/photo', webAuth, async (req, res) => {
+  try {
+    const emp = await prisma.employee.findUnique({ where: { id: req.params.id }, select: { photoStorageKey: true } });
+    return serveEntityImage(emp && emp.photoStorageKey, res);
+  } catch (e) { return res.status(404).end(); }
+});
+
+router.post('/employees/:id/photo', webAuth, requireRoles(...hrRoles),
+  (req, res, next) => { req.uploadSubdir = `employees/${req.params.id}`; next(); },
+  upload.single('image'),
+  async (req, res) => {
+    try {
+      if (!req.file || !IMAGE_MIME.has(req.file.mimetype)) {
+        return res.status(400).json({ success: false, error: 'Please upload a JPG, PNG or WebP image.' });
+      }
+      const emp = await prisma.employee.findUnique({ where: { id: req.params.id }, select: { id: true } });
+      if (!emp) return res.status(404).json({ success: false, error: 'Employee not found.' });
+      const storageKey = path.relative(process.cwd(), req.file.path).split(path.sep).join('/');
+      await prisma.employee.update({ where: { id: req.params.id }, data: { photoStorageKey: storageKey } });
+      return res.json({ success: true, url: `/employees/${req.params.id}/photo?t=${Date.now()}` });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: 'Could not save the photo.' });
+    }
+  });
 
 // ── Public site ────────────────────────────────────────
 const renderPublicPage = (page, title, extra = {}) => (req, res) => {

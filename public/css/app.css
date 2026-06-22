@@ -1101,3 +1101,36 @@ form.submit-attempted .form-control:invalid:focus {
 .pw-strength-bar { height:4px; background:var(--border); border-radius:2px; margin-top:6px; }
 .pw-strength-fill { height:100%; border-radius:2px; transition:width .2s, background .2s; }
 
+/* ── Phase A: dashboard-redesign UI helpers ───────────────────────────────── */
+/* Avatars (driver photos with initials fallback) */
+.ui-avatar { display:inline-flex; align-items:center; justify-content:center; border-radius:50%; overflow:hidden; flex-shrink:0; vertical-align:middle; }
+.ui-avatar-img { border-radius:50%; object-fit:cover; display:block; }
+.ui-avatar-fallback { display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-weight:800; letter-spacing:.3px; }
+.ui-avatar-row { display:inline-flex; align-items:center; gap:10px; min-width:0; }
+.ui-avatar-meta { display:flex; flex-direction:column; min-width:0; line-height:1.25; }
+.ui-avatar-name { font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ui-avatar-sub { font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Vehicle thumbnails (photo with truck-silhouette fallback) */
+.ui-vthumb { display:inline-flex; align-items:center; justify-content:center; border-radius:10px; overflow:hidden; flex-shrink:0; vertical-align:middle; background:var(--surface-2); border:1px solid var(--border); }
+.ui-vthumb img { object-fit:cover; display:block; border-radius:10px; }
+.ui-vthumb-empty { color:var(--text-light); }
+
+/* KPI trend delta pill */
+.ui-delta { display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; }
+.ui-delta-arrow { font-size:9px; line-height:1; }
+.ui-delta-label { color:var(--text-muted); font-weight:600; }
+.ui-delta.good { color:var(--success); }
+.ui-delta.bad { color:var(--danger); }
+.ui-delta.flat { color:var(--text-muted); }
+
+/* Colour-coded compliance/expiry dates */
+.ui-date { font-variant-numeric:tabular-nums; }
+.ui-date-hint { font-size:11px; opacity:.85; }
+.ui-date-expired { color:var(--danger); font-weight:700; }
+.ui-date-soon { color:var(--warning); font-weight:700; }
+.ui-date-ok { color:var(--text); }
+
+/* Inline sparkline */
+.ui-spark { display:inline-block; vertical-align:middle; overflow:visible; }
+

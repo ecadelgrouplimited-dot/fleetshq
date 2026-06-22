@@ -339,6 +339,10 @@ model Employee {
   workLocation          String
   isDriver              Boolean          @default(false)
   isSponsored           Boolean          @default(false)
+  // Phase A (dashboard redesign): optional profile photo / avatar. Stored as a
+  // private upload storage key; served through /employees/:id/photo. Falls back
+  // to initials when null.
+  photoStorageKey       String?
 
   lineManager   Employee?  @relation("ManagerSubordinates", fields: [lineManagerId], references: [id])
   lineManagerId String?
@@ -537,6 +541,9 @@ model Vehicle {
   nextPmiDate         DateTime?
   currentMileage      Int           @default(0)
   status              VehicleStatus @default(active)
+  // Phase A (dashboard redesign): optional vehicle photo. Stored as a private
+  // upload storage key; served through the authenticated /fleet/:id/photo route.
+  imageStorageKey     String?
 
   // Vehicle owns the driver FK — one driver per vehicle at a time
   assignedDriver   Employee? @relation("VehicleDriver", fields: [assignedDriverId], references: [id])

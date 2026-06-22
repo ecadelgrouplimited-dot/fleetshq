@@ -22,6 +22,18 @@
   <div class="card">
     <div class="card-header"><h3>Employee Profile</h3></div>
     <div class="card-body">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border)">
+        <div id="empPhotoThumb">${avatar(emp, { size: 72 })}</div>
+        <div>
+          <div style="font-weight:800;font-size:17px;line-height:1.1">${esc(emp.fullName)}</div>
+          <div class="text-sm text-muted" style="margin:2px 0 10px">${esc(emp.jobTitle)}</div>
+          ${['director','hr_manager'].includes(user.role) ? `
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">
+            <span id="empPhotoBtnLabel">${emp.photoStorageKey ? 'Change photo' : 'Add photo'}</span>
+            <input type="file" id="empPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>
+          </label>` : ''}
+        </div>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         ${[
           ['Full Name', emp.fullName],
@@ -210,6 +222,34 @@ ${['director','hr_manager'].includes(user.role) ? `
 
   const deleteBtn = document.getElementById('deleteEmpBtn');
   if (deleteBtn) deleteBtn.addEventListener('click', function() { deleteEmployeeRecord(); });
+
+  // Employee avatar upload (Phase A)
+  const photoInput = document.getElementById('empPhotoInput');
+  if (photoInput) photoInput.addEventListener('change', async function() {
+    const file = photoInput.files && photoInput.files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('image', file);
+    const label = document.getElementById('empPhotoBtnLabel');
+    const prev = label ? label.textContent : '';
+    if (label) label.textContent = 'Uploading…';
+    try {
+      const res = await fetch('/employees/${emp.id}/photo', {
+        method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': '${csrfToken}' }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Upload failed');
+      const thumb = document.getElementById('empPhotoThumb');
+      if (thumb) thumb.innerHTML = '<span class="ui-avatar" style="width:72px;height:72px"><img class="ui-avatar-img" src="' + data.url + '" alt="" style="width:72px;height:72px"></span>';
+      if (label) label.textContent = 'Change photo';
+      showToast('Photo updated', 'success');
+    } catch (err) {
+      if (label) label.textContent = prev;
+      showToast(err.message || 'Could not upload photo', 'error');
+    }
+    photoInput.value = '';
+  });
 
   const uploadForm = document.getElementById('uploadForm');
   if (uploadForm) {
