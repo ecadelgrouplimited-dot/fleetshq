@@ -9,7 +9,7 @@
     ['Contact', '/contact', 'contact'],
   ];
   const pageTitles = {
-    home: ['The operating system for modern logistics.', 'Booking, dispatch, fleet, people, finance and DVSA / Home Office compliance — one connected platform that keeps every mile accountable.'],
+    home: ['One Platform. Total Control.', 'The operating system for transport companies. Drivers, vehicles, compliance, tachographs and maintenance — one connected platform that keeps every mile accountable.'],
     services: ['Transport services with compliance built in.', 'From same-day couriers to palletised freight, the same operating spine keeps work visible from first enquiry to signed-off delivery.'],
     about: ['A logistics platform built for proof.', '256 Logistics connects daily transport work to the evidence that protects your operator licence, your sponsorship, and your business.'],
     contact: ['Talk to the transport team.', 'Send a quote request, partnership enquiry, or service question — it lands straight in the operations hub.'],
@@ -22,16 +22,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title || '256 Logistics' %></title>
-  <meta name="description" content="256 Logistics — the operating platform for UK logistics operators. Booking, dispatch, fleet, people, finance and compliance in one connected system.">
-  <meta property="og:title" content="256 Logistics — Connected logistics platform">
-  <meta property="og:description" content="Booking, dispatch, fleet, people, finance and DVSA / Home Office compliance — one connected platform that keeps every mile accountable.">
+  <title><%= title || 'FLEET.HQ — The operating system for transport companies' %></title>
+  <meta name="description" content="FLEET.HQ by 256 Logistics — the operating system for UK transport companies. Drivers, vehicles, compliance, tachographs and maintenance in one connected platform. One platform. Total control.">
+  <meta property="og:title" content="FLEET.HQ — One Platform. Total Control.">
+  <meta property="og:description" content="The operating system for transport companies. Drivers, vehicles, compliance, tachographs and maintenance — built by hauliers, for hauliers.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://256logisticsltd.com">
-  <meta property="og:site_name" content="256 Logistics">
+  <meta property="og:site_name" content="FLEET.HQ">
   <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="256 Logistics — Connected logistics platform">
-  <meta name="twitter:description" content="Booking, dispatch, fleet, people, finance and compliance in one connected system.">
+  <meta name="twitter:title" content="FLEET.HQ — One Platform. Total Control.">
+  <meta name="twitter:description" content="The operating system for transport companies. Built by hauliers, for hauliers.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script>
@@ -46,46 +46,47 @@
     *, *::before, *::after { box-sizing: border-box; }
     :root {
       color-scheme: dark;
-      --bg: #070f1c;
-      --bg-2: #0b1828;
-      --panel: rgba(15, 31, 51, .72);
-      --panel-2: rgba(18, 37, 60, .55);
-      --panel-strong: #102337;
-      --text: #f4f9ff;
+      /* FLEET.HQ — black + signal-red + gold */
+      --bg: #0a0a0c;
+      --bg-2: #111114;
+      --panel: rgba(22, 22, 27, .72);
+      --panel-2: rgba(28, 28, 34, .5);
+      --panel-strong: #15151a;
+      --text: #f3f4f6;
       --heading: #ffffff;
-      --muted: #aebfd2;
-      --soft: #6f879b;
-      --line: rgba(174, 191, 210, .15);
-      --line-2: rgba(174, 191, 210, .28);
-      --brand: #3b82f6;
-      --brand-deep: #1d4ed8;
-      --brand-2: #22d3ee;
-      --brand-3: #10b981;
+      --muted: #a3a7b0;
+      --soft: #71757e;
+      --line: rgba(255, 255, 255, .09);
+      --line-2: rgba(255, 255, 255, .17);
+      --brand: #e11d2a;        /* signal red */
+      --brand-deep: #a60f1a;
+      --brand-2: #f5b301;      /* gold */
+      --brand-3: #10b981;      /* keep green for "compliant/clear" semantics */
       --gold-1: #fde68a;
-      --gold-2: #f59e0b;
+      --gold-2: #f5b301;
       --gold-3: #b45309;
       --danger: #ef4444;
-      --amber: #f59e0b;
-      --shadow: 0 30px 90px rgba(0, 0, 0, .42);
-      --shadow-soft: 0 18px 50px rgba(3, 12, 26, .35);
+      --amber: #f5b301;
+      --shadow: 0 30px 90px rgba(0, 0, 0, .6);
+      --shadow-soft: 0 18px 50px rgba(0, 0, 0, .45);
       --radius: 16px;
       --radius-sm: 11px;
     }
     [data-theme="light"] {
       color-scheme: light;
-      --bg: #eef3f9;
-      --bg-2: #e3edf6;
-      --panel: rgba(255, 255, 255, .82);
-      --panel-2: rgba(255, 255, 255, .6);
+      --bg: #f6f6f4;
+      --bg-2: #eeeeec;
+      --panel: rgba(255, 255, 255, .85);
+      --panel-2: rgba(255, 255, 255, .62);
       --panel-strong: #ffffff;
-      --text: #0d1b2c;
-      --heading: #07101e;
-      --muted: #46586d;
-      --soft: #65788c;
-      --line: rgba(15, 41, 71, .12);
-      --line-2: rgba(15, 41, 71, .2);
-      --shadow: 0 26px 70px rgba(20, 47, 84, .16);
-      --shadow-soft: 0 14px 40px rgba(20, 47, 84, .1);
+      --text: #16161a;
+      --heading: #0a0a0c;
+      --muted: #4a4d55;
+      --soft: #71757e;
+      --line: rgba(10, 10, 12, .1);
+      --line-2: rgba(10, 10, 12, .18);
+      --shadow: 0 26px 70px rgba(20, 20, 24, .14);
+      --shadow-soft: 0 14px 40px rgba(20, 20, 24, .1);
     }
     html { scroll-behavior: smooth; }
     body {
@@ -114,9 +115,9 @@
               mask-image: radial-gradient(ellipse 80% 55% at 50% 0%, #000 35%, transparent 100%);
     }
     .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .55; }
-    .orb.a { width: 620px; height: 620px; top: -220px; right: -160px; background: radial-gradient(circle, rgba(59,130,246,.5), transparent 68%); }
-    .orb.b { width: 460px; height: 460px; top: 36%; left: -200px; background: radial-gradient(circle, rgba(34,211,238,.32), transparent 66%); }
-    .orb.c { width: 520px; height: 520px; bottom: -240px; right: 8%; background: radial-gradient(circle, rgba(16,185,129,.26), transparent 66%); }
+    .orb.a { width: 620px; height: 620px; top: -220px; right: -160px; background: radial-gradient(circle, rgba(225,29,42,.5), transparent 68%); }
+    .orb.b { width: 460px; height: 460px; top: 36%; left: -200px; background: radial-gradient(circle, rgba(245,179,1,.28), transparent 66%); }
+    .orb.c { width: 520px; height: 520px; bottom: -240px; right: 8%; background: radial-gradient(circle, rgba(225,29,42,.22), transparent 66%); }
     [data-theme="light"] .orb { opacity: .4; }
     main, .nav, .footer, .loader { position: relative; z-index: 1; }
 
@@ -134,14 +135,16 @@
     /* Brand mark */
     .brand { display: inline-flex; align-items: center; gap: 12px; font-weight: 900; letter-spacing: -.02em; color: var(--heading); }
     .brand-mark, .loader-mark {
-      position: relative; background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+      position: relative; background: linear-gradient(145deg, #e11d2a, #a60f1a);
       border: 1px solid rgba(255,255,255,.22); color: #fff; isolation: isolate; overflow: hidden;
     }
-    .brand-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(59,130,246,.4); }
-    .brand-mark::before, .loader-mark::before { content: ""; position: absolute; inset: 7px; border: 2px solid var(--brand-2); clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); opacity: .9; z-index: -1; }
-    .brand-mark::after, .loader-mark::after { content: "256"; font-size: 11px; font-weight: 900; letter-spacing: -.06em; }
-    .loader-mark::after { font-size: 18px; }
+    .brand-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; box-shadow: 0 10px 30px rgba(225,29,42,.45); }
+    /* Location-pin motif behind the F (the FLEET.HQ mark) */
+    .brand-mark::before, .loader-mark::before { content: ""; position: absolute; inset: 8px 9px 7px; border: 2px solid var(--brand-2); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); opacity: .85; z-index: -1; }
+    .brand-mark::after, .loader-mark::after { content: "F"; font-size: 18px; font-weight: 900; letter-spacing: -.04em; }
+    .loader-mark::after { font-size: 30px; }
     .brand small { display: block; color: var(--soft); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .brand b { color: var(--brand); font-weight: 900; }
 
     /* Nav */
     .nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(150%) blur(16px); }
@@ -172,7 +175,7 @@
     .eyebrow .pip { width: 7px; height: 7px; border-radius: 50%; background: var(--brand-2); box-shadow: 0 0 10px var(--brand-2); animation: pip 2s infinite; }
     @keyframes pip { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
     h1 { margin: 20px 0 18px; max-width: 740px; font-size: clamp(40px, 6vw, 70px); line-height: 1.02; letter-spacing: -.035em; color: var(--heading); font-weight: 900; }
-    h1 .grad { background: linear-gradient(110deg, #60a5fa, #22d3ee 55%, #34d399); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    h1 .grad { color: var(--brand); -webkit-text-fill-color: var(--brand); }
     .intro { max-width: 600px; color: var(--muted); font-size: 18.5px; }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
     .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; padding-top: 30px; border-top: 1px solid var(--line); }
@@ -227,8 +230,8 @@
       padding: 26px; box-shadow: var(--shadow-soft); backdrop-filter: blur(8px); transition: transform .25s, border-color .25s, box-shadow .25s;
     }
     .card.lift:hover { transform: translateY(-4px); border-color: var(--line-2); box-shadow: var(--shadow); }
-    .card-ic { width: 52px; height: 52px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 18px; background: linear-gradient(135deg, rgba(59,130,246,.18), rgba(34,211,238,.1)); border: 1px solid var(--line-2); }
-    .card-ic svg { width: 25px; height: 25px; color: #60a5fa; }
+    .card-ic { width: 52px; height: 52px; border-radius: 13px; display: grid; place-items: center; margin-bottom: 18px; background: linear-gradient(135deg, rgba(225,29,42,.18), rgba(245,179,1,.1)); border: 1px solid var(--line-2); }
+    .card-ic svg { width: 25px; height: 25px; color: #f5b301; }
     .card h3 { margin: 0 0 9px; font-size: 19px; color: var(--heading); font-weight: 700; overflow-wrap: anywhere; }
     .card p, .card li { color: var(--muted); font-size: 14.5px; }
     .card ul { padding-left: 18px; margin: 12px 0 0; display: grid; gap: 6px; }
@@ -244,7 +247,9 @@
     /* Stats band */
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
     .stat { text-align: center; padding: 26px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-    .stat strong { display: block; font-size: clamp(30px, 4vw, 44px); font-weight: 900; letter-spacing: -.03em; background: linear-gradient(120deg, #60a5fa, #34d399); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat strong { display: block; font-size: clamp(30px, 4vw, 44px); font-weight: 900; letter-spacing: -.03em; background: linear-gradient(120deg, #f5b301, #e11d2a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat .stat-ic { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; margin: 0 auto 12px; background: linear-gradient(135deg, rgba(225,29,42,.16), rgba(245,179,1,.1)); border: 1px solid var(--line-2); }
+    .stat .stat-ic svg { width: 20px; height: 20px; color: var(--brand-2); }
     .stat span { color: var(--soft); font-size: 13.5px; font-weight: 600; }
 
     /* Steps flow */
@@ -278,7 +283,7 @@
     .contact-aside { display: grid; gap: 14px; }
     .info-line { display: flex; align-items: center; gap: 12px; }
     .info-line .ii { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--panel-2); border: 1px solid var(--line); flex-shrink: 0; }
-    .info-line .ii svg { width: 18px; height: 18px; color: #60a5fa; }
+    .info-line .ii svg { width: 18px; height: 18px; color: var(--brand-2); }
     .info-line small { display: block; color: var(--soft); font-size: 12px; }
     .info-line strong { color: var(--heading); font-size: 14.5px; }
 
@@ -341,6 +346,52 @@
     .foot-bottom { margin-top: 36px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--soft); font-size: 13px; }
     .foot-bottom b { color: #fcd34d; font-weight: 700; }
 
+    /* FLEET.HQ — red+gold signature ribbon */
+    .ribbon { position: absolute; right: -5%; bottom: -10%; width: 70%; height: 280px; pointer-events: none; z-index: 0; opacity: .85;
+      background:
+        radial-gradient(120% 60% at 80% 60%, rgba(225,29,42,.32), transparent 60%),
+        radial-gradient(120% 60% at 95% 80%, rgba(245,179,1,.22), transparent 55%);
+      -webkit-mask-image: radial-gradient(120% 80% at 80% 70%, #000 30%, transparent 75%); mask-image: radial-gradient(120% 80% at 80% 70%, #000 30%, transparent 75%); }
+    .ribbon::before, .ribbon::after { content: ""; position: absolute; left: 0; right: 0; height: 3px; border-radius: 999px; }
+    .ribbon::before { top: 46%; background: linear-gradient(90deg, transparent, #e11d2a 60%, #ff6b73); box-shadow: 0 0 30px rgba(225,29,42,.6); transform: rotate(-7deg); }
+    .ribbon::after { top: 58%; background: linear-gradient(90deg, transparent, #f5b301 60%, #fde68a); box-shadow: 0 0 26px rgba(245,179,1,.5); transform: rotate(-7deg); }
+
+    /* Pillars (Drivers / Vehicles / Compliance / Tachographs / Maintenance) */
+    .pillars { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 36px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--panel-2); }
+    .pillar { padding: 22px 18px; text-align: center; border-right: 1px solid var(--line); }
+    .pillar:last-child { border-right: 0; }
+    .pillar-ic { width: 46px; height: 46px; margin: 0 auto 12px; border-radius: 12px; display: grid; place-items: center; border: 1px solid var(--line-2); background: rgba(255,255,255,.03); }
+    .pillar-ic svg { width: 24px; height: 24px; color: var(--brand-2); }
+    .pillar:nth-child(3) .pillar-ic svg { color: var(--brand); }
+    .pillar h4 { margin: 0 0 5px; font-size: 14px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--heading); }
+    .pillar p { margin: 0; font-size: 12.5px; color: var(--soft); line-height: 1.5; }
+
+    /* UK network map (hero art) */
+    .netmap { position: relative; width: 100%; aspect-ratio: 4 / 3.4; }
+    .netmap svg { width: 100%; height: 100%; display: block; }
+    .netmap .node { fill: var(--brand-2); }
+    .netmap .node.hot { fill: var(--brand); }
+    @keyframes nodepulse { 0%,100% { opacity: .55; r: 2.4px; } 50% { opacity: 1; r: 3.4px; } }
+    .netmap .node { animation: nodepulse 3.4s ease-in-out infinite; }
+    .netmap .route { stroke: rgba(245,179,1,.30); stroke-width: 1; fill: none; }
+    .netmap .route.hot { stroke: rgba(225,29,42,.5); }
+    .netmap .uk { fill: rgba(255,255,255,.025); stroke: var(--line-2); stroke-width: 1; }
+
+    /* Built-by-hauliers band */
+    .builtby { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 22px; margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .builtby .bold-gold { color: var(--brand-2); font-weight: 900; letter-spacing: .06em; font-size: clamp(15px, 2.2vw, 20px); text-transform: uppercase; }
+    .builtby .bold-white { color: var(--heading); font-weight: 800; letter-spacing: .12em; font-size: clamp(13px, 1.8vw, 16px); text-transform: uppercase; }
+
+    /* Trust line */
+    .trust { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: space-between; padding: 22px 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    .trust-left { display: flex; align-items: center; gap: 14px; }
+    .trust-shield { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: rgba(16,185,129,.12); border: 1px solid rgba(16,185,129,.3); flex-shrink: 0; }
+    .trust-shield svg { width: 21px; height: 21px; color: var(--brand-3); }
+    .trust-left p { margin: 0; font-size: 13.5px; color: var(--muted); }
+    .trust-left p b { color: var(--heading); }
+    .trust-powered { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+    .trust-powered b { color: var(--brand); }
+
     /* Reveal */
     .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
     .reveal.in { opacity: 1; transform: none; }
@@ -353,6 +404,10 @@
       .footer-grid { grid-template-columns: 1fr 1fr; }
       .credit-card { grid-template-columns: 1fr; text-align: center; gap: 18px; }
       .credit-seal { margin: 0 auto; } .credit-eyebrow { justify-content: center; } .credit-tag { margin-inline: auto; }
+      .pillars { grid-template-columns: repeat(2, 1fr); }
+      .pillar { border-bottom: 1px solid var(--line); }
+      .pillar:nth-child(even) { border-right: 0; }
+      .trust { flex-direction: column; align-items: flex-start; }
     }
     @media (max-width: 680px) {
       .wrap { width: min(100% - 28px, 620px); }
@@ -362,6 +417,8 @@
       .nav-links > a, .nav-action { white-space: nowrap; flex: 0 0 auto; }
       .nav-sep { display: none; }
       .grid.two, .grid.three, .flow, .stats, .footer-grid, .track-summary { grid-template-columns: 1fr; }
+      .pillars { grid-template-columns: 1fr; }
+      .pillar { border-right: 0; }
       .hero { padding: 44px 0 30px; }
       .hero-actions { display: grid; } .cta { width: 100%; }
       .float-chip { display: none; }
@@ -384,16 +441,16 @@
   <div class="loader" id="loader" aria-live="polite">
     <div class="loader-card">
       <div class="loader-mark" aria-hidden="true"></div>
-      <strong>256 Logistics</strong>
+      <strong>FLEET<span style="color:var(--brand)">.HQ</span></strong>
       <div class="loader-line" aria-hidden="true"><span></span></div>
     </div>
   </div>
 
   <nav class="nav">
     <div class="wrap nav-inner">
-      <a href="/welcome" class="brand" aria-label="256 Logistics home">
+      <a href="/welcome" class="brand" aria-label="FLEET.HQ home">
         <span class="brand-mark" aria-hidden="true"></span>
-        <span>256 Logistics<small>Logistics platform</small></span>
+        <span>FLEET<b>.HQ</b><small>by 256 Logistics</small></span>
       </a>
       <div class="nav-links">
         <% nav.forEach(([label, href, key]) => { %>
@@ -409,9 +466,10 @@
 
   <main>
     <header class="hero">
+      <span class="ribbon" aria-hidden="true"></span>
       <div class="wrap hero-grid">
         <div>
-          <span class="eyebrow"><span class="pip"></span>UK logistics operations platform</span>
+          <span class="eyebrow"><span class="pip"></span>The operating system for transport companies</span>
           <h1><%= heading[0].includes('.') ? heading[0].replace(/\.([^.]*)$/, '') : heading[0] %><span class="grad">.</span></h1>
           <p class="intro"><%= heading[1] %></p>
           <div class="hero-actions">
@@ -421,42 +479,67 @@
             <a class="cta secondary" href="/track">Track a shipment</a>
           </div>
           <div class="metrics">
-            <div class="metric"><strong>10</strong><span>connected panels</span></div>
-            <div class="metric"><strong>DVSA</strong><span>evidence-ready</span></div>
-            <div class="metric"><strong>24/7</strong><span>request intake</span></div>
+            <div class="metric"><strong>5</strong><span>operating domains</span></div>
+            <div class="metric"><strong>DVSA</strong><span>audit-ready</span></div>
+            <div class="metric"><strong>24/7</strong><span>real-time monitoring</span></div>
           </div>
         </div>
         <div class="hero-art">
-          <div class="console" aria-hidden="true">
-            <div class="console-bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>256 · operations</span></div>
-            <div class="console-body">
-              <div class="con-row">
-                <span class="con-ic" style="background:rgba(59,130,246,.16)"><svg fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg></span>
-                <div class="meta"><strong>Shipment 256-LANE-042</strong><span>Out for delivery · ETA 14:20</span></div>
-                <span class="con-pill blue">In transit</span>
-              </div>
-              <div class="con-row">
-                <span class="con-ic" style="background:rgba(16,185,129,.16)"><svg fill="none" viewBox="0 0 24 24" stroke="#34d399"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M5 13l4 4L19 7"/></svg></span>
-                <div class="meta"><strong>Fleet roadworthy</strong><span>38 / 38 vehicles compliant</span></div>
-                <span class="con-pill green">Clear</span>
-              </div>
-              <div class="con-row">
-                <span class="con-ic" style="background:rgba(245,158,11,.16)"><svg fill="none" viewBox="0 0 24 24" stroke="#fbbf24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg></span>
-                <div class="meta"><strong>Driver CPC expiring</strong><span>Flagged · 21 days · 1 driver</span></div>
-                <span class="con-pill amber">Action</span>
-              </div>
-            </div>
+          <div class="netmap" aria-hidden="true">
+            <svg viewBox="0 0 400 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- abstract British-Isles network silhouette -->
+              <path class="uk" d="M196 38c14 6 10 26 22 32 13 7 30 2 34 16 4 13-12 20-10 33 2 14 20 18 18 33-2 16-24 16-30 31-5 13 6 27-2 39-9 13-30 10-40 22-9 11-4 30-18 36-13 6-26-7-40-6-15 1-27 16-41 11-13-5-12-25-23-33-12-9-31-4-37-18-6-13 9-26 6-40-3-15-22-21-19-37 3-15 24-15 32-28 7-12-1-29 10-39 11-11 29-3 42-9 13-7 16-27 31-31 12-3 24 7 36 7 11 0 22-11 29-7z" />
+              <!-- routes -->
+              <path class="route" d="M150 96 L210 78 L268 120 L240 196 L168 220 L120 168 Z" />
+              <path class="route hot" d="M150 96 L240 196" />
+              <path class="route" d="M210 78 L168 220" />
+              <path class="route" d="M120 168 L268 120" />
+              <!-- nodes -->
+              <circle class="node hot" cx="150" cy="96" r="3"/>
+              <circle class="node" cx="210" cy="78" r="3"/>
+              <circle class="node" cx="268" cy="120" r="3"/>
+              <circle class="node hot" cx="240" cy="196" r="3"/>
+              <circle class="node" cx="168" cy="220" r="3"/>
+              <circle class="node" cx="120" cy="168" r="3"/>
+              <circle class="node" cx="196" cy="150" r="2.4"/>
+              <circle class="node" cx="300" cy="170" r="2.4"/>
+              <circle class="node" cx="110" cy="240" r="2.4"/>
+            </svg>
           </div>
           <div class="float-chip one">
             <span class="dot" style="background:rgba(16,185,129,.18)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#34d399"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></span>
-            <div>Compliance 94%<small>People · Fleet · Driver</small></div>
+            <div>Audit readiness 98%<small>People · Fleet · Driver</small></div>
           </div>
           <div class="float-chip two">
-            <span class="dot" style="background:rgba(59,130,246,.18)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#60a5fa"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg></span>
-            <div>Live dispatch<small>12 jobs in motion</small></div>
+            <span class="dot" style="background:rgba(225,29,42,.2)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f87171"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg></span>
+            <div>Live monitoring<small>fleet-wide · real time</small></div>
           </div>
         </div>
       </div>
+
+      <% if (currentPage === 'home') { %>
+      <div class="wrap">
+        <div class="pillars reveal">
+          <% [
+            ['Drivers','Licences, CPC, training &amp; more','M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
+            ['Vehicles','Maintenance, inspections, MOT &amp; defects','M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14'],
+            ['Compliance','DVSA, Home Office, audits &amp; docs','M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
+            ['Tachographs','Digital analysis, alerts &amp; downloads','M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+            ['Maintenance','Workshops, PMI, scheduling &amp; costs','M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'],
+          ].forEach(([name, desc, d]) => { %>
+            <div class="pillar">
+              <div class="pillar-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="<%= d %>"/></svg></div>
+              <h4><%= name %></h4>
+              <p><%- desc %></p>
+            </div>
+          <% }) %>
+        </div>
+        <div class="builtby reveal">
+          <span class="bold-gold">Built by hauliers. For hauliers.</span>
+          <span class="bold-white">One platform. Total control.</span>
+        </div>
+      </div>
+      <% } %>
     </header>
 
     <% if (currentPage === 'home') { %>
@@ -483,10 +566,29 @@
       <section>
         <div class="wrap">
           <div class="stats">
-            <div class="stat reveal"><strong data-count="10">10</strong><span>Role-based panels</span></div>
-            <div class="stat reveal"><strong data-count="2">2</strong><span>Licences protected</span></div>
-            <div class="stat reveal"><strong data-count="1" data-suffix="-click">1-click</strong><span>Audit evidence packs</span></div>
-            <div class="stat reveal"><strong data-count="100" data-suffix="%">100%</strong><span>Records, one place</span></div>
+            <div class="stat reveal">
+              <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+              <strong data-count="10">10</strong><span>Connected role panels</span>
+            </div>
+            <div class="stat reveal">
+              <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg></span>
+              <strong data-count="5">5</strong><span>Operating domains, one platform</span>
+            </div>
+            <div class="stat reveal">
+              <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+              <strong data-count="1" data-suffix="-click">1-click</strong><span>DVSA audit evidence packs</span>
+            </div>
+            <div class="stat reveal">
+              <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+              <strong>24/7</strong><span>Real-time monitoring</span>
+            </div>
+          </div>
+          <div class="trust reveal" style="margin-top:18px">
+            <div class="trust-left">
+              <span class="trust-shield"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></span>
+              <p><b>Enterprise-grade security.</b> Your data is protected, encrypted in transit and at rest, on UK-hosted infrastructure.</p>
+            </div>
+            <span class="trust-powered">Powered by <b>256 Digital Technologies</b></span>
           </div>
         </div>
       </section>
@@ -692,8 +794,8 @@
     <div class="wrap">
       <div class="footer-grid">
         <div>
-          <a href="/welcome" class="brand"><span class="brand-mark" aria-hidden="true"></span><span>256 Logistics<small>Logistics platform</small></span></a>
-          <p style="margin-top:16px">One connected platform for booking, dispatch, fleet, people, finance and compliance.</p>
+          <a href="/welcome" class="brand"><span class="brand-mark" aria-hidden="true"></span><span>FLEET<b>.HQ</b><small>by 256 Logistics</small></span></a>
+          <p style="margin-top:16px">The operating system for transport companies — drivers, vehicles, compliance, tachographs and maintenance in one connected platform.</p>
         </div>
         <div><h4>Platform</h4><div class="footer-links"><a href="/services">Services</a><a href="/track">Track a shipment</a><a href="/contact?type=quote">Get a quote</a><a href="/login">Sign in</a></div></div>
         <div><h4>Company</h4><div class="footer-links"><a href="/about">About us</a><a href="/about">Mission &amp; vision</a><a href="/contact">Contact</a></div></div>

@@ -575,15 +575,15 @@ const renderPublicPage = (page, title, extra = {}) => (req, res) => {
   });
 };
 
-router.get('/welcome', renderPublicPage('home', '256 Logistics - Logistics platform'));
-router.get('/about', renderPublicPage('about', 'About 256 Logistics'));
-router.get('/services', renderPublicPage('services', '256 Logistics services'));
+router.get('/welcome', renderPublicPage('home', 'FLEET.HQ — One Platform. Total Control.'));
+router.get('/about', renderPublicPage('about', 'About — FLEET.HQ by 256 Logistics'));
+router.get('/services', renderPublicPage('services', 'Services — FLEET.HQ by 256 Logistics'));
 router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
 
 router.get('/contact', (req, res) => {
   res.render('landing/index', {
     page: 'contact',
-    title: 'Contact 256 Logistics',
+    title: 'Contact — FLEET.HQ by 256 Logistics',
     leadSent: req.query.sent === '1',
     leadError: null,
     enquiryType: req.query.type || 'general',
@@ -601,7 +601,7 @@ router.post('/contact', loginLimiter, async (req, res) => {
   const message = (req.body.message || '').trim();
   const renderError = (leadError) => res.status(400).render('landing/index', {
     page: 'contact',
-    title: 'Contact 256 Logistics',
+    title: 'Contact — FLEET.HQ by 256 Logistics',
     leadSent: false,
     leadError,
     enquiryType,
@@ -709,7 +709,7 @@ router.get('/track', async (req, res) => {
     }
   }
   res.render('landing/index', {
-    page: 'track', title: 'Track a shipment', leadSent: false, leadError: null,
+    page: 'track', title: 'Track a shipment — FLEET.HQ', leadSent: false, leadError: null,
     enquiryType: 'general', trackingRef, trackingResult,
   });
 });
