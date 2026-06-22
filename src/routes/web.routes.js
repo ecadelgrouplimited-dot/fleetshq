@@ -3003,20 +3003,31 @@ router.get('/finance', webAuth, requireRoles(...financeRoles), async (req, res) 
     const outstanding = await prisma.invoice.aggregate({ where: { status: { in: ['issued', 'overdue'] } }, _sum: { total: true }, _count: { _all: true } });
     const vatOwed = await prisma.invoice.aggregate({ where: { createdAt: { gte: soy } }, _sum: { vat: true } });
 
-    // 30-day daily revenue for bar chart
+    // 30-day daily revenue + expenses for the bar chart and KPI sparklines
     const thirtyAgo = new Date(); thirtyAgo.setDate(thirtyAgo.getDate() - 29);
-    const last30 = await prisma.invoice.findMany({ where: { createdAt: { gte: thirtyAgo } }, select: { createdAt: true, total: true } });
+    const [last30, last30Exp] = await Promise.all([
+      prisma.invoice.findMany({ where: { createdAt: { gte: thirtyAgo } }, select: { createdAt: true, total: true } }),
+      prisma.expense.findMany({ where: { expenseDate: { gte: thirtyAgo } }, select: { expenseDate: true, amount: true } }),
+    ]);
+    const sameDay = (a, d) => { const c = new Date(a); return c.getDate() === d.getDate() && c.getMonth() === d.getMonth() && c.getFullYear() === d.getFullYear(); };
     const revenueChart = Array.from({ length: 30 }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() - (29 - i));
-      const dayTotal = last30
-        .filter(inv => { const c = new Date(inv.createdAt); return c.getDate() === d.getDate() && c.getMonth() === d.getMonth() && c.getFullYear() === d.getFullYear(); })
-        .reduce((s, inv) => s + Number(inv.total), 0);
+      const dayTotal = last30.filter(inv => sameDay(inv.createdAt, d)).reduce((s, inv) => s + Number(inv.total), 0);
       return { label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total: dayTotal };
     });
+    const expenseSeries = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (29 - i));
+      return last30Exp.filter(e => sameDay(e.expenseDate, d)).reduce((s, e) => s + Number(e.amount), 0);
+    });
+    // Spark series for the KPI cards (revenue, expenses, running net P&L)
+    const revenueSeries = revenueChart.map(d => d.total);
+    let runningPl = 0;
+    const plSeries = revenueSeries.map((rev, i) => { runningPl += rev - expenseSeries[i]; return runningPl; });
+    const sparks = { revenue: revenueSeries, expense: expenseSeries, pl: plSeries };
 
     res.render('finance/overview', {
       title: 'Finance Overview', revenue, expenses, pl, outstanding: { amount: Number(outstanding._sum.total || 0), count: outstanding._count._all },
-      vatOwed: Number(vatOwed._sum.vat || 0), expByCat, recentExpenses, recentInvoices, revenueChart,
+      vatOwed: Number(vatOwed._sum.vat || 0), expByCat, recentExpenses, recentInvoices, revenueChart, sparks,
       expenseLabels: EXPENSE_LABELS, formatDate, path: '/finance',
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
