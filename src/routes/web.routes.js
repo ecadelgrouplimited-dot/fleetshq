@@ -2655,10 +2655,11 @@ router.get('/privacy/dsar', webAuth, requireRoles('super_admin', 'director', 'hr
       include: {
         documents: true,
         trainingRecords: true,
-        dailyChecks: true,
-        defects: true,
-        user: { select: { id: true, email: true, role: true, createdAt: true, lastLoginAt: true } },
-        sponsorship: true,
+        acknowledgements: true,
+        checksSubmitted: true,
+        defectsReported: true,
+        userAccount: { select: { id: true, email: true, role: true, roles: true, createdAt: true, lastLoginAt: true } },
+        sponsoredWorker: { include: { changes: true } },
       },
     });
     if (!employee) return res.render('error', { title: 'Not Found', message: 'Employee not found.', code: 404 });
