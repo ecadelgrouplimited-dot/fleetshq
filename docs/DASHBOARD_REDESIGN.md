@@ -280,8 +280,17 @@ Tasks, M9 Incidents, M10 Rota) need new data models — they belong to Phases C�
 - ✅ **Cross-panel payoff**: main dashboard now shows an "Upcoming Compliance Tasks" card. Verified
   end-to-end (create → list → KPIs → detail → subtask toggle → status → evidence), deployed.
 
-### Phase D — Driver Risk  · ~M/L
-- **DM-7** infringement/debrief/points/score models → **M4 list** + **M5 profile** (incl. debrief-letter PDF).
+### Phase D — Driver Risk  · ~M/L  ✅ DONE 2026-06-22
+- ✅ **DM-7** new models: `DriverInfringement`, `DriverDebrief`, `DriverRiskProfile`
+  (migration `20260622175006_phase_d_driver_risk`). Shared risk-score helper (`driverRiskScore`)
+  in constants — higher = cleaner; penalises open infringements, severity and licence points.
+- ✅ **M4 Driver Risk list**: 6 KPIs, risk-overview table (avatar + colour-coded score chip + risk
+  band + open infringements + points + last debrief), risk-distribution doughnut, Top Scorecard,
+  infringements-this-month, recent infringements/debriefs, licence-points overview, risk insights.
+- ✅ **M5 Driver profile**: score gauge + KPI mini-cards + league rank, 6-month performance trend,
+  infringements table (record + close), debriefs (record), Licence & DVLA form, driver league table.
+- Debrief-letter PDF deferred (nice-to-have); records + printable detail cover the workflow.
+  Accidents deferred to M9 Incident Management (no Incident model yet).
 
 ### Phase E — Larger standalone milestones (scheduled separately, not "dashboard polish")
 - **DM-4 Trailers** (then wire Trailer counts into M0/M1).

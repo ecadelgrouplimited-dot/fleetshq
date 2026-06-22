@@ -1251,3 +1251,92 @@ model ComplianceTaskEvidence {
 
   @@index([taskId])
 }
+
+// ─────────────────────────────────────────
+// DRIVER RISK (Phase D — panels M4 / M5)
+// ─────────────────────────────────────────
+
+enum InfringementType {
+  speeding
+  drivers_hours
+  tachograph
+  working_time
+  mobile_phone
+  seatbelt
+  vehicle_defect
+  no_break
+  overloading
+  harsh_driving
+  other
+}
+
+enum InfringementSeverity {
+  minor
+  major
+  serious
+}
+
+enum InfringementStatus {
+  open
+  closed
+}
+
+enum DebriefOutcome {
+  positive
+  improvement_plan
+  verbal_warning
+  written_warning
+  training_assigned
+  coaching
+}
+
+model DriverInfringement {
+  id               String               @id @default(uuid())
+  tenantId         String               @default("00000000-0000-4000-8000-000000000001")
+  driverId         String
+  type             InfringementType     @default(other)
+  severity         InfringementSeverity @default(minor)
+  status           InfringementStatus   @default(open)
+  points           Int                  @default(0)
+  infringementDate DateTime
+  vehicleId        String?
+  notes            String?
+  recordedById     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([driverId])
+  @@index([status])
+}
+
+model DriverDebrief {
+  id            String         @id @default(uuid())
+  tenantId      String         @default("00000000-0000-4000-8000-000000000001")
+  driverId      String
+  debriefDate   DateTime
+  outcome       DebriefOutcome @default(positive)
+  conductedById String?
+  notes         String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([driverId])
+}
+
+model DriverRiskProfile {
+  id            String    @id @default(uuid())
+  tenantId      String    @default("00000000-0000-4000-8000-000000000001")
+  driverId      String    @unique
+  licenceNumber String?
+  licenceClass  String?
+  dvlaCheckDate DateTime?
+  licencePoints Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+}

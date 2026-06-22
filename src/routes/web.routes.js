@@ -7,7 +7,8 @@ const { verify } = require('../config/jwt');
 const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
 const { UPLOAD_DIR, upload } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
-const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS, TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES } = require('../utils/constants');
+const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS, TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES,
+  INFRINGEMENT_TYPES, INFRINGEMENT_TYPE_LABELS, INFRINGEMENT_SEVERITIES, DEBRIEF_OUTCOMES, DEBRIEF_OUTCOME_LABELS, driverRiskScore } = require('../utils/constants');
 const loginLimiter = require('../middleware/loginLimiter');
 const { esc } = require('../utils/escapeHtml');
 const { avatar, vehicleThumb, kpiDelta, expiryClass, expiryDate, sparkline } = require('../utils/uiHelpers');
@@ -1660,33 +1661,177 @@ router.get('/vor', webAuth, requireRoles(...fleetRoles), async (req, res) => {
 });
 
 // ── Driver Risk ────────────────────────────────────────
-router.get('/driver-risk', webAuth, requireRoles(...fleetRoles), async (req, res) => {
+const driverRiskRoles = ['super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager'];
+
+// Build per-driver risk rows (score, infringements, debriefs, points) from the
+// infringement/debrief/profile tables. Shared by the list and profile views.
+async function buildDriverRisk(drivers) {
+  const driverIds = drivers.map(d => d.id);
+  const [infringements, debriefs, profiles] = await Promise.all([
+    prisma.driverInfringement.findMany({ where: { driverId: { in: driverIds } }, orderBy: { infringementDate: 'desc' } }),
+    prisma.driverDebrief.findMany({ where: { driverId: { in: driverIds } }, orderBy: { debriefDate: 'desc' } }),
+    prisma.driverRiskProfile.findMany({ where: { driverId: { in: driverIds } } }),
+  ]);
+  const profileMap = Object.fromEntries(profiles.map(p => [p.driverId, p]));
+  const rows = drivers.map(d => {
+    const inf = infringements.filter(i => i.driverId === d.id);
+    const deb = debriefs.filter(b => b.driverId === d.id);
+    const open = inf.filter(i => i.status === 'open');
+    const profile = profileMap[d.id] || null;
+    const licencePoints = profile ? profile.licencePoints : 0;
+    const { score, band } = driverRiskScore({
+      openInfringements: open.length,
+      majorInfringements: open.filter(i => i.severity === 'major').length,
+      seriousInfringements: open.filter(i => i.severity === 'serious').length,
+      licencePoints,
+    });
+    return {
+      id: d.id, fullName: d.fullName, photoStorageKey: d.photoStorageKey,
+      jobTitle: d.jobTitle, vehicleReg: d.drivingVehicle?.registration || null,
+      infringements: inf, debriefs: deb, openInfringements: open.length,
+      totalInfringements: inf.length, licencePoints, profile,
+      lastDebrief: deb[0]?.debriefDate || null, score, band,
+    };
+  });
+  return { rows, infringements, debriefs };
+}
+
+router.get('/driver-risk', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
   try {
     const drivers = await prisma.employee.findMany({
       where: { isDriver: true, employmentStatus: 'active' },
-      include: {
-        trainingRecords: { where: { trainingType: 'cpc' } },
-        drivingVehicle: { select: { registration: true } },
-      },
+      select: { id: true, fullName: true, photoStorageKey: true, jobTitle: true, drivingVehicle: { select: { registration: true } } },
       orderBy: { fullName: 'asc' },
     });
+    const { rows, infringements, debriefs } = await buildDriverRisk(drivers);
+    const empMap = Object.fromEntries(drivers.map(d => [d.id, d.fullName]));
 
-    const enriched = await Promise.all(drivers.map(async (d) => {
-      const missedChecks = await prisma.alert.count({
-        where: { alertType: 'missed_check', entityId: d.drivingVehicleId || '', isResolved: false },
-      });
-      const cpc = d.trainingRecords[0];
-      return {
-        ...d,
-        cpcExpiry: cpc?.expiryDate || null,
-        cpcDays: cpc?.expiryDate ? daysUntil(cpc.expiryDate) : null,
-        missedChecks,
-        riskLevel: missedChecks > 2 ? 'high' : missedChecks > 0 ? 'medium' : 'low',
-      };
-    }));
+    const thirtyAgo = new Date(); thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+    const monthInfringements = infringements.filter(i => new Date(i.infringementDate) >= thirtyAgo);
+    const distribution = { low: rows.filter(r => r.band === 'low').length, medium: rows.filter(r => r.band === 'medium').length, high: rows.filter(r => r.band === 'high').length };
+    const avgScore = rows.length ? Math.round(rows.reduce((s, r) => s + r.score, 0) / rows.length) : 0;
+    const kpis = {
+      total: rows.length,
+      highRisk: distribution.high,
+      activeInfringements: infringements.filter(i => i.status === 'open').length,
+      withPoints: rows.filter(r => r.licencePoints > 0).length,
+      debriefsMonth: debriefs.filter(b => new Date(b.debriefDate) >= thirtyAgo).length,
+      avgScore,
+    };
+    // Infringement type breakdown this month
+    const infByType = {};
+    monthInfringements.forEach(i => { infByType[i.type] = (infByType[i.type] || 0) + 1; });
+    const infTypeRows = Object.entries(infByType).map(([k, v]) => ({ label: INFRINGEMENT_TYPE_LABELS[k] || k, count: v })).sort((a, b) => b.count - a.count).slice(0, 6);
+    const topScorecard = [...rows].sort((a, b) => b.score - a.score).slice(0, 5);
+    const recentInfringements = infringements.slice(0, 8).map(i => ({ ...i, driverName: empMap[i.driverId] || '—' }));
+    const recentDebriefs = debriefs.slice(0, 8).map(b => ({ ...b, driverName: empMap[b.driverId] || '—' }));
+    const pointsLeaders = rows.filter(r => r.licencePoints > 0).sort((a, b) => b.licencePoints - a.licencePoints).slice(0, 6);
 
-    res.render('driver-risk', { title: 'Driver Risk', drivers: enriched, formatDate });
+    const insights = [];
+    if (distribution.high > 0) insights.push({ tone: 'red', text: `${distribution.high} driver${distribution.high === 1 ? '' : 's'} in the high-risk band — book debriefs.` });
+    const topPoints = pointsLeaders[0];
+    if (topPoints) insights.push({ tone: 'amber', text: `${topPoints.fullName} has the most licence points (${topPoints.licencePoints}).` });
+    if (monthInfringements.length > 0) insights.push({ tone: 'amber', text: `${monthInfringements.length} infringement${monthInfringements.length === 1 ? '' : 's'} recorded in the last 30 days.` });
+    if (insights.length === 0) insights.push({ tone: 'green', text: 'No high-risk drivers and no recent infringements — fleet is driving well.' });
+
+    res.render('driver-risk', {
+      title: 'Driver Risk', rows, kpis, distribution, avgScore, infTypeRows, topScorecard,
+      recentInfringements, recentDebriefs, pointsLeaders, insights,
+      infringementTypeLabels: INFRINGEMENT_TYPE_LABELS, debriefOutcomeLabels: DEBRIEF_OUTCOME_LABELS,
+      formatDate, path: '/driver-risk',
+    });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/driver-risk/:id', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
+  try {
+    const driver = await prisma.employee.findUnique({
+      where: { id: req.params.id },
+      select: { id: true, fullName: true, photoStorageKey: true, jobTitle: true, startDate: true, drivingVehicle: { select: { registration: true } },
+        trainingRecords: { where: { trainingType: 'cpc' }, select: { expiryDate: true } } },
+    });
+    if (!driver || !driver.id) return res.redirect('/driver-risk');
+    const { rows } = await buildDriverRisk([driver]);
+    const row = rows[0];
+    // League position
+    const allDrivers = await prisma.employee.findMany({ where: { isDriver: true, employmentStatus: 'active' }, select: { id: true, fullName: true, photoStorageKey: true, drivingVehicle: { select: { registration: true } } } });
+    const { rows: allRows } = await buildDriverRisk(allDrivers);
+    const league = [...allRows].sort((a, b) => b.score - a.score);
+    const rank = league.findIndex(r => r.id === driver.id) + 1;
+    // 6-month performance trend from infringements (fewer = higher score proxy)
+    const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(); d.setMonth(d.getMonth() - (5 - i)); return d; });
+    const trend = months.map(m => {
+      const monthInf = row.infringements.filter(i => { const d = new Date(i.infringementDate); return d.getMonth() === m.getMonth() && d.getFullYear() === m.getFullYear(); }).length;
+      return { label: m.toLocaleDateString('en-GB', { month: 'short' }), score: Math.max(0, 100 - monthInf * 12) };
+    });
+
+    res.render('driver-risk-profile', {
+      title: row.fullName, driver, row, league: league.slice(0, 8), rank, totalDrivers: league.length, trend,
+      cpcExpiry: driver.trainingRecords[0]?.expiryDate || null,
+      infringementTypes: INFRINGEMENT_TYPES, infringementTypeLabels: INFRINGEMENT_TYPE_LABELS, infringementSeverities: INFRINGEMENT_SEVERITIES,
+      debriefOutcomes: DEBRIEF_OUTCOMES, debriefOutcomeLabels: DEBRIEF_OUTCOME_LABELS,
+      formatDate, path: '/driver-risk',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/driver-risk/:id/infringements', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
+  try {
+    const { type, severity, points, infringementDate, notes } = req.body;
+    await prisma.driverInfringement.create({
+      data: {
+        driverId: req.params.id,
+        type: INFRINGEMENT_TYPES.includes(type) ? type : 'other',
+        severity: INFRINGEMENT_SEVERITIES.includes(severity) ? severity : 'minor',
+        points: Math.max(0, parseInt(points, 10) || 0),
+        infringementDate: infringementDate ? new Date(infringementDate) : new Date(),
+        notes: notes?.trim() || null,
+        recordedById: req.user.id,
+      },
+    });
+    res.redirect('/driver-risk/' + req.params.id);
+  } catch (e) { res.redirect('/driver-risk/' + req.params.id); }
+});
+
+router.post('/driver-risk/infringements/:infId/close', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
+  try {
+    const inf = await prisma.driverInfringement.update({ where: { id: req.params.infId }, data: { status: 'closed' } });
+    res.json({ success: true, driverId: inf.driverId });
+  } catch (e) { res.status(500).json({ success: false }); }
+});
+
+router.post('/driver-risk/:id/debriefs', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
+  try {
+    const { outcome, debriefDate, notes } = req.body;
+    await prisma.driverDebrief.create({
+      data: {
+        driverId: req.params.id,
+        outcome: DEBRIEF_OUTCOMES.includes(outcome) ? outcome : 'positive',
+        debriefDate: debriefDate ? new Date(debriefDate) : new Date(),
+        conductedById: req.user.id,
+        notes: notes?.trim() || null,
+      },
+    });
+    res.redirect('/driver-risk/' + req.params.id);
+  } catch (e) { res.redirect('/driver-risk/' + req.params.id); }
+});
+
+router.post('/driver-risk/:id/profile', webAuth, requireRoles(...driverRiskRoles), async (req, res) => {
+  try {
+    const { licenceNumber, licenceClass, dvlaCheckDate, licencePoints } = req.body;
+    const data = {
+      licenceNumber: licenceNumber?.trim() || null,
+      licenceClass: licenceClass?.trim() || null,
+      dvlaCheckDate: dvlaCheckDate ? new Date(dvlaCheckDate) : null,
+      licencePoints: Math.max(0, parseInt(licencePoints, 10) || 0),
+    };
+    await prisma.driverRiskProfile.upsert({
+      where: { driverId: req.params.id },
+      update: data,
+      create: { driverId: req.params.id, ...data },
+    });
+    res.redirect('/driver-risk/' + req.params.id);
+  } catch (e) { res.redirect('/driver-risk/' + req.params.id); }
 });
 
 // ── Reports ────────────────────────────────────────────

@@ -127,9 +127,46 @@ const TASK_CATEGORY_LABELS = {
 const TASK_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const TASK_STATUSES = ['not_started', 'in_progress', 'completed', 'cancelled'];
 
+// Driver risk (Phase D)
+const INFRINGEMENT_TYPES = ['speeding', 'drivers_hours', 'tachograph', 'working_time', 'mobile_phone', 'seatbelt', 'vehicle_defect', 'no_break', 'overloading', 'harsh_driving', 'other'];
+const INFRINGEMENT_TYPE_LABELS = {
+  speeding: 'Speeding',
+  drivers_hours: "Drivers' Hours",
+  tachograph: 'Tachograph',
+  working_time: 'Working Time',
+  mobile_phone: 'Mobile Phone',
+  seatbelt: 'Seatbelt',
+  vehicle_defect: 'Vehicle Defect',
+  no_break: 'No Break Taken',
+  overloading: 'Overloading',
+  harsh_driving: 'Harsh Driving',
+  other: 'Other',
+};
+const INFRINGEMENT_SEVERITIES = ['minor', 'major', 'serious'];
+const DEBRIEF_OUTCOMES = ['positive', 'improvement_plan', 'verbal_warning', 'written_warning', 'training_assigned', 'coaching'];
+const DEBRIEF_OUTCOME_LABELS = {
+  positive: 'Positive',
+  improvement_plan: 'Improvement Plan',
+  verbal_warning: 'Verbal Warning',
+  written_warning: 'Written Warning',
+  training_assigned: 'Training Assigned',
+  coaching: 'Coaching',
+};
+
+// Driver risk score: higher is better (100 = clean). Penalises open infringements,
+// licence points and severity. Returns { score, band } where band is low/medium/high risk.
+function driverRiskScore({ openInfringements = 0, majorInfringements = 0, seriousInfringements = 0, licencePoints = 0 }) {
+  let score = 100 - (openInfringements * 5) - (majorInfringements * 6) - (seriousInfringements * 12) - (licencePoints * 3);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const band = score >= 85 ? 'low' : score >= 70 ? 'medium' : 'high';
+  return { score, band };
+}
+
 module.exports = {
   ROLES, PERMISSIONS, DEFECT_STATUS_TRANSITIONS,
   ALERT_THRESHOLDS, TRAINING_TYPES, TRAINING_LABELS,
   CHECK_ITEMS, CHECK_ITEM_LABELS,
   TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES,
+  INFRINGEMENT_TYPES, INFRINGEMENT_TYPE_LABELS, INFRINGEMENT_SEVERITIES,
+  DEBRIEF_OUTCOMES, DEBRIEF_OUTCOME_LABELS, driverRiskScore,
 };

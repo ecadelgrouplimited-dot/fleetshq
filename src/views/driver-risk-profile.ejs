@@ -1,0 +1,247 @@
+<%
+  const scoreColor = (s) => s >= 85 ? 'var(--success)' : s >= 70 ? 'var(--warning)' : 'var(--danger)';
+  const bandBadge = { low: 'badge-green', medium: 'badge-amber', high: 'badge-red' };
+  const bandLabel = { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk' };
+  const sevBadge = { minor: 'badge-slate', major: 'badge-amber', serious: 'badge-red' };
+  const outcomeBadge = (o) => o === 'positive' ? 'badge-green' : o === 'written_warning' ? 'badge-red' : 'badge-amber';
+%>
+<%- include('layouts/main', { body: `
+<div class="flex items-center justify-between mb-4">
+  <a href="/driver-risk" class="btn btn-ghost btn-sm">← Back to Driver Risk</a>
+</div>
+
+<!-- Driver header -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div class="drp-head">
+      <div class="drp-head-id">
+        ${avatar(driver, { size: 64 })}
+        <div>
+          <div class="drp-name">${esc(driver.fullName)}</div>
+          <div class="text-sm text-muted">${esc(driver.jobTitle || 'Driver')}${row.vehicleReg ? ' · ' + esc(row.vehicleReg) : ''}</div>
+        </div>
+      </div>
+      <div class="drp-head-meta">
+        <div><span>Start date</span><strong>${driver.startDate ? formatDate(driver.startDate) : '—'}</strong></div>
+        <div><span>CPC expiry</span><strong>${cpcExpiry ? formatDate(cpcExpiry) : '—'}</strong></div>
+        <div><span>DVLA check</span><strong>${row.profile?.dvlaCheckDate ? formatDate(row.profile.dvlaCheckDate) : '—'}</strong></div>
+        <div><span>Licence points</span><strong style="${row.licencePoints > 0 ? 'color:var(--warning)' : ''}">${row.licencePoints}</strong></div>
+      </div>
+      <div class="drp-head-score">
+        <div style="position:relative;width:96px;height:96px">
+          <canvas id="scoreGauge" width="96" height="96"></canvas>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900">${row.score}</div>
+        </div>
+        <span class="badge ${bandBadge[row.band]}" style="margin-top:6px">${bandLabel[row.band]}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- KPI mini-cards -->
+<div class="drp-kpis mb-4">
+  ${[
+    { label: 'Open Infringements', value: row.openInfringements, tone: row.openInfringements > 0 ? 'amber' : 'green' },
+    { label: 'Total Infringements', value: row.totalInfringements, tone: 'blue' },
+    { label: 'Licence Points', value: row.licencePoints, tone: row.licencePoints > 0 ? 'amber' : 'green' },
+    { label: 'Debriefs', value: row.debriefs.length, tone: 'blue' },
+    { label: 'League Rank', value: '#' + rank, tone: 'blue', sub: 'of ' + totalDrivers },
+  ].map(k => `
+    <div class="drp-kpi ${k.tone}">
+      <div class="drp-kpi-value">${k.value}</div>
+      <div class="drp-kpi-label">${k.label}</div>
+      ${k.sub ? `<div class="drp-kpi-sub">${k.sub}</div>` : ''}
+    </div>`).join('')}
+</div>
+
+<div class="drp-grid mb-4">
+  <!-- Performance trend -->
+  <div class="card">
+    <div class="card-header"><h3>Performance Trend</h3><span class="text-sm text-muted">Last 6 months</span></div>
+    <div class="card-body"><div style="position:relative;height:220px"><canvas id="trendChart"></canvas></div></div>
+  </div>
+
+  <!-- Driver league table -->
+  <div class="card">
+    <div class="card-header"><h3>Driver League</h3></div>
+    <div class="card-body" style="padding:8px 12px">
+      ${league.map((r, i) => `
+        <a href="/driver-risk/${r.id}" class="drp-league-row ${r.id === driver.id ? 'me' : ''}">
+          <span class="drp-rank">${i + 1}</span>
+          ${avatar(r, { size: 26 })}
+          <span class="drp-league-name">${esc(r.fullName)}</span>
+          <strong style="color:${scoreColor(r.score)}">${r.score}</strong>
+        </a>`).join('')}
+    </div>
+  </div>
+</div>
+
+<div class="drp-grid mb-4">
+  <!-- Infringements -->
+  <div class="card">
+    <div class="card-header"><h3>Infringements</h3><button class="btn btn-outline btn-sm" id="addInfBtn">+ Record</button></div>
+    ${row.infringements.length === 0 ? '<div class="empty-state" style="padding:32px 14px"><p>No infringements recorded</p></div>' : `
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Date</th><th scope="col">Type</th><th scope="col">Severity</th><th scope="col">Points</th><th scope="col">Status</th><th scope="col"></th></tr></thead>
+        <tbody>
+          ${row.infringements.map(i => `
+            <tr>
+              <td class="cell-muted">${formatDate(i.infringementDate)}</td>
+              <td style="font-weight:600">${esc(infringementTypeLabels[i.type] || i.type)}</td>
+              <td><span class="badge ${sevBadge[i.severity]}">${i.severity}</span></td>
+              <td>${i.points || 0}</td>
+              <td><span class="badge ${i.status === 'open' ? 'badge-amber' : 'badge-green'}">${i.status}</span></td>
+              <td>${i.status === 'open' ? `<button class="btn btn-ghost btn-sm" data-close-inf="${i.id}">Close</button>` : ''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
+  </div>
+
+  <!-- Debriefs -->
+  <div class="card">
+    <div class="card-header"><h3>Debriefs</h3><button class="btn btn-outline btn-sm" id="addDebriefBtn">+ Record</button></div>
+    <div class="card-body">
+      ${row.debriefs.length === 0 ? '<div class="cell-muted" style="font-size:13px;padding:8px 0">No debriefs recorded yet.</div>' : row.debriefs.map(b => `
+        <div class="drp-debrief">
+          <div class="drp-debrief-top">
+            <span class="badge ${outcomeBadge(b.outcome)}">${esc(debriefOutcomeLabels[b.outcome] || b.outcome)}</span>
+            <span class="cell-muted" style="font-size:12px">${formatDate(b.debriefDate)}</span>
+          </div>
+          ${b.notes ? `<p class="drp-debrief-notes">${esc(b.notes)}</p>` : ''}
+        </div>`).join('')}
+    </div>
+  </div>
+</div>
+
+<!-- Licence / DVLA profile -->
+<div class="card mb-4">
+  <div class="card-header"><h3>Licence &amp; DVLA</h3></div>
+  <div class="card-body">
+    <form method="post" action="/driver-risk/${driver.id}/profile">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Licence number</label><input class="form-control" name="licenceNumber" value="${esc(row.profile?.licenceNumber || '')}" placeholder="e.g. MORRI753116SM9IJ"></div>
+        <div class="form-group"><label class="form-label">Licence class</label><input class="form-control" name="licenceClass" value="${esc(row.profile?.licenceClass || '')}" placeholder="e.g. HGV Class 1"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">DVLA check date</label><input class="form-control" type="date" name="dvlaCheckDate" value="${row.profile?.dvlaCheckDate ? new Date(row.profile.dvlaCheckDate).toISOString().split('T')[0] : ''}"></div>
+        <div class="form-group"><label class="form-label">Licence points</label><input class="form-control" type="number" min="0" max="30" name="licencePoints" value="${row.licencePoints}"></div>
+      </div>
+      <button class="btn btn-primary">Save licence details</button>
+    </form>
+  </div>
+</div>
+
+<!-- Add infringement modal -->
+<div id="infModal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>Record Infringement</h3><button type="button" id="closeInfModal" class="btn btn-ghost btn-sm">✕</button></div>
+    <form method="post" action="/driver-risk/${driver.id}/infringements">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Type</label><select class="form-control" name="type">${infringementTypes.map(t => `<option value="${t}">${esc(infringementTypeLabels[t])}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Severity</label><select class="form-control" name="severity">${infringementSeverities.map(s => `<option value="${s}" ${s === 'minor' ? 'selected' : ''}>${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}</select></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" name="infringementDate" value="${new Date().toISOString().split('T')[0]}"></div>
+          <div class="form-group"><label class="form-label">Licence points</label><input class="form-control" type="number" min="0" name="points" value="0"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2" placeholder="What happened?"></textarea></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-ghost" id="cancelInfModal">Cancel</button><button type="submit" class="btn btn-primary">Record</button></div>
+    </form>
+  </div>
+</div>
+
+<!-- Add debrief modal -->
+<div id="debriefModal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>Record Debrief</h3><button type="button" id="closeDebriefModal" class="btn btn-ghost btn-sm">✕</button></div>
+    <form method="post" action="/driver-risk/${driver.id}/debriefs">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Outcome</label><select class="form-control" name="outcome">${debriefOutcomes.map(o => `<option value="${o}">${esc(debriefOutcomeLabels[o])}</option>`).join('')}</select></div>
+          <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" name="debriefDate" value="${new Date().toISOString().split('T')[0]}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3" placeholder="Discussion summary, actions agreed..."></textarea></div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-ghost" id="cancelDebriefModal">Cancel</button><button type="submit" class="btn btn-primary">Record</button></div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .drp-head { display:grid; grid-template-columns:1fr auto auto; gap:24px; align-items:center; }
+  .drp-head-id { display:flex; align-items:center; gap:14px; }
+  .drp-name { font-size:20px; font-weight:800; }
+  .drp-head-meta { display:flex; gap:24px; }
+  .drp-head-meta div { display:flex; flex-direction:column; }
+  .drp-head-meta span { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+  .drp-head-meta strong { font-size:14px; margin-top:2px; }
+  .drp-head-score { display:flex; flex-direction:column; align-items:center; }
+  .drp-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .drp-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .drp-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .drp-kpi.blue::before { background:var(--primary); } .drp-kpi.green::before { background:var(--success); } .drp-kpi.amber::before { background:var(--warning); }
+  .drp-kpi-value { font-size:24px; font-weight:900; letter-spacing:-1px; }
+  .drp-kpi.amber .drp-kpi-value { color:var(--warning); }
+  .drp-kpi-label { font-size:12px; font-weight:700; color:var(--text-muted); margin-top:4px; }
+  .drp-kpi-sub { font-size:11px; color:var(--text-muted); }
+  .drp-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+  .drp-league-row { display:flex; align-items:center; gap:10px; padding:7px 6px; border-radius:8px; text-decoration:none; color:var(--text); }
+  .drp-league-row:hover { background:var(--surface-2); }
+  .drp-league-row.me { background:rgba(37,99,235,.08); border:1px solid rgba(37,99,235,.25); }
+  .drp-rank { width:20px; font-weight:800; color:var(--text-muted); font-size:13px; }
+  .drp-league-name { flex:1; min-width:0; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .drp-debrief { padding:10px 0; border-bottom:1px solid var(--border); }
+  .drp-debrief:last-child { border-bottom:none; }
+  .drp-debrief-top { display:flex; align-items:center; justify-content:space-between; }
+  .drp-debrief-notes { font-size:13px; color:var(--text-muted); margin-top:6px; line-height:1.5; }
+  @media (max-width:1000px) { .drp-head { grid-template-columns:1fr; } .drp-head-meta { flex-wrap:wrap; } .drp-kpis { grid-template-columns:repeat(2,1fr); } .drp-grid { grid-template-columns:1fr; } }
+</style>
+
+<script>
+(function() {
+  function gauge(id, value) {
+    var el = document.getElementById(id);
+    if (!el || !window.Chart) return;
+    var fill = value >= 85 ? '#10b981' : value >= 70 ? '#f59e0b' : '#ef4444';
+    var track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.1)' : '#e2e8f0';
+    new Chart(el.getContext('2d'), { type:'doughnut', data:{ datasets:[{ data:[value, 100-value], backgroundColor:[fill, track], borderWidth:0 }] },
+      options:{ cutout:'78%', responsive:false, events:[], plugins:{ legend:{display:false}, tooltip:{enabled:false} } } });
+  }
+  gauge('scoreGauge', ${row.score});
+
+  var trendEl = document.getElementById('trendChart');
+  if (trendEl && window.Chart) {
+    var trend = ${JSON.stringify(trend)};
+    new Chart(trendEl, { type:'line',
+      data:{ labels: trend.map(function(t){return t.label;}), datasets:[{ label:'Score', data: trend.map(function(t){return t.score;}),
+        borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,.10)', fill:true, tension:.35, pointRadius:3, borderWidth:2 }] },
+      options:{ maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ grid:{display:false} }, y:{ min:0, max:100, ticks:{ stepSize:25 } } } } });
+  }
+
+  // Modals
+  function wire(btnId, modalId, closeId, cancelId) {
+    var modal = document.getElementById(modalId);
+    var b = document.getElementById(btnId); if (b) b.addEventListener('click', function(){ modal.style.display='flex'; });
+    var c = document.getElementById(closeId); if (c) c.addEventListener('click', function(){ modal.style.display='none'; });
+    var x = document.getElementById(cancelId); if (x) x.addEventListener('click', function(){ modal.style.display='none'; });
+  }
+  wire('addInfBtn', 'infModal', 'closeInfModal', 'cancelInfModal');
+  wire('addDebriefBtn', 'debriefModal', 'closeDebriefModal', 'cancelDebriefModal');
+
+  document.querySelectorAll('[data-close-inf]').forEach(function(btn) {
+    btn.addEventListener('click', async function() {
+      var res = await fetch('/driver-risk/infringements/' + btn.dataset.closeInf + '/close', { method:'POST', credentials:'same-origin', headers:{ 'X-CSRF-Token':'${csrfToken}' } });
+      if (res.ok) { showToast('Infringement closed', 'success'); setTimeout(function(){ location.reload(); }, 500); }
+      else showToast('Could not close infringement', 'error');
+    });
+  });
+})();
+</script>
+` }) %>
