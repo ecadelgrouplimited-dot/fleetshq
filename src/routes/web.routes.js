@@ -1343,7 +1343,41 @@ router.get('/fleet/fuel', webAuth, requireRoles(...fleetRoles), async (req, res)
       return { label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), total: fuelByDay[key] || 0 };
     });
 
-    res.render('fleet/fuel', { title: 'Fuel Management', logs, vehicles, vehMap, totals: { spend, litres, ppl: litres ? spend / litres : 0, count: monthLogs.length }, fuelChart, canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/fuel' });
+    // Fleet Fuel Performance (Phase B M7): per-vehicle MPG from odometer deltas,
+    // with a small MPG-trend series for sparklines. UK gallon = 4.54609 L.
+    const ninetyAgo = new Date(); ninetyAgo.setDate(ninetyAgo.getDate() - 90);
+    const perfLogs = await prisma.fuelLog.findMany({
+      where: { loggedDate: { gte: ninetyAgo }, odometer: { not: null } },
+      orderBy: { loggedDate: 'asc' },
+      select: { vehicleId: true, litres: true, cost: true, odometer: true },
+    });
+    const byVehicle = {};
+    perfLogs.forEach((f) => { (byVehicle[f.vehicleId] = byVehicle[f.vehicleId] || []).push(f); });
+    const fuelPerformance = Object.entries(byVehicle).map(([vehicleId, fills]) => {
+      const mpgSeries = [];
+      let totLitres = 0, totSpend = 0, totMiles = 0;
+      for (let i = 0; i < fills.length; i++) {
+        totLitres += Number(fills[i].litres);
+        totSpend += Number(fills[i].cost);
+        if (i > 0) {
+          const miles = Number(fills[i].odometer) - Number(fills[i - 1].odometer);
+          const gallons = Number(fills[i].litres) / 4.54609;
+          if (miles > 0 && gallons > 0 && miles < 3000) { mpgSeries.push(miles / gallons); totMiles += miles; }
+        }
+      }
+      const avgMpg = mpgSeries.length ? mpgSeries.reduce((s, n) => s + n, 0) / mpgSeries.length : null;
+      return {
+        vehicleId, registration: vehMap[vehicleId] || '—',
+        litres: totLitres, spend: totSpend,
+        avgMpg, mpgSeries, costPerMile: totMiles > 0 ? totSpend / totMiles : null,
+      };
+    }).filter(p => p.avgMpg !== null).sort((a, b) => b.avgMpg - a.avgMpg);
+    const fleetMpgVals = fuelPerformance.map(p => p.avgMpg);
+    const fleetAvgMpg = fleetMpgVals.length ? fleetMpgVals.reduce((s, n) => s + n, 0) / fleetMpgVals.length : null;
+    // Efficiency score: scale fleet avg MPG against a 12 MPG "excellent" benchmark.
+    const efficiencyScore = fleetAvgMpg !== null ? Math.max(0, Math.min(100, Math.round((fleetAvgMpg / 12) * 100))) : null;
+
+    res.render('fleet/fuel', { title: 'Fuel Management', logs, vehicles, vehMap, totals: { spend, litres, ppl: litres ? spend / litres : 0, count: monthLogs.length }, fuelChart, fuelPerformance, fleetAvgMpg, efficiencyScore, canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/fuel' });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 

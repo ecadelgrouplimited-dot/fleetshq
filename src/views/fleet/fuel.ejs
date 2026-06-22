@@ -12,6 +12,14 @@
   <div class="stat-card green"><div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h6a2 2 0 002-2V7M3 7l2-3h6l2 3M3 7h10"/></svg></div><div><div class="stat-value">£${totals.spend.toFixed(2)}</div><div class="stat-label">Spend this month</div></div></div>
   <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg></div><div><div class="stat-value">${totals.litres.toFixed(0)} L</div><div class="stat-label">Litres this month</div></div></div>
   <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m2 5a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v9"/></svg></div><div><div class="stat-value">£${totals.ppl.toFixed(2)}</div><div class="stat-label">Avg per litre</div><div class="stat-sub">${totals.count} fill-up${totals.count === 1 ? '' : 's'}</div></div></div>
+  <div class="stat-card ${efficiencyScore === null ? 'slate' : efficiencyScore >= 75 ? 'green' : efficiencyScore >= 50 ? 'amber' : 'red'}" style="align-items:center">
+    <div class="fuel-eff-gauge"><canvas id="fuelEffGauge" width="64" height="64"></canvas></div>
+    <div>
+      <div class="stat-value">${efficiencyScore === null ? '—' : efficiencyScore + '%'}</div>
+      <div class="stat-label">Fuel efficiency</div>
+      <div class="stat-sub">${fleetAvgMpg === null ? 'No MPG data yet' : 'Fleet avg ' + fleetAvgMpg.toFixed(1) + ' MPG'}</div>
+    </div>
+  </div>
 </div>
 
 <div class="card mb-6">
@@ -20,6 +28,32 @@
     <canvas id="fuelChart"></canvas>
   </div>
 </div>
+
+${fuelPerformance && fuelPerformance.length > 0 ? `
+<div class="card mb-6">
+  <div class="card-header"><h3>Fleet Fuel Performance</h3><span class="text-sm text-muted">Last 90 days · MPG from odometer readings</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Vehicle</th><th scope="col">Avg MPG</th><th scope="col">Fuel Used</th><th scope="col">Spend</th><th scope="col">Cost / mile</th><th scope="col">MPG Trend</th><th scope="col">Status</th></tr></thead>
+      <tbody>
+        ${fuelPerformance.map(p => {
+          const band = p.avgMpg >= 9 ? 'green' : p.avgMpg >= 7 ? 'amber' : 'red';
+          const bandLabel = p.avgMpg >= 9 ? 'Efficient' : p.avgMpg >= 7 ? 'Monitor' : 'Investigate';
+          return `<tr>
+            <td style="font-weight:700">${esc(p.registration)}</td>
+            <td style="font-weight:800;color:var(--${band === 'green' ? 'success' : band === 'amber' ? 'warning' : 'danger'})">${p.avgMpg.toFixed(1)}</td>
+            <td class="cell-muted">${p.litres.toFixed(0)} L</td>
+            <td style="font-weight:600">£${p.spend.toFixed(2)}</td>
+            <td class="cell-muted">${p.costPerMile === null ? '—' : '£' + p.costPerMile.toFixed(2)}</td>
+            <td>${sparkline(p.mpgSeries, { width: 90, height: 26, color: band === 'green' ? '#10b981' : band === 'amber' ? '#f59e0b' : '#ef4444' })}</td>
+            <td><span class="badge badge-${band === 'green' ? 'green' : band === 'amber' ? 'amber' : 'red'}">${bandLabel}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+` : ''}
 
 <div class="grid-2">
   ${canLog ? `
@@ -100,5 +134,21 @@
     }
   });
 })();
+
+(function() {
+  var el = document.getElementById('fuelEffGauge');
+  var score = ${efficiencyScore === null ? 'null' : efficiencyScore};
+  if (!el || score === null || !window.Chart) return;
+  var fill = score >= 75 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+  var track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.1)' : '#e2e8f0';
+  new Chart(el.getContext('2d'), {
+    type: 'doughnut',
+    data: { datasets: [{ data: [score, 100 - score], backgroundColor: [fill, track], borderWidth: 0 }] },
+    options: { cutout: '72%', responsive: false, events: [], plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+  });
+})();
 </script>
+<style>
+  .fuel-eff-gauge { width:64px; height:64px; flex-shrink:0; }
+</style>
 ` }) %>
