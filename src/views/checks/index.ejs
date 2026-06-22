@@ -1,5 +1,5 @@
-﻿<%- include('../layouts/main', { body: `
-<div class="flex items-center justify-between mb-6">
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-4">
   <div>
     ${missedVehicles.length > 0 ? `<span class="badge badge-red" style="font-size:13px;padding:6px 12px">${missedVehicles.length} vehicle${missedVehicles.length !== 1 ? 's' : ''} with no check today</span>` : '<span class="badge badge-green" style="font-size:13px;padding:6px 12px">All vehicles checked today</span>'}
   </div>
@@ -8,6 +8,51 @@
     Submit Daily Check
   </a>
 </div>
+
+${isManager ? `
+<!-- KPI strip (Phase B M3) -->
+<div class="checks-kpis mb-4">
+  ${[
+    { label: 'Checked Today', value: kpis.checkedToday, tone: 'green', sub: `${kpis.fleetSize ? Math.round((kpis.checkedToday / kpis.fleetSize) * 100) : 0}% of assigned fleet` },
+    { label: 'Awaiting Check', value: kpis.awaitingCheck, tone: kpis.awaitingCheck > 0 ? 'amber' : 'green', sub: 'No check today' },
+    { label: 'Open Defects', value: kpis.openDefects, tone: kpis.openDefects > 0 ? 'red' : 'green', sub: 'Require attention' },
+    { label: 'Vehicles VOR', value: kpis.vor, tone: kpis.vor > 0 ? 'red' : 'green', sub: 'Not for use' },
+    { label: 'Defects With Photos', value: kpis.defectsWithPhotos, tone: 'blue', sub: 'Evidence attached' },
+    { label: 'Reviews Pending', value: kpis.reviewsPending, tone: kpis.reviewsPending > 0 ? 'amber' : 'green', sub: 'Awaiting TM review' },
+  ].map(k => `
+    <div class="checks-kpi ${k.tone}">
+      <div class="checks-kpi-value">${k.value}</div>
+      <div class="checks-kpi-label">${k.label}</div>
+      <div class="checks-kpi-sub">${k.sub}</div>
+    </div>
+  `).join('')}
+</div>
+
+<!-- Defect workflow stepper -->
+<div class="card mb-4">
+  <div class="card-header"><h3>Defect Workflow</h3><span class="text-sm text-muted">From report to vehicle release</span></div>
+  <div class="card-body">
+    <div class="defect-stepper">
+      ${[
+        ['Reported', 'by driver'],
+        ['Photos', 'uploaded'],
+        ['TM Review', 'assessed'],
+        ['Repair', 'booked'],
+        ['In Progress', 'workshop'],
+        ['Rectified', 'verified'],
+        ['Released', 'back on road'],
+      ].map((s, i) => `
+        <div class="defect-step">
+          <div class="defect-step-num">${i + 1}</div>
+          <div class="defect-step-label">${s[0]}</div>
+          <div class="defect-step-sub">${s[1]}</div>
+        </div>
+        ${i < 6 ? '<div class="defect-step-line"></div>' : ''}
+      `).join('')}
+    </div>
+  </div>
+</div>
+` : ''}
 
 ${missedVehicles.length > 0 ? `
 <div class="card mb-4" style="border-left:4px solid var(--danger)">
@@ -29,9 +74,54 @@ ${missedVehicles.length > 0 ? `
 </div>
 ` : ''}
 
+${isManager && openDefectCards.length > 0 ? `
+<div class="card mb-4">
+  <div class="card-header"><h3>Open Defects</h3><a href="/defects" class="btn btn-outline btn-sm">View all defects</a></div>
+  <div class="card-body">
+    <div class="defect-cards">
+      ${openDefectCards.map(d => `
+        <a href="/defects/${d.id}" class="defect-card">
+          ${vehicleThumb(d.vehicle, { size: 52 })}
+          <div class="defect-card-body">
+            <div class="defect-card-top">
+              <span class="defect-card-reg">${esc(d.vehicle?.registration || '—')}</span>
+              <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span>
+            </div>
+            <div class="defect-card-cat">${esc((d.defectCategory || 'Defect').replace(/_/g, ' '))}</div>
+            <div class="defect-card-meta">
+              <span>${esc(d.reportedBy?.fullName || 'Unknown')}</span>
+              ${d._count.photos > 0 ? `<span class="defect-card-photos"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>${d._count.photos}</span>` : ''}
+            </div>
+          </div>
+        </a>
+      `).join('')}
+    </div>
+  </div>
+</div>
+` : ''}
+
+${isManager && recentPhotos.length > 0 ? `
+<div class="card mb-4">
+  <div class="card-header"><h3>Recent Defect Photos</h3><a href="/defects" class="btn btn-outline btn-sm">View all</a></div>
+  <div class="card-body">
+    <div class="photo-gallery">
+      ${recentPhotos.map(p => `
+        <a href="/defects/${p.defectCase?.id}" class="photo-tile" title="${esc(p.defectCase?.referenceNumber || '')}">
+          <img src="/documents/defect-photo/${p.id}/content" alt="${esc(p.fileName || 'Defect photo')}" loading="lazy">
+          <span class="photo-tile-cap">
+            <strong>${esc(p.defectCase?.vehicle?.registration || '—')}</strong>
+            <span>${esc((p.defectCase?.defectCategory || '').replace(/_/g, ' '))}</span>
+          </span>
+        </a>
+      `).join('')}
+    </div>
+  </div>
+</div>
+` : ''}
+
 <div class="card">
   <div class="card-header">
-    <h3>Recent Daily Checks</h3>
+    <h3>${isManager ? "Today's Vehicle Check Status" : 'Recent Daily Checks'}</h3>
     <input class="form-control" style="max-width:320px" data-live-search="#checksTableBody" data-live-count="#visibleCheckCount" data-live-empty="#noChecksFound" placeholder="Search vehicle, driver, result...">
   </div>
   <div class="table-wrap">
@@ -44,8 +134,13 @@ ${missedVehicles.length > 0 ? `
           const result = c.nilDefect ? 'nil defect' : defectItems.length > 0 ? 'defects reported' : 'pass';
           return `<tr data-search-row data-search-text="${`${formatDate(c.checkDate)} ${esc(c.vehicle?.registration || '')} ${esc(c.driver?.fullName || '')} ${c.mileage || ''} ${result}`.toLowerCase()}">
             <td style="font-weight:500"><a href="/checks/${c.id}">${formatDate(c.checkDate)}</a> <span style="color:var(--text-muted);font-size:12px">${new Date(c.submittedAt).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span></td>
-            <td style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${esc(c.vehicle.registration)}</a>` : c.vehicle?.registration || '-'}</td>
-            <td>${esc(c.driver?.fullName)}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:10px">
+                ${vehicleThumb(c.vehicle, { size: 36 })}
+                <span style="font-weight:600">${c.vehicle?.id ? `<a href="/fleet/${c.vehicle.id}">${esc(c.vehicle.registration)}</a>` : c.vehicle?.registration || '-'}</span>
+              </div>
+            </td>
+            <td>${avatar(c.driver, { size: 30, withName: true })}</td>
             <td style="color:var(--text-muted)">${c.mileage?.toLocaleString()} mi</td>
             <td>${defectItems.length > 0 ? `<span class="badge badge-red">${defectItems.length} defect${defectItems.length !== 1 ? 's' : ''}</span>` : '<span class="badge badge-green">None</span>'}</td>
             <td>${c.nilDefect ? '<span class="badge badge-green">Nil Defect</span>' : defectItems.length > 0 ? '<span class="badge badge-amber">Defects Reported</span>' : '<span class="badge badge-green">Pass</span>'}</td>
@@ -56,4 +151,48 @@ ${missedVehicles.length > 0 ? `
     </table>
   </div>
 </div>
+
+<style>
+  .checks-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
+  .checks-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .checks-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .checks-kpi.blue::before { background:var(--primary); }
+  .checks-kpi.green::before { background:var(--success); }
+  .checks-kpi.amber::before { background:var(--warning); }
+  .checks-kpi.red::before { background:var(--danger); }
+  .checks-kpi-value { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .checks-kpi.amber .checks-kpi-value { color:var(--warning); }
+  .checks-kpi.red .checks-kpi-value { color:var(--danger); }
+  .checks-kpi-label { font-size:12px; font-weight:700; color:var(--text); margin-top:6px; }
+  .checks-kpi-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  .defect-stepper { display:flex; align-items:flex-start; gap:0; overflow-x:auto; padding:4px 0; }
+  .defect-step { display:flex; flex-direction:column; align-items:center; text-align:center; min-width:84px; flex-shrink:0; }
+  .defect-step-num { width:34px; height:34px; border-radius:50%; background:var(--surface-2); border:2px solid var(--border-md); color:var(--text-muted); font-weight:800; font-size:14px; display:flex; align-items:center; justify-content:center; }
+  .defect-step-label { font-size:12px; font-weight:700; margin-top:6px; }
+  .defect-step-sub { font-size:10.5px; color:var(--text-muted); }
+  .defect-step-line { flex:1; height:2px; background:var(--border); margin-top:16px; min-width:18px; }
+
+  .defect-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; }
+  .defect-card { display:flex; gap:12px; padding:14px; border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text); background:var(--card); transition:transform .15s, box-shadow .15s; }
+  .defect-card:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+  .defect-card-body { flex:1; min-width:0; }
+  .defect-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .defect-card-reg { font-weight:800; font-family:ui-monospace, monospace; }
+  .defect-card-cat { font-size:13px; font-weight:600; margin-top:4px; text-transform:capitalize; }
+  .defect-card-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; font-size:11.5px; color:var(--text-muted); }
+  .defect-card-photos { display:inline-flex; align-items:center; gap:3px; font-weight:700; color:var(--primary); }
+  .defect-card-photos svg { width:13px; height:13px; }
+
+  .photo-gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; }
+  .photo-tile { position:relative; display:block; border-radius:12px; overflow:hidden; aspect-ratio:4/3; border:1px solid var(--border); background:var(--surface-2); }
+  .photo-tile img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .2s; }
+  .photo-tile:hover img { transform:scale(1.05); }
+  .photo-tile-cap { position:absolute; left:0; right:0; bottom:0; padding:14px 8px 6px; background:linear-gradient(transparent, rgba(0,0,0,.72)); color:#fff; display:flex; flex-direction:column; }
+  .photo-tile-cap strong { font-size:12px; font-family:ui-monospace, monospace; }
+  .photo-tile-cap span { font-size:10.5px; opacity:.85; text-transform:capitalize; }
+
+  @media (max-width:1100px) { .checks-kpis { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:560px) { .checks-kpis { grid-template-columns:repeat(2,1fr); } }
+</style>
 ` }) %>

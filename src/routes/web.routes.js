@@ -1430,12 +1430,13 @@ router.get('/checks', webAuth, async (req, res) => {
     const checkWhere = req.user.role === 'driver' && req.user.employeeId
       ? { driverId: req.user.employeeId }
       : {};
-    const [checks, missed] = await Promise.all([
+    const isManager = req.user.role !== 'driver';
+    const [checks, missed, openDefectsCount, vorCount, defectsWithPhotos, reviewsPending, recentPhotos, openDefectCards] = await Promise.all([
       prisma.walkAroundCheck.findMany({
         where: checkWhere,
         include: {
-          vehicle: { select: { id: true, registration: true } },
-          driver: { select: { fullName: true } },
+          vehicle: { select: { id: true, registration: true, imageStorageKey: true } },
+          driver: { select: { id: true, fullName: true, photoStorageKey: true } },
           items: true,
         },
         orderBy: [{ checkDate: 'desc' }, { submittedAt: 'desc' }],
@@ -1448,10 +1449,37 @@ router.get('/checks', webAuth, async (req, res) => {
           checks: { where: { checkDate: { gte: today } }, select: { id: true } },
         },
       }),
+      isManager ? prisma.defectCase.count({ where: { status: { not: 'signed_off' } } }) : Promise.resolve(0),
+      isManager ? prisma.vehicle.count({ where: { status: 'vor' } }) : Promise.resolve(0),
+      isManager ? prisma.defectCase.count({ where: { status: { not: 'signed_off' }, photos: { some: {} } } }) : Promise.resolve(0),
+      isManager ? prisma.defectCase.count({ where: { status: { in: ['reported', 'under_review'] } } }) : Promise.resolve(0),
+      isManager ? prisma.defectPhoto.findMany({
+        orderBy: { createdAt: 'desc' }, take: 8,
+        include: { defectCase: { select: { id: true, referenceNumber: true, defectCategory: true, vehicle: { select: { registration: true } } } } },
+      }) : Promise.resolve([]),
+      isManager ? prisma.defectCase.findMany({
+        where: { status: { not: 'signed_off' } },
+        orderBy: [{ severity: 'asc' }, { reportedAt: 'desc' }], take: 6,
+        include: {
+          vehicle: { select: { id: true, registration: true, imageStorageKey: true } },
+          reportedBy: { select: { fullName: true, photoStorageKey: true, id: true } },
+          _count: { select: { photos: true } },
+        },
+      }) : Promise.resolve([]),
     ]);
 
     const missedVehicles = req.user.role === 'driver' ? [] : missed.filter(v => v.checks.length === 0);
-    res.render('checks/index', { title: 'Daily Checks', checks, missedVehicles, formatDate });
+    const checkedTodayCount = missed.filter(v => v.checks.length > 0).length;
+    const kpis = {
+      checkedToday: checkedTodayCount,
+      fleetSize: missed.length,
+      awaitingCheck: missedVehicles.length,
+      openDefects: openDefectsCount,
+      vor: vorCount,
+      defectsWithPhotos,
+      reviewsPending,
+    };
+    res.render('checks/index', { title: 'Daily Checks', checks, missedVehicles, kpis, recentPhotos, openDefectCards, isManager, formatDate });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
