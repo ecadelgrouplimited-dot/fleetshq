@@ -905,6 +905,52 @@ router.get('/', landingGate, webAuth, async (req, res) => {
 
     const alerts = await Promise.all(rawAlerts.map((alert) => decorateAlert(alert, req.user)));
     const score = latestScore || await require('../services/compliance.service').calculateAndStore();
+
+    // ── Phase B (dashboard redesign): compliance-overview tiles, 6-month trend,
+    // score delta, and driver/vehicle "actions required" counts — all from real data.
+    const shiftDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+    const in30 = shiftDays(30);
+    const in60 = shiftDays(60);
+    const pmiSoon = shiftDays(14);
+    const dueTrainingWhere = { OR: [{ status: 'expired' }, { AND: [{ status: { not: 'completed' } }, { expiryDate: { lte: in30 } }] }] };
+    const [motDue, insuranceDue, roadTaxDue, tachoDue, pmiDue, cpcDue, trainingDue, rtwDue,
+      driverCount, vehicleActions, driverActions, priorScore, trendScores] = await Promise.all([
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, motExpiryDate: { lte: in30 } } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, insuranceExpiryDate: { lte: in30 } } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, roadTaxExpiryDate: { lte: in30 } } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, tachoCalibrExpiry: { lte: in30 } } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, nextPmiDate: { lte: pmiSoon } } }),
+      prisma.trainingRecord.count({ where: { trainingType: 'cpc', OR: [{ status: 'expired' }, { expiryDate: { lte: in30 } }] } }),
+      prisma.trainingRecord.count({ where: dueTrainingWhere }),
+      prisma.sponsoredWorker.count({ where: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] } }),
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true } }),
+      prisma.vehicle.count({ where: { status: { not: 'sold' }, OR: [
+        { status: 'vor' }, { motExpiryDate: { lte: in30 } }, { insuranceExpiryDate: { lte: in30 } },
+        { roadTaxExpiryDate: { lte: in30 } }, { tachoCalibrExpiry: { lte: in30 } }, { nextPmiDate: { lte: pmiSoon } } ] } }),
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true, OR: [
+        { trainingRecords: { some: dueTrainingWhere } },
+        { sponsoredWorker: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] } } ] } }),
+      prisma.complianceScore.findFirst({ where: { scoreDate: { lte: shiftDays(-25) } }, orderBy: { scoreDate: 'desc' } }),
+      prisma.complianceScore.findMany({ where: { scoreDate: { gte: shiftDays(-185) } }, orderBy: { scoreDate: 'asc' }, select: { scoreDate: true, overallScore: true } }),
+    ]);
+    const tone = (n) => (n > 0 ? 'amber' : 'green');
+    const complianceTiles = [
+      { key: 'mot', label: 'MOT Due', count: motDue, href: '/fleet', tone: tone(motDue) },
+      { key: 'pmi', label: 'PMI Due', count: pmiDue, href: '/fleet/pmi-planner', tone: tone(pmiDue) },
+      { key: 'insurance', label: 'Insurance Due', count: insuranceDue, href: '/fleet', tone: tone(insuranceDue) },
+      { key: 'roadtax', label: 'Road Tax Due', count: roadTaxDue, href: '/fleet', tone: tone(roadTaxDue) },
+      { key: 'tacho', label: 'Tacho Calibration', count: tachoDue, href: '/fleet', tone: tone(tachoDue) },
+      { key: 'cpc', label: 'CPC Due', count: cpcDue, href: '/training', tone: tone(cpcDue) },
+      { key: 'rtw', label: 'RTW / Visa Due', count: rtwDue, href: '/sponsored-workers', tone: rtwDue > 0 ? 'red' : 'green' },
+      { key: 'training', label: 'Training Due', count: trainingDue, href: '/training', tone: tone(trainingDue) },
+    ];
+    const overallNow = Number(score.overallScore ?? score.overall);
+    const scoreDelta = priorScore ? overallNow - Number(priorScore.overallScore) : null;
+    const complianceTrend = trendScores.map((s) => ({
+      label: new Date(s.scoreDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      value: Number(s.overallScore),
+    }));
+
     const alertGroups = {
       critical: alerts.filter(a => a.severity === 'critical'),
       warning: alerts.filter(a => a.severity === 'warning'),
@@ -978,9 +1024,11 @@ router.get('/', landingGate, webAuth, async (req, res) => {
 
     res.render('dashboard/index', {
       title: 'Dashboard',
-      stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox },
+      stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
+        driverCount, driverActions, vehicleActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
+      complianceTiles, complianceTrend, scoreDelta,
       alerts, alertGroups, recentDefects, chartData, healthCards,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }

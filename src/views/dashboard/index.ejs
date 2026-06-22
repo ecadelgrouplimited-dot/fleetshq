@@ -1,279 +1,143 @@
-﻿<%- include('../layouts/main', { body: `
-<div class="dashboard-shell">
-  <section class="dashboard-hero">
-    <div class="dashboard-hero-main">
-      <div class="dashboard-hero-copy">
-        <span class="dashboard-eyebrow"><span class="pip"></span>Operations command centre</span>
-        <h3>Live compliance view across people, fleet, defects, and daily controls.</h3>
-        <p>Track pressure points, spot trend movement, and jump straight into the work that needs intervention.</p>
-        <div class="dashboard-hero-actions">
-          <a href="/audit-evidence" class="btn btn-primary">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z"/></svg>
-            Open audit evidence
-          </a>
-          <a href="/reports" class="btn btn-outline">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            Open reports
-          </a>
-        </div>
+<%
+  // Compliance Overview tile icons (Phase B)
+  const tileIcons = {
+    mot: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+    pmi: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
+    insurance: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+    roadtax: 'M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z',
+    tacho: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+    cpc: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
+    rtw: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+    training: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+  };
+%>
+<%- include('../layouts/main', { body: `
+<div class="dash">
+
+  <!-- ── KPI row ─────────────────────────────────────── -->
+  <div class="dash-kpi-row mb-4">
+    <div class="card dash-gauge-card">
+      <div class="dash-gauge">
+        <canvas id="gaugeOverall" width="150" height="150"></canvas>
+        <div class="dash-gauge-value">${score.overall.toFixed(0)}<sup>%</sup></div>
       </div>
-      <div class="dashboard-hero-scorecard">
-        <div class="dashboard-score-ring">
-          <canvas id="gaugeOverall" width="140" height="140"></canvas>
-          <div class="dashboard-score-value">${score.overall.toFixed(0)}<sup>%</sup></div>
-        </div>
-        <div class="dashboard-score-copy">
-          <div class="dashboard-score-label">Overall compliance</div>
-          <div class="dashboard-score-helper">${alertGroups.critical.length} critical alerts and ${stats.openDefects} open defect${stats.openDefects !== 1 ? 's' : ''} currently shaping the score.</div>
-        </div>
+      <div class="dash-gauge-meta">
+        <div class="dash-gauge-label">Overall compliance</div>
+        <div class="dash-gauge-band ${score.overall >= 85 ? 'good' : score.overall >= 70 ? 'ok' : 'risk'}">${score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At risk'}</div>
+        ${scoreDelta === null ? '' : `<div class="ui-delta ${scoreDelta >= 0 ? 'good' : 'bad'}" style="margin-top:6px"><span class="ui-delta-arrow">${scoreDelta >= 0 ? '▲' : '▼'}</span>${Math.abs(scoreDelta).toFixed(0)}% <span class="ui-delta-label">from last month</span></div>`}
       </div>
     </div>
 
-    <div class="dashboard-hero-side">
-      ${healthCards.map((card, index) => `
-        <a href="${card.href}" class="dashboard-health-card">
-          <div class="dashboard-health-head">
-            <span>${card.label}</span>
-            <strong>${card.value.toFixed(0)}%</strong>
-          </div>
-          <div class="progress-bar dashboard-health-progress">
-            <div class="progress-bar-fill ${card.value >= 85 ? 'green' : card.value >= 70 ? 'amber' : 'red'}" style="width:${card.value}%"></div>
-          </div>
-          <div class="dashboard-health-copy">${card.detail}</div>
-        </a>
-      `).join('')}
-    </div>
-  </section>
-
-  <div class="stat-grid mb-6">
-    <a href="/employees" class="stat-card blue">
-      <div class="stat-icon blue">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    <a href="/employees" class="card dash-kpi">
+      <div class="dash-kpi-top">
+        <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+        <span class="dash-kpi-link">View drivers →</span>
       </div>
-      <div>
-        <div class="stat-value">${stats.totalEmp}</div>
-        <div class="stat-label">Active Employees</div>
-        <div class="stat-sub">${stats.sponsoredCount} sponsored workers</div>
-      </div>
+      <div class="dash-kpi-value">${stats.driverCount}</div>
+      <div class="dash-kpi-label">Drivers</div>
+      <div class="dash-kpi-sub">${stats.driverActions > 0 ? `<span class="dot amber"></span>${stats.driverActions} need attention` : `<span class="dot green"></span>All up to date`}</div>
     </a>
 
-    <a href="/fleet" class="stat-card green">
-      <div class="stat-icon green">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+    <a href="/fleet" class="card dash-kpi">
+      <div class="dash-kpi-top">
+        <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg></div>
+        <span class="dash-kpi-link">View vehicles →</span>
       </div>
-      <div>
-        <div class="stat-value">${stats.activeVehicles}</div>
-        <div class="stat-label">Active Vehicles</div>
-        <div class="stat-sub">${stats.totalVehicles} in fleet - ${stats.vorVehicles} VOR</div>
-      </div>
+      <div class="dash-kpi-value">${stats.totalVehicles}</div>
+      <div class="dash-kpi-label">Vehicles</div>
+      <div class="dash-kpi-sub">${stats.vehicleActions > 0 ? `<span class="dot amber"></span>${stats.vehicleActions} need attention` : `<span class="dot green"></span>Fleet compliant`}</div>
     </a>
 
-    <a href="/defects" class="stat-card ${stats.openDefects > 0 ? 'red' : 'green'}">
-      <div class="stat-icon ${stats.openDefects > 0 ? 'red' : 'green'}">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    <a href="#dashAlerts" class="card dash-kpi ${alertGroups.critical.length > 0 ? 'dash-kpi-alert' : ''}">
+      <div class="dash-kpi-top">
+        <div class="stat-icon ${alerts.length > 0 ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></div>
+        <span class="dash-kpi-link">View all →</span>
       </div>
-      <div>
-        <div class="stat-value">${stats.openDefects}</div>
-        <div class="stat-label">Open Defects</div>
-        <div class="stat-sub">${stats.vorVehicles} vehicle${stats.vorVehicles !== 1 ? 's' : ''} off road</div>
-      </div>
-    </a>
-
-    <a href="/checks" class="stat-card ${stats.missedChecks > 0 ? 'amber' : 'green'}">
-      <div class="stat-icon ${stats.missedChecks > 0 ? 'amber' : 'green'}">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-      </div>
-      <div>
-        <div class="stat-value">${stats.missedChecks}</div>
-        <div class="stat-label">Missed Checks Today</div>
-        <div class="stat-sub">${stats.pendingToolbox} toolbox talk${stats.pendingToolbox !== 1 ? 's' : ''} unsigned</div>
-      </div>
+      <div class="dash-kpi-value">${alerts.length}</div>
+      <div class="dash-kpi-label">Compliance Alerts</div>
+      <div class="dash-kpi-sub">${alertGroups.critical.length > 0 ? `<span class="dot red"></span>${alertGroups.critical.length} critical` : `<span class="dot green"></span>Nothing critical`}</div>
     </a>
   </div>
 
-  <div class="dashboard-grid-top mb-6">
-    <section class="card dashboard-chart-card">
-      <div class="card-header">
-        <div>
-          <h3>Operations Pulse</h3>
-          <p class="dashboard-card-copy">Checks submitted, nil-defect performance, and defect reporting over the last seven days.</p>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="dashboard-canvas-wrap" style="height:260px">
-          <canvas id="operationsTrendChart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <section class="card dashboard-chart-card">
-      <div class="card-header">
-        <div>
-          <h3>Live Risk Mix</h3>
-          <p class="dashboard-card-copy">Current unresolved alerts by severity.</p>
-        </div>
-      </div>
-      <div class="card-body dashboard-risk-mix-body">
-        <div class="dashboard-risk-doughnut">
-          <canvas id="alertMixChart" width="230" height="230"></canvas>
-        </div>
-        <div class="dashboard-risk-legend">
-          <div class="dashboard-risk-row critical">
-            <span><i></i>Critical</span>
-            <strong>${chartData.alerts.critical}</strong>
-          </div>
-          <div class="dashboard-risk-row warning">
-            <span><i></i>Warning</span>
-            <strong>${chartData.alerts.warning}</strong>
-          </div>
-          <div class="dashboard-risk-row notice">
-            <span><i></i>Notice</span>
-            <strong>${chartData.alerts.notice}</strong>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div class="dashboard-grid-middle mb-6">
-    <section class="card dashboard-chart-card">
-      <div class="card-header">
-        <div>
-          <h3>Compliance Score Matrix</h3>
-          <p class="dashboard-card-copy">A quick comparison between the live score pillars.</p>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="dashboard-canvas-wrap" style="height:250px">
-          <canvas id="scoreBreakdownChart"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <h3>Defect Pressure</h3>
-          <p class="dashboard-card-copy">Open defect mix by severity and workflow stage.</p>
-        </div>
-      </div>
-      <div class="card-body dashboard-pressure-body">
-        <div class="dashboard-canvas-wrap" style="height:250px">
-          <canvas id="defectPressureChart"></canvas>
-        </div>
-        <div class="dashboard-pressure-grid">
-          <div class="dashboard-pressure-pill danger"><span>Dangerous</span><strong>${chartData.defects.dangerous}</strong></div>
-          <div class="dashboard-pressure-pill serious"><span>Serious</span><strong>${chartData.defects.serious}</strong></div>
-          <div class="dashboard-pressure-pill minor"><span>Minor</span><strong>${chartData.defects.minor}</strong></div>
-          <div class="dashboard-pressure-pill neutral"><span>Under review</span><strong>${chartData.defects.underReview}</strong></div>
-          <div class="dashboard-pressure-pill neutral"><span>Repair booked</span><strong>${chartData.defects.repairBooked}</strong></div>
-          <div class="dashboard-pressure-pill neutral"><span>Reported</span><strong>${chartData.defects.reported}</strong></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="card">
-      <div class="card-header">
-        <div>
-          <h3>Risk Hotspots</h3>
-          <p class="dashboard-card-copy">The alert themes showing up most often right now.</p>
-        </div>
-      </div>
-      <div class="card-body dashboard-hotspots">
-        ${chartData.hotspots.length === 0 ? `
-          <div class="empty-state" style="padding:36px 14px">
-            <p>No recurring hotspots right now</p>
-          </div>
-        ` : chartData.hotspots.map((item, index) => `
-          <div class="dashboard-hotspot-row">
-            <div class="dashboard-hotspot-rank">0${index + 1}</div>
-            <div class="dashboard-hotspot-main">
-              <strong>${item.label}</strong>
-              <div class="progress-bar dashboard-hotspot-progress">
-                <div class="progress-bar-fill ${index === 0 ? 'red' : index === 1 ? 'amber' : 'green'}" style="width:${Math.min(100, item.count * 12)}%"></div>
-              </div>
-            </div>
-            <span>${item.count}</span>
-          </div>
+  <!-- ── Compliance Overview tiles ───────────────────── -->
+  <div class="card mb-4">
+    <div class="card-header"><h3>Compliance Overview</h3><span class="text-sm text-muted">Items due within 30 days (RTW within 60)</span></div>
+    <div class="card-body">
+      <div class="dash-tiles">
+        ${complianceTiles.map(t => `
+          <a href="${t.href}" class="dash-tile ${t.tone}">
+            <div class="dash-tile-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tileIcons[t.key]}"/></svg></div>
+            <div class="dash-tile-count">${t.count}</div>
+            <div class="dash-tile-label">${t.label}</div>
+            <div class="dash-tile-bar"></div>
+          </a>
         `).join('')}
       </div>
-    </section>
+    </div>
   </div>
 
-  <div class="grid-2">
+  <!-- ── Trend + Alerts ──────────────────────────────── -->
+  <div class="dash-2col mb-4">
     <div class="card">
-      <div class="card-header">
-        <h3>Live Compliance Alerts</h3>
-        <div style="display:flex;align-items:center;gap:8px">
-          ${alertGroups.critical.length > 0 ? `<span class="badge badge-red"><span class="badge-dot" style="animation:blink 1.5s infinite"></span>${alertGroups.critical.length} Critical</span>` : ''}
-          ${alertGroups.warning.length > 0 ? `<span class="badge badge-amber">${alertGroups.warning.length} Warning</span>` : ''}
-          ${alertGroups.notice.length > 0 ? `<span class="badge badge-purple">${alertGroups.notice.length} Notice</span>` : ''}
-        </div>
-      </div>
-      <div class="dashboard-alert-scroll">
-        ${alerts.length === 0 ? `
-          <div class="empty-state">
-            <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <p>All compliance checks passed</p>
-            <div class="empty-hint">No active alerts - great work</div>
-          </div>
-        ` : `
-          <div class="alert-feed dashboard-alert-feed">
-            ${alerts.map(a => `
-              <a href="${a.href}" class="alert-item ${a.severity}">
-                <div class="alert-indicator ${a.severity}"></div>
-                <div class="alert-body">
-                  <div class="alert-msg">${esc(a.message)}</div>
-                  <div class="alert-meta">${a.typeLabel} - ${a.severity}</div>
-                  ${a.preview?.length ? `<div class="alert-preview">${a.preview.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
-                </div>
-                <div class="alert-side">
-                  <span class="alert-badge ${a.severity}">${a.severity === 'critical' ? 'Critical' : a.severity === 'warning' ? 'Warning' : 'Notice'}</span>
-                  <span class="alert-cta">${a.actionLabel}</span>
-                </div>
-              </a>
-            `).join('')}
-          </div>
-        `}
+      <div class="card-header"><h3>Compliance Trend</h3><span class="text-sm text-muted">Overall score over time</span></div>
+      <div class="card-body">
+        ${complianceTrend.length < 2
+          ? `<div class="empty-state" style="padding:40px 14px"><p>Not enough history yet</p><div class="empty-hint">The score trend appears once a few days of data accumulate.</div></div>`
+          : `<div style="position:relative;height:240px"><canvas id="complianceTrendChart"></canvas></div>`}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="dashAlerts">
       <div class="card-header">
-        <h3>Open Defect Cases</h3>
-        <a href="/defects" class="btn btn-outline btn-sm">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          View all
-        </a>
+        <h3>Alerts &amp; Notifications</h3>
+        ${alertGroups.critical.length > 0 ? `<span class="badge badge-red">${alertGroups.critical.length} critical</span>` : ''}
       </div>
+      <div class="dash-alert-scroll">
+        ${alerts.length === 0 ? `
+          <div class="empty-state" style="padding:40px 14px">
+            <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+            <p>All compliance checks passed</p>
+            <div class="empty-hint">No active alerts — great work</div>
+          </div>
+        ` : alerts.map(a => `
+          <a href="${a.href}" class="dash-alert ${a.severity}">
+            <span class="dash-alert-dot ${a.severity}"></span>
+            <span class="dash-alert-body">
+              <span class="dash-alert-msg">${esc(a.message)}</span>
+              <span class="dash-alert-meta">${a.typeLabel}</span>
+            </span>
+            <span class="dash-alert-cta">${a.actionLabel || 'View'} →</span>
+          </a>
+        `).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Operations pulse + open defects ─────────────── -->
+  <div class="dash-2col">
+    <div class="card">
+      <div class="card-header"><h3>Operations Pulse</h3><span class="text-sm text-muted">Last 7 days</span></div>
+      <div class="card-body"><div style="position:relative;height:240px"><canvas id="operationsTrendChart"></canvas></div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3>Open Defect Cases</h3><a href="/defects" class="btn btn-outline btn-sm">View all</a></div>
       ${recentDefects.length === 0 ? `
-        <div class="empty-state">
+        <div class="empty-state" style="padding:40px 14px">
           <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
           <p>No open defects</p>
         </div>
       ` : `
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th scope="col">Reference</th>
-              <th scope="col">Vehicle</th>
-              <th scope="col">Severity</th>
-              <th scope="col">Status</th>
-              <th scope="col">Open</th>
-            </tr>
-          </thead>
+          <thead><tr><th scope="col">Reference</th><th scope="col">Vehicle</th><th scope="col">Severity</th><th scope="col">Status</th><th scope="col">Open</th></tr></thead>
           <tbody>
             ${recentDefects.map(d => {
               const days = Math.floor((Date.now() - new Date(d.reportedAt)) / 86400000);
               return `<tr>
                 <td><a href="/defects/${d.id}" style="font-family:monospace;font-size:12px;font-weight:700">${esc(d.referenceNumber)}</a></td>
                 <td><span class="badge badge-slate">${esc(d.vehicle?.registration || '-')}</span></td>
-                <td>
-                  <span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">
-                    ${d.severity}
-                  </span>
-                </td>
+                <td><span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span></td>
                 <td><span class="badge badge-blue">${d.status.replace(/_/g,' ')}</span></td>
                 <td style="font-weight:700;color:${days > 5 ? 'var(--danger)' : days > 2 ? 'var(--warning)' : 'var(--text)'}">${days}d</td>
               </tr>`;
@@ -286,291 +150,124 @@
 </div>
 
 <style>
-  .dashboard-shell { display:flex; flex-direction:column; gap:0; }
-  .dashboard-hero { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.95fr); gap:16px; margin-bottom:24px; }
-  .dashboard-hero-main { position:relative; overflow:hidden; background:linear-gradient(135deg,#0a1628 0%,#102545 48%,#123a72 100%); color:#fff; border-radius:16px; padding:26px; box-shadow:0 18px 44px rgba(10,22,40,.28); display:grid; grid-template-columns:minmax(0,1.2fr) 240px; gap:20px; border:1px solid rgba(148,163,184,.18); }
-  .dashboard-hero-main::before { content:''; position:absolute; inset:0; pointer-events:none; background-image:linear-gradient(rgba(96,165,250,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.07) 1px,transparent 1px); background-size:38px 38px; -webkit-mask-image:radial-gradient(ellipse 75% 85% at 88% 8%,#000 18%,transparent 72%); mask-image:radial-gradient(ellipse 75% 85% at 88% 8%,#000 18%,transparent 72%); }
-  .dashboard-hero-main::after { content:''; position:absolute; width:340px; height:340px; border-radius:50%; top:-150px; right:-70px; filter:blur(72px); background:radial-gradient(circle,rgba(37,99,235,.5),rgba(6,182,212,.16) 58%,transparent 74%); pointer-events:none; }
-  .dashboard-hero-main > * { position:relative; z-index:1; }
-  .dashboard-eyebrow { display:inline-flex; align-items:center; gap:8px; padding:6px 12px; border-radius:999px; background:rgba(59,130,246,.14); border:1px solid rgba(59,130,246,.28); color:#bfdbfe; font-size:11px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; margin-bottom:12px; }
-  .dashboard-eyebrow .pip { width:7px; height:7px; border-radius:50%; background:#3b82f6; box-shadow:0 0 8px #3b82f6; animation:dashPip 2s ease-in-out infinite; }
-  @keyframes dashPip { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
-  .dashboard-hero-copy h3 { font-size:32px; line-height:1.08; margin-bottom:10px; max-width:620px; }
-  .dashboard-hero-copy p { color:#bfd0ea; font-size:14px; line-height:1.7; max-width:620px; }
-  .dashboard-hero-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
-  .dashboard-hero-actions .btn-outline { border-color:rgba(191,219,254,.45); color:#dbeafe; }
-  .dashboard-hero-actions .btn-outline:hover { background:#dbeafe; color:#123263; }
-  .dashboard-hero-scorecard { position:relative; background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.03)); border:1px solid rgba(191,219,254,.18); border-radius:14px; padding:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; backdrop-filter:blur(6px); }
-  .dashboard-hero-scorecard::before { content:''; position:absolute; top:0; left:18px; right:18px; height:1px; background:linear-gradient(90deg,transparent,rgba(96,165,250,.6),rgba(52,211,153,.55),transparent); }
-  .dashboard-score-ring { position:relative; width:140px; height:140px; }
-  .dashboard-score-ring::before { content:''; position:absolute; inset:14px; border-radius:50%; background:radial-gradient(circle,rgba(96,165,250,.22),transparent 68%); filter:blur(6px); z-index:0; }
-  .dashboard-score-ring canvas { position:relative; z-index:1; }
-  .dashboard-score-value { z-index:2; }
-  .dashboard-score-value { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:34px; font-weight:900; letter-spacing:-1px; }
-  .dashboard-score-value sup { font-size:16px; opacity:.72; margin-left:2px; }
-  .dashboard-score-copy { text-align:center; }
-  .dashboard-score-label { font-size:12px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:#dbeafe; margin-bottom:6px; }
-  .dashboard-score-helper { color:#9eb5d6; font-size:12px; line-height:1.6; }
-  .dashboard-hero-side { display:flex; flex-direction:column; gap:12px; }
-  .dashboard-health-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; text-decoration:none; color:var(--text); box-shadow:var(--shadow-sm); transition:all .18s ease; }
-  .dashboard-health-card:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
-  .dashboard-health-head { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:10px; }
-  .dashboard-health-head span { font-size:13px; font-weight:700; color:var(--text); }
-  .dashboard-health-head strong { font-size:24px; letter-spacing:-1px; }
-  .dashboard-health-progress { height:8px; border-radius:999px; margin-bottom:10px; }
-  .dashboard-health-copy, .dashboard-card-copy { color:var(--text-muted); font-size:12px; line-height:1.6; margin-top:4px; }
-  .dashboard-grid-top { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(320px,.9fr); gap:16px; }
-  .dashboard-grid-middle { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(280px,.85fr); gap:16px; }
-  .dashboard-chart-card .card-body { padding:18px 20px 14px; }
-  .dashboard-canvas-wrap { position:relative; width:100%; }
-  .dashboard-canvas-wrap canvas { position:absolute; inset:0; width:100% !important; height:100% !important; }
-  .dashboard-risk-doughnut canvas, .dashboard-score-ring canvas { max-width:100%; height:auto; }
-  .dashboard-risk-mix-body { display:grid; grid-template-columns:220px minmax(0,1fr); gap:18px; align-items:center; }
-  .dashboard-risk-doughnut { display:flex; align-items:center; justify-content:center; }
-  .dashboard-risk-legend { display:flex; flex-direction:column; gap:10px; }
-  .dashboard-risk-row { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text); background:var(--card); }
-  .dashboard-risk-row span { display:flex; align-items:center; gap:10px; font-weight:700; }
-  .dashboard-risk-row i { width:10px; height:10px; border-radius:999px; display:inline-block; }
-  .dashboard-risk-row.critical i { background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.12); }
-  .dashboard-risk-row.warning i { background:#f59e0b; box-shadow:0 0 0 4px rgba(245,158,11,.12); }
-  .dashboard-risk-row.notice i { background:#8b5cf6; box-shadow:0 0 0 4px rgba(139,92,246,.12); }
-  .dashboard-risk-row strong { font-size:22px; letter-spacing:-1px; }
-  .dashboard-pressure-body { display:flex; flex-direction:column; gap:16px; }
-  .dashboard-pressure-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-  .dashboard-pressure-pill { border-radius:12px; padding:12px 14px; border:1px solid var(--border); display:flex; justify-content:space-between; gap:10px; align-items:center; }
-  .dashboard-pressure-pill span { color:var(--text-muted); font-size:12px; font-weight:700; }
-  .dashboard-pressure-pill strong { font-size:20px; letter-spacing:-1px; }
-  .dashboard-pressure-pill.danger { background:var(--danger-bg); border-color:rgba(220,38,38,.3); }
-  .dashboard-pressure-pill.serious { background:var(--warning-bg); border-color:rgba(217,119,6,.3); }
-  .dashboard-pressure-pill.minor, .dashboard-pressure-pill.neutral { background:var(--surface-2); }
-  .dashboard-hotspots { display:flex; flex-direction:column; gap:12px; }
-  .dashboard-hotspot-row { display:grid; grid-template-columns:42px minmax(0,1fr) auto; gap:12px; align-items:center; }
-  .dashboard-hotspot-rank { width:42px; height:42px; border-radius:12px; background:rgba(37,99,235,.12); color:var(--primary); font-size:13px; font-weight:900; display:flex; align-items:center; justify-content:center; }
-  .dashboard-hotspot-main strong { display:block; font-size:13px; margin-bottom:8px; }
-  .dashboard-hotspot-progress { height:7px; border-radius:999px; }
-  .dashboard-hotspot-row span { font-size:18px; font-weight:800; color:var(--text); }
-  .dashboard-alert-scroll { max-height:560px; overflow-y:auto; }
-  .dashboard-alert-feed { padding:8px; }
-  .alert-item { display:flex; align-items:flex-start; gap:14px; text-decoration:none; color:var(--text); border:1px solid var(--border); border-left-width:4px; border-radius:12px; padding:14px 16px; margin-bottom:10px; background:var(--card); }
-  .alert-item:hover { border-color:var(--primary); background:var(--surface-2); }
-  .alert-item.critical { border-left-color:#ef4444; }
-  .alert-item.warning { border-left-color:#f59e0b; }
-  .alert-item.notice { border-left-color:#8b5cf6; }
-  .alert-indicator { width:14px; height:14px; border-radius:999px; flex:0 0 auto; margin-top:6px; }
-  .alert-indicator.critical { background:#f87171; box-shadow:0 0 0 4px rgba(239,68,68,.18); }
-  .alert-indicator.warning { background:#f59e0b; box-shadow:0 0 0 4px rgba(245,158,11,.18); }
-  .alert-indicator.notice { background:#8b5cf6; box-shadow:0 0 0 4px rgba(139,92,246,.18); }
-  .alert-body { min-width:0; flex:1; }
-  .alert-msg { font-size:16px; font-weight:800; line-height:1.4; }
-  .alert-meta { color:var(--text-muted); font-size:13px; margin-top:4px; }
-  .alert-preview { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-  .alert-preview span { border:1px solid var(--border); border-radius:999px; background:var(--surface-2); color:var(--text-muted); font-size:11px; font-weight:700; padding:4px 10px; }
-  .alert-side { display:flex; flex-direction:column; align-items:flex-end; gap:10px; }
-  .alert-cta { font-size:12px; font-weight:800; color:var(--primary); white-space:nowrap; }
-  @media (max-width:1280px) {
-    .dashboard-hero, .dashboard-grid-top, .dashboard-grid-middle { grid-template-columns:1fr; }
-  }
-  @media (max-width:900px) {
-    .dashboard-hero-main { grid-template-columns:1fr; }
-    .dashboard-risk-mix-body { grid-template-columns:1fr; }
-    .dashboard-pressure-grid { grid-template-columns:1fr; }
-    .alert-item { flex-direction:column; }
-    .alert-side { align-items:flex-start; }
-    .dashboard-hero-copy h3 { font-size:28px; }
-  }
+  .dash { display:flex; flex-direction:column; }
+  .dash-kpi-row { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:16px; }
+  .dash-gauge-card { display:flex; align-items:center; gap:18px; padding:20px 22px; }
+  .dash-gauge { position:relative; width:118px; height:118px; flex-shrink:0; }
+  .dash-gauge canvas { width:118px !important; height:118px !important; }
+  .dash-gauge-value { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:900; letter-spacing:-1px; color:var(--text); }
+  .dash-gauge-value sup { font-size:14px; opacity:.6; margin-left:1px; }
+  .dash-gauge-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
+  .dash-gauge-band { display:inline-block; margin-top:6px; font-size:18px; font-weight:800; }
+  .dash-gauge-band.good { color:var(--success); }
+  .dash-gauge-band.ok { color:var(--warning); }
+  .dash-gauge-band.risk { color:var(--danger); }
+  .dash-kpi { display:flex; flex-direction:column; padding:18px 20px; text-decoration:none; color:var(--text); transition:transform .15s, box-shadow .15s; }
+  .dash-kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
+  .dash-kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .dash-kpi-top .stat-icon { width:38px; height:38px; }
+  .dash-kpi-link { font-size:11px; font-weight:700; color:var(--primary); }
+  .dash-kpi-value { font-size:34px; font-weight:900; letter-spacing:-1.5px; line-height:1; }
+  .dash-kpi-label { font-size:13px; font-weight:700; color:var(--text-muted); margin-top:4px; }
+  .dash-kpi-sub { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-2); margin-top:10px; }
+  .dash-kpi-sub .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+  .dash-kpi-sub .dot.green { background:var(--success); }
+  .dash-kpi-sub .dot.amber { background:var(--warning); }
+  .dash-kpi-sub .dot.red { background:var(--danger); }
+  .dash-kpi-alert { border-color:rgba(239,68,68,.35); }
 
-  /* Dark theme patches for dashboard inline surfaces */
-  [data-theme="dark"] .dashboard-health-card { background: var(--card); }
-  [data-theme="dark"] .dashboard-health-head span { color: var(--text-2); }
-  [data-theme="dark"] .dashboard-risk-row { background: var(--card); }
-  [data-theme="dark"] .alert-item { background: var(--card); }
-  [data-theme="dark"] .alert-item:hover { background: rgba(59,130,246,.1); }
-  [data-theme="dark"] .dashboard-hotspot-rank { background: rgba(37,99,235,.2); color: #93c5fd; }
-  [data-theme="dark"] .dashboard-hotspot-row span { color: var(--text); }
-  [data-theme="dark"] .dashboard-pressure-pill span { color: var(--text-2); }
-  [data-theme="dark"] .dashboard-pressure-pill.minor,
-  [data-theme="dark"] .dashboard-pressure-pill.neutral { background: var(--surface-2); }
-  [data-theme="dark"] .dashboard-pressure-pill.danger { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.3); }
-  [data-theme="dark"] .dashboard-pressure-pill.serious { background: rgba(245,158,11,.14); border-color: rgba(245,158,11,.3); }
-  [data-theme="dark"] .alert-preview span { background: rgba(255,255,255,.05); }
+  .dash-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .dash-tile { position:relative; display:flex; flex-direction:column; gap:4px; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--card); text-decoration:none; color:var(--text); overflow:hidden; transition:transform .15s, box-shadow .15s; }
+  .dash-tile:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+  .dash-tile-icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--text-muted); margin-bottom:4px; }
+  .dash-tile-icon svg { width:18px; height:18px; }
+  .dash-tile-count { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .dash-tile-label { font-size:12px; font-weight:700; color:var(--text-muted); }
+  .dash-tile-bar { position:absolute; left:0; bottom:0; height:3px; width:100%; background:var(--border-md); }
+  .dash-tile.amber .dash-tile-bar { background:var(--warning); }
+  .dash-tile.amber .dash-tile-icon { background:var(--warning-bg); color:var(--warning); }
+  .dash-tile.red .dash-tile-bar { background:var(--danger); }
+  .dash-tile.red .dash-tile-icon { background:var(--danger-bg); color:var(--danger); }
+  .dash-tile.green .dash-tile-bar { background:var(--success); }
+  .dash-tile.green .dash-tile-icon { background:var(--success-bg); color:var(--success); }
+
+  .dash-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .dash-alert-scroll { max-height:300px; overflow-y:auto; padding:6px; }
+  .dash-alert { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; text-decoration:none; color:var(--text); border-bottom:1px solid var(--border); }
+  .dash-alert:last-child { border-bottom:none; }
+  .dash-alert:hover { background:var(--surface-2); }
+  .dash-alert-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+  .dash-alert-dot.critical { background:var(--danger); box-shadow:0 0 0 4px rgba(239,68,68,.14); }
+  .dash-alert-dot.warning { background:var(--warning); box-shadow:0 0 0 4px rgba(245,158,11,.14); }
+  .dash-alert-dot.notice { background:var(--notice); box-shadow:0 0 0 4px rgba(139,92,246,.14); }
+  .dash-alert-body { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .dash-alert-msg { font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dash-alert-meta { font-size:11.5px; color:var(--text-muted); }
+  .dash-alert-cta { font-size:12px; font-weight:700; color:var(--primary); white-space:nowrap; flex-shrink:0; }
+
+  @media (max-width:1100px) {
+    .dash-kpi-row { grid-template-columns:1fr 1fr; }
+    .dash-tiles { grid-template-columns:repeat(2,1fr); }
+    .dash-2col { grid-template-columns:1fr; }
+  }
+  @media (max-width:560px) {
+    .dash-kpi-row { grid-template-columns:1fr; }
+    .dash-gauge-card { justify-content:center; }
+  }
 </style>
 
 <script>
-function gaugeColors(scoreValue) {
-  if (scoreValue >= 85) return { fill: '#10b981', track: '#d1fae5' };
-  if (scoreValue >= 70) return { fill: '#f59e0b', track: '#fef3c7' };
-  return { fill: '#ef4444', track: '#fee2e2' };
-}
-
-function drawGauge(id, value, trackColor, fillColor) {
+function drawGauge(id, value) {
   const canvas = document.getElementById(id);
-  if (!canvas) return;
+  if (!canvas || !window.Chart) return;
+  const fill = value >= 85 ? '#10b981' : value >= 70 ? '#f59e0b' : '#ef4444';
+  const track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.08)' : '#eef2f7';
   new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
-    data: {
-      datasets: [{
-        data: [value, 100 - value],
-        backgroundColor: [fillColor, trackColor],
-        borderWidth: 0,
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      cutout: '82%',
-      rotation: -110,
-      circumference: 220,
-      responsive: false,
-      events: [],
+    data: { datasets: [{ data: [value, 100 - value], backgroundColor: [fill, track], borderWidth: 0, borderRadius: 6 }] },
+    options: { cutout: '80%', rotation: -110, circumference: 220, responsive: false, events: [],
       plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      animation: { duration: 1000, easing: 'easeInOutCubic' },
-    }
+      animation: { duration: 900, easing: 'easeInOutCubic' } }
   });
 }
 
-const chartData = ${JSON.stringify(chartData)};
 const scores = ${JSON.stringify(score)};
+const chartData = ${JSON.stringify(chartData)};
+const complianceTrend = ${JSON.stringify(complianceTrend)};
 
-const overallColors = gaugeColors(scores.overall);
 (function() {
-  var gaugeEl = document.getElementById('gaugeOverall');
-  if (!gaugeEl) return;
+  var el = document.getElementById('gaugeOverall');
+  if (!el) return;
   if ('IntersectionObserver' in window) {
-    var observer = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting) {
-        drawGauge('gaugeOverall', scores.overall, 'rgba(255,255,255,0.1)', overallColors.fill);
-        observer.disconnect();
-      }
-    }, { threshold: 0.1 });
-    observer.observe(gaugeEl);
-  } else {
-    drawGauge('gaugeOverall', scores.overall, 'rgba(255,255,255,0.1)', overallColors.fill);
-  }
+    var obs = new IntersectionObserver(function(e) { if (e[0].isIntersecting) { drawGauge('gaugeOverall', scores.overall); obs.disconnect(); } }, { threshold: .1 });
+    obs.observe(el);
+  } else { drawGauge('gaugeOverall', scores.overall); }
 })();
 
-new Chart(document.getElementById('operationsTrendChart'), {
-  type: 'bar',
-  data: {
-    labels: chartData.trend.map((item) => item.label),
-    datasets: [
-      {
-        type: 'bar',
-        label: 'Checks submitted',
-        data: chartData.trend.map((item) => item.checks),
-        backgroundColor: '#2563eb',
-        borderRadius: 8,
-        maxBarThickness: 28,
-      },
-      {
-        type: 'line',
-        label: 'Defects reported',
-        data: chartData.trend.map((item) => item.defects),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239,68,68,0.14)',
-        tension: 0.35,
-        fill: true,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-      },
-      {
-        type: 'line',
-        label: 'Nil-defect checks',
-        data: chartData.trend.map((item) => item.nilDefects),
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16,185,129,0.12)',
-        tension: 0.35,
-        fill: false,
-        pointRadius: 3,
-        pointHoverRadius: 4,
-      }
-    ]
-  },
-  options: {
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } },
-    },
-    scales: {
-      x: { grid: { display: false } },
-      y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e2e8f0' } }
-    }
-  }
-});
+if (document.getElementById('complianceTrendChart') && complianceTrend.length >= 2) {
+  new Chart(document.getElementById('complianceTrendChart'), {
+    type: 'line',
+    data: { labels: complianceTrend.map(d => d.label), datasets: [{
+      label: 'Overall compliance', data: complianceTrend.map(d => d.value),
+      borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.10)', fill: true, tension: .35,
+      pointRadius: 2, pointHoverRadius: 4, borderWidth: 2,
+    }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { min: 0, max: 100, ticks: { stepSize: 25, callback: v => v + '%' } } } }
+  });
+}
 
-new Chart(document.getElementById('alertMixChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Critical', 'Warning', 'Notice'],
-    datasets: [{
-      data: [chartData.alerts.critical, chartData.alerts.warning, chartData.alerts.notice],
-      backgroundColor: ['#ef4444', '#f59e0b', '#8b5cf6'],
-      borderColor: ['#ffffff', '#ffffff', '#ffffff'],
-      borderWidth: 4,
-      hoverOffset: 6,
-    }]
-  },
-  options: {
-    responsive: false,
-    cutout: '70%',
-    plugins: { legend: { display: false } }
-  }
-});
-
-new Chart(document.getElementById('scoreBreakdownChart'), {
-  type: 'radar',
-  data: {
-    labels: ['Overall', 'People', 'Fleet', 'Driver'],
-    datasets: [{
-      label: 'Compliance score',
-      data: [scores.overall, scores.people, scores.fleet, scores.driver],
-      backgroundColor: 'rgba(37,99,235,0.16)',
-      borderColor: '#2563eb',
-      pointBackgroundColor: ['#0f172a', '#10b981', '#ef4444', '#f59e0b'],
-      pointBorderWidth: 0,
-      pointRadius: 4,
-    }]
-  },
-  options: {
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      r: {
-        beginAtZero: true,
-        max: 100,
-        ticks: { display: false, stepSize: 20 },
-        grid: { color: '#dbe5f2' },
-        angleLines: { color: '#dbe5f2' },
-        pointLabels: { color: '#334155', font: { size: 12, weight: '700' } }
-      }
-    }
-  }
-});
-
-new Chart(document.getElementById('defectPressureChart'), {
-  type: 'bar',
-  data: {
-    labels: ['Dangerous', 'Serious', 'Minor', 'Under review', 'Repair booked', 'Reported'],
-    datasets: [{
-      data: [
-        chartData.defects.dangerous,
-        chartData.defects.serious,
-        chartData.defects.minor,
-        chartData.defects.underReview,
-        chartData.defects.repairBooked,
-        chartData.defects.reported,
-      ],
-      backgroundColor: ['#ef4444', '#f59e0b', '#94a3b8', '#60a5fa', '#2563eb', '#cbd5e1'],
-      borderRadius: 8,
-      maxBarThickness: 34,
-    }]
-  },
-  options: {
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false } },
-      y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#e2e8f0' } }
-    }
-  }
-});
+if (document.getElementById('operationsTrendChart')) {
+  new Chart(document.getElementById('operationsTrendChart'), {
+    type: 'bar',
+    data: { labels: chartData.trend.map(i => i.label), datasets: [
+      { type: 'bar', label: 'Checks', data: chartData.trend.map(i => i.checks), backgroundColor: '#2563eb', borderRadius: 6, maxBarThickness: 26 },
+      { type: 'line', label: 'Defects', data: chartData.trend.map(i => i.defects), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.14)', tension: .35, fill: true, pointRadius: 2 },
+      { type: 'line', label: 'Nil-defect', data: chartData.trend.map(i => i.nilDefects), borderColor: '#10b981', tension: .35, fill: false, pointRadius: 2 },
+    ] },
+    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 14 } } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
+  });
+}
 </script>
 ` }) %>
