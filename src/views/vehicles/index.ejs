@@ -34,26 +34,24 @@
   </div>
 </div>
 
-<!-- Fleet health strip -->
-<div class="card mb-4">
-  <div class="vehicle-status-strip">
-    <div class="vss-item">
-      <div class="vss-val vss-green">${vehicles.filter(v => v.status === 'active').length}</div>
-      <div class="vss-key">Active</div>
+<!-- Fleet KPI strip (Phase B M1) -->
+<div class="fleet-kpis mb-4">
+  ${[
+    { label: 'Total Vehicles', value: fleetKpis.total, tone: 'blue', sub: 'In fleet' },
+    { label: 'Off Road (VOR)', value: fleetKpis.vor, tone: fleetKpis.vor > 0 ? 'red' : 'green', sub: 'Not for use' },
+    { label: 'MOT Due', value: fleetKpis.motDue, tone: fleetKpis.motDue > 0 ? 'amber' : 'green', sub: 'Next 30 days' },
+    { label: 'Insurance Due', value: fleetKpis.insuranceDue, tone: fleetKpis.insuranceDue > 0 ? 'amber' : 'green', sub: 'Next 30 days' },
+    { label: 'Road Tax Due', value: fleetKpis.roadTaxDue, tone: fleetKpis.roadTaxDue > 0 ? 'amber' : 'green', sub: 'Next 30 days' },
+    { label: 'Tacho Cal Due', value: fleetKpis.tachoDue, tone: fleetKpis.tachoDue > 0 ? 'amber' : 'green', sub: 'Next 30 days' },
+    { label: 'PMI Due', value: fleetKpis.pmiDue, tone: fleetKpis.pmiDue > 0 ? 'amber' : 'green', sub: 'Next 14 days' },
+    { label: 'Open Defects', value: fleetKpis.openDefects, tone: fleetKpis.openDefects > 0 ? 'red' : 'green', sub: 'Vehicles affected' },
+  ].map(k => `
+    <div class="fleet-kpi ${k.tone}">
+      <div class="fleet-kpi-value">${k.value}</div>
+      <div class="fleet-kpi-label">${k.label}</div>
+      <div class="fleet-kpi-sub">${k.sub}</div>
     </div>
-    <div class="vss-item">
-      <div class="vss-val vss-red">${vehicles.filter(v => v.status === 'vor').length}</div>
-      <div class="vss-key">Off Road (VOR)</div>
-    </div>
-    <div class="vss-item">
-      <div class="vss-val vss-amber">${vehicles.filter(v => v.pmiDays !== null && v.pmiDays < 0).length}</div>
-      <div class="vss-key">PMI Overdue</div>
-    </div>
-    <div class="vss-item">
-      <div class="vss-val vss-amber">${vehicles.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14).length}</div>
-      <div class="vss-key">PMI Due Soon</div>
-    </div>
-  </div>
+  `).join('')}
 </div>
 
 <div class="card">
@@ -62,7 +60,7 @@
       <thead>
         <tr>
           <th scope="col">Vehicle</th><th scope="col">Driver</th><th scope="col">MOT Expiry</th>
-          <th scope="col">Next PMI</th><th scope="col">Insurance</th><th scope="col">Defects</th><th scope="col">Status</th><th scope="col">Actions</th>
+          <th scope="col">Next PMI</th><th scope="col">Insurance</th><th scope="col" class="col-roadtax">Road Tax</th><th scope="col" class="col-tacho">Tacho Cal</th><th scope="col">Defects</th><th scope="col">Status</th><th scope="col">Actions</th>
         </tr>
       </thead>
       <tbody id="vehiclesTableBody">
@@ -97,6 +95,16 @@
               ${!v.insuranceExpiryDate ? '—' : v.insuranceDays < 0 ? 'EXPIRED' : v.insuranceDays <= 30 ? v.insuranceDays + 'd' : 'Valid'}
             </span>
           </td>
+          <td class="col-roadtax">
+            <span class="badge ${v.roadTaxDays === null ? 'badge-slate' : v.roadTaxDays < 0 ? 'badge-red' : v.roadTaxDays <= 30 ? 'badge-amber' : 'badge-green'}">
+              ${v.roadTaxDays === null ? '—' : v.roadTaxDays < 0 ? 'EXPIRED' : v.roadTaxDays <= 30 ? v.roadTaxDays + 'd' : 'Valid'}
+            </span>
+          </td>
+          <td class="col-tacho">
+            <span class="badge ${v.tachoDays === null ? 'badge-slate' : v.tachoDays < 0 ? 'badge-red' : v.tachoDays <= 30 ? 'badge-amber' : 'badge-green'}">
+              ${v.tachoDays === null ? '—' : v.tachoDays < 0 ? 'EXPIRED' : v.tachoDays <= 30 ? v.tachoDays + 'd' : 'Valid'}
+            </span>
+          </td>
           <td>
             ${v.defects.length > 0
               ? `<span class="badge ${v.defects.some(d => d.severity === 'dangerous') ? 'badge-red' : 'badge-amber'}">${v.defects.length} open</span>`
@@ -116,7 +124,7 @@
           </td>
         </tr>`).join('')}
         <tr id="noVehiclesFound" style="display:none">
-          <td colspan="8">
+          <td colspan="10">
             <div class="empty-state">
               <p>No vehicles match your search</p>
               <div class="empty-hint">Clear the search to restore the fleet list</div>
@@ -138,9 +146,20 @@ ${totalPages > 1 ? `
 <style>
   .reg-link { font-weight: 800; font-size: 15px; font-family: ui-monospace, monospace; letter-spacing: -.5px; color: var(--primary); text-decoration: none; }
   .reg-link:hover { text-decoration: underline; }
-  .vss-green { color: var(--success); }
-  .vss-red   { color: var(--danger); }
-  .vss-amber { color: var(--warning); }
+  .fleet-kpis { display:grid; grid-template-columns:repeat(8,1fr); gap:12px; }
+  .fleet-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .fleet-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .fleet-kpi.blue::before { background:var(--primary); }
+  .fleet-kpi.green::before { background:var(--success); }
+  .fleet-kpi.amber::before { background:var(--warning); }
+  .fleet-kpi.red::before { background:var(--danger); }
+  .fleet-kpi-value { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .fleet-kpi.amber .fleet-kpi-value { color:var(--warning); }
+  .fleet-kpi.red .fleet-kpi-value { color:var(--danger); }
+  .fleet-kpi-label { font-size:12px; font-weight:700; color:var(--text); margin-top:6px; }
+  .fleet-kpi-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  @media (max-width:1200px) { .fleet-kpis { grid-template-columns:repeat(4,1fr); } }
+  @media (max-width:680px) { .fleet-kpis { grid-template-columns:repeat(2,1fr); } .col-roadtax, .col-tacho { display:none; } }
 </style>
 
 <script>

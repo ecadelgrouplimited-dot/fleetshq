@@ -1238,14 +1238,31 @@ router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
       orderBy: { registration: 'asc' },
     });
 
-    let enriched = vehicles.map(v => ({
+    const allEnriched = vehicles.map(v => ({
       ...v,
       motDays: daysUntil(v.motExpiryDate),
       insuranceDays: daysUntil(v.insuranceExpiryDate),
+      roadTaxDays: daysUntil(v.roadTaxExpiryDate),
+      tachoDays: daysUntil(v.tachoCalibrExpiry),
       pmiDays: daysUntil(v.nextPmiDate),
       lastCheckDate: v.checks[0]?.checkDate || null,
     }));
 
+    // Fleet-wide KPI strip (Phase B M1) — computed from the full status-scoped set
+    // before the compliance ("due") filter narrows the table.
+    const within = (days, n) => days !== null && days <= n;
+    const fleetKpis = {
+      total: allEnriched.length,
+      vor: allEnriched.filter(v => v.status === 'vor').length,
+      motDue: allEnriched.filter(v => within(v.motDays, 30)).length,
+      insuranceDue: allEnriched.filter(v => within(v.insuranceDays, 30)).length,
+      roadTaxDue: allEnriched.filter(v => within(v.roadTaxDays, 30)).length,
+      tachoDue: allEnriched.filter(v => within(v.tachoDays, 30)).length,
+      pmiDue: allEnriched.filter(v => within(v.pmiDays, 14)).length,
+      openDefects: allEnriched.filter(v => v.defects.length > 0).length,
+    };
+
+    let enriched = allEnriched;
     if (due === 'pmi_overdue') enriched = enriched.filter(v => v.pmiDays !== null && v.pmiDays < 0);
     if (due === 'pmi_due_14') enriched = enriched.filter(v => v.pmiDays !== null && v.pmiDays >= 0 && v.pmiDays <= 14);
     if (due === 'mot_due_30') enriched = enriched.filter(v => v.motDays !== null && v.motDays >= 0 && v.motDays <= 30);
@@ -1256,7 +1273,7 @@ router.get('/fleet', webAuth, requireRoles(...fleetRoles), async (req, res) => {
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
     const paged = enriched.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: paged, filters: { status, due }, formatDate, page, totalPages, total });
+    res.render('vehicles/index', { title: 'Fleet & Roadworthiness', vehicles: paged, filters: { status, due }, formatDate, page, totalPages, total, fleetKpis });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
