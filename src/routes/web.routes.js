@@ -2583,7 +2583,6 @@ router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), asy
       configRows,
       users,
       counts,
-      tenants,
       recentAudit,
     ] = await Promise.all([
       prisma.tenant.findUnique({ where: { id: req.user.tenantId } }),
@@ -2602,10 +2601,6 @@ router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), asy
         prisma.publicLead.count({ where: { isResolved: false } }),
         prisma.serviceType.count({ where: { isActive: true } }),
       ]),
-      prisma.tenant.findMany({
-        include: { _count: { select: { users: true, companies: true, branches: true } } },
-        orderBy: [{ status: 'asc' }, { name: 'asc' }],
-      }),
       prisma.auditLog.findMany({
         include: { user: { select: { firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: 'desc' },
@@ -2625,7 +2620,6 @@ router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), asy
       branches,
       serviceTypes,
       users,
-      tenants,
       recentAudit,
       roleOptions,
       config,
@@ -2643,42 +2637,8 @@ router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), asy
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
-router.post('/super-admin/tenants', webAuth, adminWriteOnly, async (req, res) => {
-  try {
-    const name = (req.body.name || '').trim();
-    if (!name) throw new Error('Tenant name is required');
-    const slug = slugify(req.body.slug || name);
-    const tenant = await prisma.tenant.create({
-      data: {
-        name,
-        slug,
-        plan: (req.body.plan || 'starter').trim(),
-        status: req.body.status || 'trial',
-      },
-    });
-    await runWithTenant(tenant.id, async () => {
-      const company = await prisma.company.create({
-        data: {
-          name,
-          legalName: req.body.legalName || null,
-          timezone: req.body.timezone || 'Europe/London',
-        },
-      });
-      await prisma.branch.create({ data: { name: 'Main Branch', companyId: company.id } });
-    });
-    res.redirect('/super-admin?saved=tenant');
-  } catch (e) { res.status(400).render('error', { title: 'Tenant create failed', message: e.message, code: 400 }); }
-});
-
-router.post('/super-admin/tenants/:id/status', webAuth, adminWriteOnly, async (req, res) => {
-  try {
-    await prisma.tenant.update({
-      where: { id: req.params.id },
-      data: { status: req.body.status || 'active', plan: req.body.plan || undefined },
-    });
-    res.redirect('/super-admin?saved=tenant-status');
-  } catch (e) { res.status(400).render('error', { title: 'Tenant update failed', message: e.message, code: 400 }); }
-});
+// Tenant create/manage lives in Platform Admin (/platform) — a per-tenant
+// Super Admin must never see or touch other tenants.
 
 router.post('/super-admin/company', webAuth, adminWriteOnly, async (req, res) => {
   try {

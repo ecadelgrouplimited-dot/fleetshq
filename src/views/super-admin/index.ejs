@@ -14,7 +14,7 @@ ${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. 
   <div>
     <div class="eyebrow">Super Admin</div>
     <h3>${esc(tenant?.name || 'Tenant control room')}</h3>
-    <p>Configure tenants, company profile, branches, service pricing, users, and notification settings from one panel.</p>
+    <p>Configure your company profile, branches, service pricing, users, and notification settings from one panel.</p>
   </div>
   <div class="admin-hero-meta">
     <span class="badge ${tenant?.status === 'active' ? 'badge-green' : tenant?.status === 'trial' ? 'badge-blue' : 'badge-red'}">${esc(tenant?.status || 'active')}</span>
@@ -33,44 +33,7 @@ ${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. 
 </div>
 
 <div class="admin-grid mb-4">
-  <section class="card">
-    <div class="card-header"><h3>Platform Tenants</h3></div>
-    <div class="card-body">
-      <form method="post" action="/super-admin/tenants" class="admin-form compact">
-        <input type="hidden" name="_csrf" value="${csrfToken}">
-        <input class="form-control" name="name" placeholder="Tenant name" ${writeAttr} required>
-        <input class="form-control" name="slug" placeholder="slug">
-        <select class="form-control" name="plan" ${writeAttr}>
-          <option value="starter">Starter</option>
-          <option value="growth">Growth</option>
-          <option value="enterprise">Enterprise</option>
-        </select>
-        <select class="form-control" name="status" ${writeAttr}>
-          <option value="trial">Trial</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-        </select>
-        <button class="btn btn-primary" ${writeAttr}>Create tenant</button>
-      </form>
-      <div class="tenant-list">
-        ${tenants.map(t => `
-          <form method="post" action="/super-admin/tenants/${t.id}/status" class="tenant-row">
-            <input type="hidden" name="_csrf" value="${csrfToken}">
-            <div><strong>${esc(t.name)}</strong><span>${esc(t.slug)} · ${t._count.users} users · ${t._count.branches} branches</span></div>
-            <select class="form-control" name="plan" ${writeAttr}>
-              ${['starter','growth','enterprise'].map(plan => `<option value="${plan}" ${t.plan === plan ? 'selected' : ''}>${plan}</option>`).join('')}
-            </select>
-            <select class="form-control" name="status" ${writeAttr}>
-              ${['active','trial','suspended'].map(status => `<option value="${status}" ${t.status === status ? 'selected' : ''}>${status}</option>`).join('')}
-            </select>
-            <button class="btn btn-outline btn-sm" ${writeAttr}>Update</button>
-          </form>
-        `).join('')}
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
+  <section class="card" style="grid-column:1 / -1">
     <div class="card-header"><h3>Company Profile</h3></div>
     <div class="card-body">
       <form method="post" action="/super-admin/company" class="admin-form">
