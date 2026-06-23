@@ -31,6 +31,10 @@ const webAuth = (req, res, next) => {
   payload.branchIds = payload.branchIds || [];
   runWithTenant(payload.tenantId, () => {
     req.user = payload;
+    // First-login gate: force a password change before any app access.
+    if (payload.mustChangePassword && req.path !== '/set-password' && req.path !== '/logout') {
+      return res.redirect('/set-password');
+    }
     res.locals.user = payload;
     res.locals.formatDate = formatDate;
     res.locals.daysUntil = daysUntil;
@@ -370,7 +374,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     await registerSuccess(user);
     const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [], email: user.email,
-      name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null });
+      name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null, mustChangePassword: user.mustChangePassword || false });
 
     res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
     res.redirect('/');
@@ -382,6 +386,41 @@ router.post('/login', loginLimiter, async (req, res) => {
 router.get('/logout', (req, res) => {
   res.clearCookie('token');
   res.redirect('/login');
+});
+
+// ── First-login forced password change ───────────────────────────────
+router.get('/set-password', webAuth, (req, res) => {
+  res.render('auth/set-password', { title: 'Set your password', error: null, mustChange: !!req.user.mustChangePassword });
+});
+
+router.post('/set-password', webAuth, async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  const { sign } = require('../config/jwt');
+  const render = (error) => res.render('auth/set-password', { title: 'Set your password', error, mustChange: !!req.user.mustChangePassword });
+  try {
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (newPassword !== confirmPassword) return render('New passwords do not match.');
+    const policyError = checkPassword(newPassword);
+    if (policyError) return render(policyError);
+
+    const user = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (!user) return res.redirect('/login');
+    // Verify the temporary/current password they were given.
+    const ok = await bcrypt.compare(currentPassword || '', user.passwordHash);
+    if (!ok) return render('Your current (temporary) password is incorrect.');
+    if (await bcrypt.compare(newPassword, user.passwordHash)) return render('Choose a password different from your temporary one.');
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await bcrypt.hash(newPassword, 10), mustChangePassword: false, passwordChangedAt: new Date(),
+        resetTokenHash: null, resetTokenExpiry: null, failedLoginAttempts: 0, lockedUntil: null },
+    });
+    // Re-issue the JWT without the mustChangePassword flag so the gate clears.
+    const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [],
+      email: user.email, name: `${user.firstName} ${user.lastName}`, employeeId: req.user.employeeId || null, mustChangePassword: false });
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
+    res.redirect('/');
+  } catch (e) { return render('Could not update your password. Please try again.'); }
 });
 
 // ── Account / self-service security ──────────────────────────────────
@@ -2370,6 +2409,169 @@ const ensureCompanyProfile = async () => {
     },
   });
 };
+
+// ── Platform Admin — tenant onboarding (super_admin / director) ─────────
+const platformAdminOnly = (req, res, next) => {
+  if (hasRole(req.user, ['super_admin', 'director'])) return next();
+  return res.status(403).render('error', { title: 'Access denied', message: 'Only a platform administrator can onboard businesses.', code: 403 });
+};
+
+// Readable temporary password: letters + digits + a hyphen, e.g. "Fleet-kRtMq482".
+const generateTempPassword = () => {
+  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  let p = 'Fleet-';
+  for (let i = 0; i < 5; i++) p += letters[crypto.randomInt(letters.length)];
+  for (let i = 0; i < 3; i++) p += digits[crypto.randomInt(digits.length)];
+  return p;
+};
+
+const TENANT_ADMIN_ROLES = ['director', 'transport_manager', 'operations_manager', 'hr_manager'];
+
+router.get('/platform', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const tenants = await prisma.tenant.findMany({
+      include: { _count: { select: { users: true, companies: true, branches: true } } },
+      orderBy: [{ onboardedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+    const kpis = {
+      total: tenants.length,
+      active: tenants.filter(t => t.status === 'active').length,
+      trial: tenants.filter(t => t.status === 'trial').length,
+      suspended: tenants.filter(t => t.status === 'suspended').length,
+      users: tenants.reduce((s, t) => s + t._count.users, 0),
+    };
+    res.render('platform/index', { title: 'Platform Admin', tenants, kpis, formatDate, path: '/platform' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/platform/onboard', webAuth, platformAdminOnly, (req, res) => {
+  res.render('platform/onboard', { title: 'Onboard a business', error: null, form: {}, adminRoles: TENANT_ADMIN_ROLES, roleLabel, path: '/platform' });
+});
+
+router.post('/platform/onboard', webAuth, platformAdminOnly, async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  const b = req.body;
+  const form = { ...b };
+  const render = (error) => res.render('platform/onboard', { title: 'Onboard a business', error, form, adminRoles: TENANT_ADMIN_ROLES, roleLabel, path: '/platform' });
+  try {
+    const tradingName = (b.tradingName || '').trim();
+    const adminEmail = (b.adminEmail || '').trim().toLowerCase();
+    const adminFirst = (b.adminFirstName || '').trim();
+    const adminLast = (b.adminLastName || '').trim();
+    if (!tradingName) return render('Business trading name is required.');
+    if (!adminFirst || !adminLast) return render("The primary admin's first and last name are required.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) return render('A valid primary admin email is required.');
+
+    // Global email-uniqueness check (raw query bypasses tenant scoping).
+    const exists = await prisma.$queryRaw`SELECT 1 FROM "User" WHERE LOWER(email) = ${adminEmail} LIMIT 1`;
+    if (Array.isArray(exists) && exists.length) return render('That admin email is already in use on the platform.');
+
+    const adminRole = TENANT_ADMIN_ROLES.includes(b.adminRole) ? b.adminRole : 'director';
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    const tenant = await prisma.tenant.create({
+      data: {
+        name: tradingName,
+        slug: slugify(b.slug || tradingName) || slugify(tradingName + '-' + Date.now()),
+        plan: (b.plan || 'starter').trim(),
+        status: ['active', 'trial', 'suspended'].includes(b.status) ? b.status : 'trial',
+        onboardedAt: new Date(),
+        primaryContactName: `${adminFirst} ${adminLast}`,
+        primaryContactEmail: adminEmail,
+        primaryContactPhone: b.adminPhone || null,
+        notes: b.notes || null,
+      },
+    });
+
+    let adminUser;
+    await runWithTenant(tenant.id, async () => {
+      const company = await prisma.company.create({
+        data: {
+          name: (b.publicName || tradingName).trim(),
+          legalName: b.legalName || null,
+          operatorLicenceNumber: b.operatorLicence || null,
+          registeredAddress: b.registeredAddress || null,
+          timezone: b.timezone || 'Europe/London',
+          branding: { publicName: (b.publicName || tradingName).trim(), accentColor: b.accentColour || '#e11d2a' },
+        },
+      });
+      const branch = await prisma.branch.create({ data: { name: b.branchName?.trim() || 'Head Office', companyId: company.id } });
+      adminUser = await prisma.user.create({
+        data: {
+          email: adminEmail, passwordHash, role: adminRole, roles: [adminRole],
+          firstName: adminFirst, lastName: adminLast, phone: b.adminPhone || null,
+          isActive: true, mustChangePassword: true, companyId: company.id, branchIds: [branch.id],
+        },
+      });
+    });
+
+    // Optional welcome email with credentials + first-login instructions.
+    let emailed = false;
+    if (b.sendEmail) {
+      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+      try {
+        await sendMail({
+          to: adminEmail,
+          subject: `Welcome to FLEET.HQ — your ${tradingName} account is ready`,
+          html: `<p>Hi ${esc(adminFirst)},</p>
+            <p>Your <strong>${esc(tradingName)}</strong> account on FLEET.HQ has been created. Sign in and you'll be asked to set your own password on first login.</p>
+            <p><strong>Sign-in:</strong> <a href="${loginUrl}">${loginUrl}</a><br>
+            <strong>Email:</strong> ${esc(adminEmail)}<br>
+            <strong>Temporary password:</strong> ${esc(tempPassword)}</p>
+            <p>For security, this temporary password must be changed the first time you sign in.</p>
+            <p>— FLEET.HQ, powered by 256 Digital Technologies</p>`,
+        });
+        emailed = true;
+      } catch (mailErr) { emailed = false; }
+    }
+
+    return res.render('platform/onboarded', {
+      title: 'Business onboarded',
+      tenant, admin: adminUser, tempPassword, emailed, reset: false,
+      loginUrl: `${req.protocol}://${req.get('host')}/login`,
+      path: '/platform',
+    });
+  } catch (e) {
+    if (e.code === 'P2002') return render('That admin email is already in use on the platform.');
+    return render('Could not onboard the business: ' + (e.message || 'unexpected error'));
+  }
+});
+
+router.post('/platform/tenants/:id/update', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const data = {};
+    if (req.body.plan) data.plan = req.body.plan.trim();
+    if (['active', 'trial', 'suspended'].includes(req.body.status)) data.status = req.body.status;
+    if (typeof req.body.notes === 'string') data.notes = req.body.notes || null;
+    await prisma.tenant.update({ where: { id: req.params.id }, data });
+    res.redirect('/platform');
+  } catch (e) { res.redirect('/platform'); }
+});
+
+router.post('/platform/tenants/:id/reset-admin', webAuth, platformAdminOnly, async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    let admin;
+    await runWithTenant(tenant.id, async () => {
+      admin = await prisma.user.findFirst({ where: { email: tenant.primaryContactEmail || undefined }, orderBy: { createdAt: 'asc' } })
+        || await prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+      if (admin) {
+        await prisma.user.update({ where: { id: admin.id }, data: { passwordHash, mustChangePassword: true, failedLoginAttempts: 0, lockedUntil: null } });
+      }
+    });
+    if (!admin) return res.redirect('/platform');
+    return res.render('platform/onboarded', {
+      title: 'Admin password reset', tenant, admin, tempPassword, emailed: false, reset: true,
+      loginUrl: `${req.protocol}://${req.get('host')}/login`, path: '/platform',
+    });
+  } catch (e) { res.redirect('/platform'); }
+});
 
 router.get('/super-admin', webAuth, requireRoles('super_admin', 'director'), async (req, res) => {
   try {

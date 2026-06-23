@@ -298,6 +298,12 @@
   <div class="sidebar-section">
     <div class="sidebar-section-label">Admin</div>
     <nav>
+      <% if (hasAny('super_admin', 'director')) { %>
+      <a href="/platform" class="<%= ['Platform Admin', 'Onboard a business', 'Business onboarded', 'Admin password reset'].includes(title) ? 'active' : '' %>">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l2-3h14l2 3M3 7h18M8 11h8"/></svg>
+        Platform Admin
+      </a>
+      <% } %>
       <% if (isDirector) { %>
       <a href="/super-admin" class="<%= title === 'Super Admin' ? 'active' : '' %>">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h10M7 4v16m10-16v10"/></svg>

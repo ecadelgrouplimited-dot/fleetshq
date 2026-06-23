@@ -203,6 +203,12 @@ model Tenant {
   plan     String       @default("starter")
   status   TenantStatus @default(active)
   branding Json?
+  // Onboarding metadata (set by platform admin during onboarding)
+  onboardedAt          DateTime?
+  primaryContactName   String?
+  primaryContactEmail  String?
+  primaryContactPhone  String?
+  notes                String?
 
   companies              Company[]
   branches               Branch[]
@@ -295,6 +301,9 @@ model User {
   lockedUntil         DateTime?
   resetTokenHash      String?
   resetTokenExpiry    DateTime?
+  // First-login / onboarding: force a password change on first sign-in.
+  mustChangePassword  Boolean    @default(false)
+  passwordChangedAt   DateTime?
 
   employee   Employee? @relation("UserEmployee", fields: [employeeId], references: [id])
   employeeId String?   @unique

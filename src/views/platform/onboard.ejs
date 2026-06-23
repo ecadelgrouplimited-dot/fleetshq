@@ -1,0 +1,119 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Platform Admin</div>
+    <h1>Onboard a business</h1>
+    <p class="page-sub">Set up a new tenant, its company profile and a primary administrator. The admin signs in with a temporary password and must set their own on first login.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/platform">← Back to tenants</a></div>
+</div>
+
+${error ? `<div class="card mb-4" style="border-left:4px solid var(--danger)"><div class="card-body" style="color:var(--danger-t)">${esc(error)}</div></div>` : ''}
+
+<form method="post" action="/platform/onboard">
+  <input type="hidden" name="_csrf" value="${csrfToken}">
+
+  <div class="grid-2">
+    <!-- Business details -->
+    <div class="card">
+      <div class="card-header"><h3>1 · Business details</h3></div>
+      <div class="card-body">
+        <div class="form-group"><label class="form-label">Trading name <span class="required">*</span></label>
+          <input class="form-control" name="tradingName" required value="${esc(form.tradingName || '')}" placeholder="e.g. Apex Haulage">
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Public name</label>
+            <input class="form-control" name="publicName" value="${esc(form.publicName || '')}" placeholder="Shown to clients (defaults to trading name)">
+          </div>
+          <div class="form-group"><label class="form-label">URL slug</label>
+            <input class="form-control" name="slug" value="${esc(form.slug || '')}" placeholder="auto from trading name">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Legal name</label>
+            <input class="form-control" name="legalName" value="${esc(form.legalName || '')}" placeholder="e.g. Apex Haulage Ltd">
+          </div>
+          <div class="form-group"><label class="form-label">Operator licence no.</label>
+            <input class="form-control" name="operatorLicence" value="${esc(form.operatorLicence || '')}" placeholder="e.g. OB1234567">
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Registered address</label>
+          <textarea class="form-control" name="registeredAddress" rows="2" placeholder="Street, town, postcode">${esc(form.registeredAddress || '')}</textarea>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Timezone</label>
+            <input class="form-control" name="timezone" value="${esc(form.timezone || 'Europe/London')}">
+          </div>
+          <div class="form-group"><label class="form-label">First branch name</label>
+            <input class="form-control" name="branchName" value="${esc(form.branchName || '')}" placeholder="Head Office">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Primary admin + account -->
+    <div>
+      <div class="card mb-4">
+        <div class="card-header"><h3>2 · Primary administrator</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">First name <span class="required">*</span></label>
+              <input class="form-control" name="adminFirstName" required value="${esc(form.adminFirstName || '')}">
+            </div>
+            <div class="form-group"><label class="form-label">Last name <span class="required">*</span></label>
+              <input class="form-control" name="adminLastName" required value="${esc(form.adminLastName || '')}">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Email <span class="required">*</span></label>
+              <input class="form-control" type="email" name="adminEmail" required value="${esc(form.adminEmail || '')}" placeholder="admin@business.com">
+            </div>
+            <div class="form-group"><label class="form-label">Phone</label>
+              <input class="form-control" name="adminPhone" value="${esc(form.adminPhone || '')}">
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Admin role</label>
+            <select class="form-control" name="adminRole">
+              ${adminRoles.map(r => `<option value="${r}" ${form.adminRole === r ? 'selected' : ''}>${roleLabel ? roleLabel(r) : r}</option>`).join('')}
+            </select>
+            <div class="form-hint">The primary administrator for this tenant. Defaults to Director (full access).</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:9px;margin-top:6px;font-size:13.5px;cursor:pointer">
+            <input type="checkbox" name="sendEmail" value="1" ${form.sendEmail ? 'checked' : ''} style="width:16px;height:16px">
+            Email the admin their sign-in link &amp; temporary password
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>3 · Account</h3></div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group"><label class="form-label">Plan</label>
+              <select class="form-control" name="plan">
+                ${['starter','growth','enterprise'].map(p => `<option value="${p}" ${ (form.plan || 'starter') === p ? 'selected' : ''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Status</label>
+              <select class="form-control" name="status">
+                ${['trial','active','suspended'].map(s => `<option value="${s}" ${ (form.status || 'trial') === s ? 'selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Internal notes</label>
+            <textarea class="form-control" name="notes" rows="2" placeholder="Anything the platform team should know">${esc(form.notes || '')}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+    <a class="btn btn-ghost" href="/platform">Cancel</a>
+    <button class="btn btn-primary" type="submit">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:15px;height:15px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      Create &amp; onboard business
+    </button>
+  </div>
+</form>
+` }) %>

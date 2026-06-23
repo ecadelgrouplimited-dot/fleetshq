@@ -1,0 +1,69 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Platform Admin</div>
+    <h1>${reset ? 'Admin password reset' : 'Business onboarded'}</h1>
+    <p class="page-sub">${reset ? `A new temporary password has been generated for ${esc(tenant.name)}.` : `${esc(tenant.name)} is set up and ready. Share the credentials below with the administrator.`}</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/platform">← Back to tenants</a></div>
+</div>
+
+<div class="card" style="max-width:620px;border:1px solid rgba(16,185,129,.4)">
+  <div class="card-header" style="background:var(--success-bg)"><h3 style="color:var(--success-t)">${reset ? '🔑 Temporary password reset' : '✓ Account created'}</h3></div>
+  <div class="card-body">
+    <div class="cred-note">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      <span>These credentials are shown <strong>once</strong>. The administrator must change the password the first time they sign in.</span>
+    </div>
+
+    <div class="cred-grid">
+      <div class="cred-row"><span class="cred-k">Business</span><span class="cred-v">${esc(tenant.name)}</span></div>
+      <div class="cred-row"><span class="cred-k">Administrator</span><span class="cred-v">${esc(admin.firstName)} ${esc(admin.lastName)}</span></div>
+      <div class="cred-row"><span class="cred-k">Sign-in URL</span><span class="cred-v"><a href="${esc(loginUrl)}">${esc(loginUrl)}</a> <button type="button" class="cred-copy" data-copy="${esc(loginUrl)}">Copy</button></span></div>
+      <div class="cred-row"><span class="cred-k">Email</span><span class="cred-v"><code>${esc(admin.email)}</code> <button type="button" class="cred-copy" data-copy="${esc(admin.email)}">Copy</button></span></div>
+      <div class="cred-row"><span class="cred-k">Temporary password</span><span class="cred-v"><code id="tempPw">${esc(tempPassword)}</code> <button type="button" class="cred-copy" data-copy="${esc(tempPassword)}">Copy</button></span></div>
+    </div>
+
+    ${emailed ? `<div class="cred-emailed">✓ A welcome email with these details was sent to ${esc(admin.email)}.</div>` : ''}
+
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button type="button" class="btn btn-primary" id="copyAll">Copy all credentials</button>
+      ${reset ? '' : '<a class="btn btn-outline" href="/platform/onboard">Onboard another</a>'}
+    </div>
+  </div>
+</div>
+
+<style>
+  .cred-note { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:10px; background:var(--warning-bg); color:var(--warning-t); font-size:13px; margin-bottom:18px; }
+  .cred-note svg { width:18px; height:18px; flex-shrink:0; margin-top:1px; }
+  .cred-grid { display:flex; flex-direction:column; gap:1px; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .cred-row { display:grid; grid-template-columns:160px 1fr; gap:12px; padding:12px 14px; background:var(--card); border-bottom:1px solid var(--border); align-items:center; }
+  .cred-row:last-child { border-bottom:none; }
+  .cred-k { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; }
+  .cred-v { font-size:14px; font-weight:600; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .cred-v code { font-family:ui-monospace,monospace; background:var(--surface-2); padding:3px 8px; border-radius:6px; font-weight:700; }
+  .cred-copy { font-size:11px; font-weight:700; color:var(--primary); background:transparent; border:1px solid var(--border-md); border-radius:6px; padding:3px 8px; cursor:pointer; }
+  .cred-copy:hover { background:var(--surface-2); }
+  .cred-emailed { margin-top:14px; font-size:13px; color:var(--success); font-weight:600; }
+</style>
+
+<script>
+(function() {
+  function copy(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+      var old = btn ? btn.textContent : null;
+      if (btn) { btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = old; }, 1200); }
+      if (window.showToast) showToast('Copied to clipboard', 'success');
+    });
+  }
+  document.querySelectorAll('[data-copy]').forEach(function(b) {
+    b.addEventListener('click', function() { copy(b.getAttribute('data-copy'), b); });
+  });
+  var all = document.getElementById('copyAll');
+  if (all) all.addEventListener('click', function() {
+    var text = 'FLEET.HQ sign-in\\nURL: ${esc(loginUrl)}\\nEmail: ${esc(admin.email)}\\nTemporary password: ${esc(tempPassword)}\\n(You will be asked to set a new password on first sign-in.)';
+    copy(text, all);
+  });
+})();
+</script>
+` }) %>

@@ -1,0 +1,90 @@
+<%
+  const statusBadge = { active: 'badge-green', trial: 'badge-amber', suspended: 'badge-red' };
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Platform Admin</div>
+    <h1>Tenants &amp; onboarding</h1>
+    <p class="page-sub">Onboard transport businesses and manage their plan, status and access.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-primary" href="/platform/onboard">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:15px;height:15px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      Onboard a business
+    </a>
+  </div>
+</div>
+
+<div class="plat-kpis mb-4">
+  ${[
+    { label: 'Total Tenants', value: kpis.total, tone: 'blue', sub: 'On the platform' },
+    { label: 'Active', value: kpis.active, tone: 'green', sub: 'Live accounts' },
+    { label: 'On Trial', value: kpis.trial, tone: 'amber', sub: 'Evaluating' },
+    { label: 'Suspended', value: kpis.suspended, tone: kpis.suspended > 0 ? 'red' : 'green', sub: 'Paused' },
+    { label: 'Total Users', value: kpis.users, tone: 'blue', sub: 'Across all tenants' },
+  ].map(k => `
+    <div class="plat-kpi ${k.tone}">
+      <div class="plat-kpi-value">${k.value}</div>
+      <div class="plat-kpi-label">${k.label}</div>
+      <div class="plat-kpi-sub">${k.sub}</div>
+    </div>`).join('')}
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Platform Tenants</h3><span class="text-sm text-muted">${tenants.length} business${tenants.length === 1 ? '' : 'es'}</span></div>
+  ${tenants.length === 0 ? `
+    <div class="empty-state" style="padding:48px 14px"><p>No tenants yet</p><div class="empty-hint">Onboard your first business to get started.</div></div>
+  ` : `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Business</th><th scope="col">Plan</th><th scope="col">Status</th><th scope="col">Users</th><th scope="col">Branches</th><th scope="col">Onboarded</th><th scope="col">Primary contact</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        ${tenants.map(t => `
+          <tr>
+            <td>
+              <div style="font-weight:700">${esc(t.name)}</div>
+              <div class="cell-muted" style="font-size:11px;font-family:ui-monospace,monospace">${esc(t.slug)}</div>
+            </td>
+            <td><span class="badge badge-slate" style="text-transform:capitalize">${esc(t.plan)}</span></td>
+            <td>
+              <form method="post" action="/platform/tenants/${t.id}/update" style="display:flex;gap:6px;align-items:center">
+                <input type="hidden" name="_csrf" value="${csrfToken}">
+                <select name="status" class="form-control" style="height:30px;padding:3px 8px;width:120px">
+                  ${['active','trial','suspended'].map(s => `<option value="${s}" ${t.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+                </select>
+                <button class="btn btn-outline btn-sm" type="submit">Save</button>
+              </form>
+            </td>
+            <td style="font-weight:700">${t._count.users}</td>
+            <td class="cell-muted">${t._count.branches}</td>
+            <td class="cell-muted">${t.onboardedAt ? formatDate(t.onboardedAt) : formatDate(t.createdAt)}</td>
+            <td>
+              ${t.primaryContactName ? `<div style="font-size:13px">${esc(t.primaryContactName)}</div><div class="cell-muted" style="font-size:11px">${esc(t.primaryContactEmail || '')}</div>` : '<span class="text-light">—</span>'}
+            </td>
+            <td>
+              <form method="post" action="/platform/tenants/${t.id}/reset-admin" onsubmit="return confirm('Generate a new temporary password for this tenant\\'s admin? They will be forced to set a new one at next sign-in.')">
+                <input type="hidden" name="_csrf" value="${csrfToken}">
+                <button class="btn btn-ghost btn-sm" type="submit">Reset admin password</button>
+              </form>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+
+<style>
+  .plat-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .plat-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .plat-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .plat-kpi.blue::before { background:var(--primary); } .plat-kpi.green::before { background:var(--success); }
+  .plat-kpi.amber::before { background:var(--warning); } .plat-kpi.red::before { background:var(--danger); }
+  .plat-kpi-value { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .plat-kpi.amber .plat-kpi-value { color:var(--warning); } .plat-kpi.red .plat-kpi-value { color:var(--danger); }
+  .plat-kpi-label { font-size:12px; font-weight:700; margin-top:6px; }
+  .plat-kpi-sub { font-size:11px; color:var(--text-muted); margin-top:2px; }
+  @media (max-width:1100px) { .plat-kpis { grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:560px) { .plat-kpis { grid-template-columns:repeat(2,1fr); } }
+</style>
+` }) %>
