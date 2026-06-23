@@ -2545,9 +2545,121 @@ router.post('/platform/tenants/:id/update', webAuth, platformAdminOnly, async (r
     if (req.body.plan) data.plan = req.body.plan.trim();
     if (['active', 'trial', 'suspended'].includes(req.body.status)) data.status = req.body.status;
     if (typeof req.body.notes === 'string') data.notes = req.body.notes || null;
+    if (typeof req.body.primaryContactName === 'string') data.primaryContactName = req.body.primaryContactName.trim() || null;
+    if (typeof req.body.primaryContactEmail === 'string') data.primaryContactEmail = req.body.primaryContactEmail.trim().toLowerCase() || null;
+    if (typeof req.body.primaryContactPhone === 'string') data.primaryContactPhone = req.body.primaryContactPhone.trim() || null;
     await prisma.tenant.update({ where: { id: req.params.id }, data });
-    res.redirect('/platform');
+    res.redirect(req.body.redirect === 'detail' ? `/platform/tenants/${req.params.id}?saved=tenant` : '/platform');
   } catch (e) { res.redirect('/platform'); }
+});
+
+// ── Tenant detail (view & manage a single tenant) ──────────────────────
+const TENANT_USER_ROLES = ['director', 'transport_manager', 'operations_manager', 'hr_manager', 'fleet_manager', 'finance_officer', 'trainer', 'driver'];
+
+router.get('/platform/tenants/:id', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    let detail = { company: null, branches: [], users: [], counts: { users: 0, branches: 0, vehicles: 0, employees: 0 } };
+    await runWithTenant(tenant.id, async () => {
+      const [company, branches, users, uCount, bCount, vCount, eCount] = await Promise.all([
+        prisma.company.findFirst({ orderBy: { createdAt: 'asc' } }),
+        prisma.branch.findMany({ orderBy: { name: 'asc' } }),
+        prisma.user.findMany({
+          select: { id: true, email: true, firstName: true, lastName: true, role: true, roles: true, isActive: true, lastLoginAt: true, mustChangePassword: true, createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        }),
+        prisma.user.count(), prisma.branch.count(), prisma.vehicle.count(), prisma.employee.count(),
+      ]);
+      detail = { company, branches, users, counts: { users: uCount, branches: bCount, vehicles: vCount, employees: eCount } };
+    });
+    res.render('platform/tenant', {
+      title: tenant.name, tenant, ...detail, addRoles: TENANT_USER_ROLES, roleLabel,
+      saved: req.query.saved || '', formatDate, path: '/platform',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/platform/tenants/:id/company', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    await runWithTenant(tenant.id, async () => {
+      const company = await prisma.company.findFirst({ orderBy: { createdAt: 'asc' } });
+      const data = {
+        name: (req.body.name || tenant.name).trim(),
+        legalName: req.body.legalName?.trim() || null,
+        operatorLicenceNumber: req.body.operatorLicenceNumber?.trim() || null,
+        registeredAddress: req.body.registeredAddress?.trim() || null,
+        timezone: req.body.timezone?.trim() || 'Europe/London',
+        branding: { ...(company?.branding || {}), publicName: (req.body.publicName || req.body.name || tenant.name).trim() },
+      };
+      if (company) await prisma.company.update({ where: { id: company.id }, data });
+      else await prisma.company.create({ data });
+    });
+    res.redirect(`/platform/tenants/${req.params.id}?saved=company`);
+  } catch (e) { res.redirect(`/platform/tenants/${req.params.id}`); }
+});
+
+router.post('/platform/tenants/:id/users', webAuth, platformAdminOnly, async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    const email = (req.body.email || '').trim().toLowerCase();
+    const firstName = (req.body.firstName || '').trim();
+    const lastName = (req.body.lastName || '').trim();
+    if (!firstName || !lastName || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return res.redirect(`/platform/tenants/${req.params.id}?saved=user-invalid`);
+    }
+    const exists = await prisma.$queryRaw`SELECT 1 FROM "User" WHERE LOWER(email) = ${email} LIMIT 1`;
+    if (Array.isArray(exists) && exists.length) return res.redirect(`/platform/tenants/${req.params.id}?saved=user-exists`);
+    const role = TENANT_USER_ROLES.includes(req.body.role) ? req.body.role : 'transport_manager';
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    let user;
+    await runWithTenant(tenant.id, async () => {
+      user = await prisma.user.create({
+        data: { email, passwordHash, role, roles: [role], firstName, lastName, phone: req.body.phone || null, isActive: true, mustChangePassword: true },
+      });
+    });
+    return res.render('platform/onboarded', {
+      title: 'User created', tenant, admin: user, tempPassword, emailed: false, reset: false,
+      loginUrl: `${req.protocol}://${req.get('host')}/login`, path: '/platform',
+    });
+  } catch (e) { res.redirect(`/platform/tenants/${req.params.id}?saved=user-error`); }
+});
+
+router.post('/platform/tenants/:id/users/:userId/toggle', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    await runWithTenant(tenant.id, async () => {
+      const u = await prisma.user.findUnique({ where: { id: req.params.userId } });
+      if (u) await prisma.user.update({ where: { id: u.id }, data: { isActive: !u.isActive } });
+    });
+    res.redirect(`/platform/tenants/${req.params.id}?saved=user`);
+  } catch (e) { res.redirect(`/platform/tenants/${req.params.id}`); }
+});
+
+router.post('/platform/tenants/:id/users/:userId/reset', webAuth, platformAdminOnly, async (req, res) => {
+  const bcrypt = require('bcryptjs');
+  try {
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.redirect('/platform');
+    const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    let user;
+    await runWithTenant(tenant.id, async () => {
+      user = await prisma.user.findUnique({ where: { id: req.params.userId } });
+      if (user) await prisma.user.update({ where: { id: user.id }, data: { passwordHash, mustChangePassword: true, failedLoginAttempts: 0, lockedUntil: null } });
+    });
+    if (!user) return res.redirect(`/platform/tenants/${req.params.id}`);
+    return res.render('platform/onboarded', {
+      title: 'Password reset', tenant, admin: user, tempPassword, emailed: false, reset: true,
+      loginUrl: `${req.protocol}://${req.get('host')}/login`, path: '/platform',
+    });
+  } catch (e) { res.redirect(`/platform/tenants/${req.params.id}`); }
 });
 
 router.post('/platform/tenants/:id/reset-admin', webAuth, platformAdminOnly, async (req, res) => {

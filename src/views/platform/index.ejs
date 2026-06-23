@@ -41,9 +41,9 @@
       <thead><tr><th scope="col">Business</th><th scope="col">Plan</th><th scope="col">Status</th><th scope="col">Users</th><th scope="col">Branches</th><th scope="col">Onboarded</th><th scope="col">Primary contact</th><th scope="col">Actions</th></tr></thead>
       <tbody>
         ${tenants.map(t => `
-          <tr>
+          <tr style="cursor:pointer" onclick="if(!event.target.closest('form')) location.href='/platform/tenants/${t.id}'">
             <td>
-              <div style="font-weight:700">${esc(t.name)}</div>
+              <a href="/platform/tenants/${t.id}" style="font-weight:700">${esc(t.name)}</a>
               <div class="cell-muted" style="font-size:11px;font-family:ui-monospace,monospace">${esc(t.slug)}</div>
             </td>
             <td><span class="badge badge-slate" style="text-transform:capitalize">${esc(t.plan)}</span></td>
@@ -63,10 +63,13 @@
               ${t.primaryContactName ? `<div style="font-size:13px">${esc(t.primaryContactName)}</div><div class="cell-muted" style="font-size:11px">${esc(t.primaryContactEmail || '')}</div>` : '<span class="text-light">—</span>'}
             </td>
             <td>
-              <form method="post" action="/platform/tenants/${t.id}/reset-admin" onsubmit="return confirm('Generate a new temporary password for this tenant\\'s admin? They will be forced to set a new one at next sign-in.')">
-                <input type="hidden" name="_csrf" value="${csrfToken}">
-                <button class="btn btn-ghost btn-sm" type="submit">Reset admin password</button>
-              </form>
+              <div class="flex gap-2" style="flex-wrap:wrap">
+                <a class="btn btn-outline btn-sm" href="/platform/tenants/${t.id}">Manage →</a>
+                <form method="post" action="/platform/tenants/${t.id}/reset-admin" onsubmit="return confirm('Generate a new temporary password for this tenant\\'s admin? They will be forced to set a new one at next sign-in.')">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <button class="btn btn-ghost btn-sm" type="submit">Reset password</button>
+                </form>
+              </div>
             </td>
           </tr>`).join('')}
       </tbody>

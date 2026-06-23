@@ -1,0 +1,184 @@
+<%
+  const statusBadge = { active: 'badge-green', trial: 'badge-amber', suspended: 'badge-red' };
+  const savedMsg = {
+    tenant: 'Tenant settings saved.', company: 'Company profile saved.', user: 'User updated.',
+    'user-exists': 'That email is already in use on the platform.', 'user-invalid': 'Please provide a valid name and email.',
+    'user-error': 'Could not add the user.',
+  };
+  const branding = (company && company.branding) || {};
+%>
+<%- include('../layouts/main', { body: `
+<div class="flex items-center justify-between mb-4">
+  <a href="/platform" class="btn btn-ghost btn-sm">← All tenants</a>
+  <form method="post" action="/platform/tenants/${tenant.id}/reset-admin" onsubmit="return confirm('Generate a new temporary password for the primary admin?')">
+    <input type="hidden" name="_csrf" value="${csrfToken}">
+    <button class="btn btn-outline btn-sm" type="submit">Reset admin password</button>
+  </form>
+</div>
+
+${saved && savedMsg[saved] ? `<div class="card mb-4" style="border-left:4px solid var(--${saved.startsWith('user-') ? 'danger' : 'success'})"><div class="card-body" style="padding:12px 16px;color:var(--${saved.startsWith('user-') ? 'danger-t' : 'success-t'})">${esc(savedMsg[saved])}</div></div>` : ''}
+
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Platform Admin · Tenant</div>
+    <h1>${esc(tenant.name)}</h1>
+    <p class="page-sub">
+      <span class="badge ${statusBadge[tenant.status]}">${tenant.status}</span>
+      <span class="badge badge-slate" style="text-transform:capitalize">${esc(tenant.plan)} plan</span>
+      <span style="color:var(--text-muted)">· ${esc(tenant.slug)} · onboarded ${formatDate(tenant.onboardedAt || tenant.createdAt)}</span>
+    </p>
+  </div>
+</div>
+
+<div class="plat-kpis mb-4">
+  ${[
+    { label: 'Users', value: counts.users, tone: 'blue' },
+    { label: 'Branches', value: counts.branches, tone: 'blue' },
+    { label: 'Vehicles', value: counts.vehicles, tone: 'green' },
+    { label: 'Employees', value: counts.employees, tone: 'green' },
+  ].map(k => `<div class="plat-kpi ${k.tone}"><div class="plat-kpi-value">${k.value}</div><div class="plat-kpi-label">${k.label}</div></div>`).join('')}
+</div>
+
+<div class="grid-2 mb-4">
+  <!-- Tenant settings -->
+  <div class="card">
+    <div class="card-header"><h3>Tenant settings</h3></div>
+    <div class="card-body">
+      <form method="post" action="/platform/tenants/${tenant.id}/update">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <input type="hidden" name="redirect" value="detail">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Plan</label>
+            <select class="form-control" name="plan">${['starter','growth','enterprise'].map(p => `<option value="${p}" ${tenant.plan === p ? 'selected' : ''}>${p.charAt(0).toUpperCase()+p.slice(1)}</option>`).join('')}</select>
+          </div>
+          <div class="form-group"><label class="form-label">Status</label>
+            <select class="form-control" name="status">${['active','trial','suspended'].map(s => `<option value="${s}" ${tenant.status === s ? 'selected' : ''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}</select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Primary contact name</label><input class="form-control" name="primaryContactName" value="${esc(tenant.primaryContactName || '')}"></div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Contact email</label><input class="form-control" type="email" name="primaryContactEmail" value="${esc(tenant.primaryContactEmail || '')}"></div>
+          <div class="form-group"><label class="form-label">Contact phone</label><input class="form-control" name="primaryContactPhone" value="${esc(tenant.primaryContactPhone || '')}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Internal notes</label><textarea class="form-control" name="notes" rows="2">${esc(tenant.notes || '')}</textarea></div>
+        <button class="btn btn-primary">Save settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Company profile -->
+  <div class="card">
+    <div class="card-header"><h3>Company profile</h3></div>
+    <div class="card-body">
+      <form method="post" action="/platform/tenants/${tenant.id}/company">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Trading name</label><input class="form-control" name="name" value="${esc(company?.name || tenant.name)}"></div>
+          <div class="form-group"><label class="form-label">Public name</label><input class="form-control" name="publicName" value="${esc(branding.publicName || company?.name || '')}"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Legal name</label><input class="form-control" name="legalName" value="${esc(company?.legalName || '')}"></div>
+          <div class="form-group"><label class="form-label">Operator licence</label><input class="form-control" name="operatorLicenceNumber" value="${esc(company?.operatorLicenceNumber || '')}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Timezone</label><input class="form-control" name="timezone" value="${esc(company?.timezone || 'Europe/London')}"></div>
+        <div class="form-group"><label class="form-label">Registered address</label><textarea class="form-control" name="registeredAddress" rows="2">${esc(company?.registeredAddress || '')}</textarea></div>
+        <button class="btn btn-primary">Save company</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Users -->
+<div class="card mb-4">
+  <div class="card-header"><h3>Users &amp; access</h3><button class="btn btn-outline btn-sm" id="addUserBtn">+ Add user</button></div>
+  ${users.length === 0 ? `<div class="empty-state" style="padding:40px 14px"><p>No users yet</p></div>` : `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Last login</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        ${users.map(u => `
+          <tr>
+            <td>${avatar({ id: u.id, fullName: u.firstName + ' ' + u.lastName }, { size: 30, withName: true })}</td>
+            <td class="cell-muted">${esc(u.email)}</td>
+            <td><span class="badge badge-slate">${esc(roleLabel ? roleLabel(u.role) : u.role)}</span></td>
+            <td>
+              <span class="badge ${u.isActive ? 'badge-green' : 'badge-red'}">${u.isActive ? 'Active' : 'Inactive'}</span>
+              ${u.mustChangePassword ? '<span class="badge badge-amber" style="margin-left:4px">Must reset</span>' : ''}
+            </td>
+            <td class="cell-muted">${u.lastLoginAt ? formatDate(u.lastLoginAt) : 'Never'}</td>
+            <td>
+              <div class="flex gap-2" style="flex-wrap:wrap">
+                <form method="post" action="/platform/tenants/${tenant.id}/users/${u.id}/reset" onsubmit="return confirm('Reset this user\\'s password? They will get a temporary password and must change it.')">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <button class="btn btn-ghost btn-sm" type="submit">Reset password</button>
+                </form>
+                <form method="post" action="/platform/tenants/${tenant.id}/users/${u.id}/toggle">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <button class="btn ${u.isActive ? 'btn-danger-soft' : 'btn-success'} btn-sm" type="submit">${u.isActive ? 'Deactivate' : 'Reactivate'}</button>
+                </form>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+
+<!-- Branches -->
+<div class="card">
+  <div class="card-header"><h3>Branches</h3></div>
+  <div class="card-body">
+    ${branches.length === 0 ? '<div class="cell-muted" style="font-size:13px">No branches yet.</div>' : `
+    <div class="branch-grid">
+      ${branches.map(b => `<div class="branch-chip"><strong>${esc(b.name)}</strong>${b.address ? `<span>${esc(b.address)}</span>` : ''}</div>`).join('')}
+    </div>`}
+  </div>
+</div>
+
+<!-- Add user modal -->
+<div id="userModal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>Add user to ${esc(tenant.name)}</h3><button type="button" id="closeUserModal" class="btn btn-ghost btn-sm">✕</button></div>
+    <form method="post" action="/platform/tenants/${tenant.id}/users">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">First name <span class="required">*</span></label><input class="form-control" name="firstName" required></div>
+          <div class="form-group"><label class="form-label">Last name <span class="required">*</span></label><input class="form-control" name="lastName" required></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input class="form-control" type="email" name="email" required></div>
+          <div class="form-group"><label class="form-label">Phone</label><input class="form-control" name="phone"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Role</label>
+          <select class="form-control" name="role">${addRoles.map(r => `<option value="${r}" ${r === 'transport_manager' ? 'selected' : ''}>${roleLabel ? roleLabel(r) : r}</option>`).join('')}</select>
+        </div>
+        <div class="form-hint">The user gets a temporary password and must set their own on first sign-in.</div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-ghost" id="cancelUserModal">Cancel</button><button type="submit" class="btn btn-primary">Create user</button></div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .plat-kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .plat-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
+  .plat-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
+  .plat-kpi.blue::before { background:var(--primary); } .plat-kpi.green::before { background:var(--success); }
+  .plat-kpi-value { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
+  .plat-kpi-label { font-size:12px; font-weight:700; color:var(--text-muted); margin-top:6px; }
+  .branch-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; }
+  .branch-chip { border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; }
+  .branch-chip strong { font-size:14px; } .branch-chip span { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  @media (max-width:560px) { .plat-kpis { grid-template-columns:repeat(2,1fr); } }
+</style>
+
+<script>
+(function() {
+  var modal = document.getElementById('userModal');
+  document.getElementById('addUserBtn').addEventListener('click', function() { modal.style.display = 'flex'; });
+  document.getElementById('closeUserModal').addEventListener('click', function() { modal.style.display = 'none'; });
+  document.getElementById('cancelUserModal').addEventListener('click', function() { modal.style.display = 'none'; });
+})();
+</script>
+` }) %>
