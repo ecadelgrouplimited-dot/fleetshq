@@ -483,6 +483,167 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
   } catch (e) { return render('Something went wrong. Please request a new reset link.'); }
 });
 
+// ── Self-serve registration (public) ─────────────────────────────────
+// Flow: details → email code → tier → done (pending_activation).
+// Activation (provisioning + credentials email) happens in Platform Admin
+// once payment is confirmed — see docs/ONBOARDING_AND_BILLING_PLAN.md.
+const registration = require('../services/registration.service');
+const { PLANS, FLEET_BANDS, planForFleetBand, getPlan, formatPrice } = require('../config/plans');
+
+const registerLimiter = require('express-rate-limit')({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => res.status(429).render('error', {
+    title: 'Too many requests', code: 429,
+    message: 'Too many registration attempts from this connection. Please wait a few minutes and try again.',
+  }),
+});
+
+const registerView = (res, step, data = {}) => res.render('auth/register', {
+  title: 'Register your company — FLEET.HQ',
+  step, error: null, notice: null, form: {}, request: null,
+  plans: Object.values(PLANS), fleetBands: FLEET_BANDS, formatPrice,
+  ...data,
+});
+
+const maskEmail = (email) => {
+  const [local, domain] = String(email).split('@');
+  if (!domain) return email;
+  const visible = local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(local.length - 2, 2))}@${domain}`;
+};
+
+// Load a request and enforce the step a status is allowed to see.
+const loadRegistration = async (rid) => {
+  if (!rid || !/^[0-9a-f-]{36}$/i.test(rid)) return null;
+  return prisma.registrationRequest.findUnique({ where: { id: rid } });
+};
+
+router.get('/register', (req, res) => registerView(res, 'details'));
+
+router.post('/register', registerLimiter, async (req, res) => {
+  const b = req.body;
+  const form = { ...b };
+  const fail = (error) => registerView(res, 'details', { error, form });
+  try {
+    const companyName = (b.companyName || '').trim();
+    const contactName = (b.contactName || '').trim();
+    const contactEmail = (b.contactEmail || '').trim().toLowerCase();
+    const fleetSize = FLEET_BANDS.includes(b.fleetSize) ? b.fleetSize : null;
+    if (!companyName) return fail('Your company name is required.');
+    if (!contactName) return fail('A contact name is required.');
+    if (!registration.isValidEmail(contactEmail)) return fail('A valid work email is required.');
+    if (registration.isDisposableEmail(contactEmail)) return fail('Please use a permanent work email address.');
+    if (!fleetSize) return fail('Please select your fleet size.');
+
+    // Already on the platform? Point them at sign-in instead of a new tenant.
+    const existingUser = await prisma.$queryRaw`SELECT 1 FROM "User" WHERE LOWER(email) = ${contactEmail} LIMIT 1`;
+    if (Array.isArray(existingUser) && existingUser.length) {
+      return fail('That email already has a FLEET.HQ account — try signing in instead.');
+    }
+
+    // Reuse an in-flight registration for the same email (refreshed details).
+    let request = await prisma.registrationRequest.findFirst({
+      where: { contactEmail, status: { in: ['pending_verification', 'verified', 'pending_activation'] } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const details = {
+      companyName, contactName, contactEmail,
+      companyRegNo: (b.companyRegNo || '').trim() || null,
+      contactPhone: (b.contactPhone || '').trim() || null,
+      fleetSize, region: (b.region || '').trim() || null,
+      ipAddress: req.ip, userAgent: req.get('user-agent') || null,
+    };
+    if (request && request.status !== 'pending_verification') {
+      // Email already verified in a previous session — skip straight to the tier step.
+      return res.redirect(`/register/plan?rid=${request.id}`);
+    }
+    if (request) request = await prisma.registrationRequest.update({ where: { id: request.id }, data: details });
+    else request = await prisma.registrationRequest.create({ data: details });
+
+    // Companies House validation snapshot (non-blocking — see service).
+    const chLookup = await registration.companiesHouseLookup(details.companyRegNo, companyName);
+    await prisma.registrationRequest.update({ where: { id: request.id }, data: { chLookup } });
+
+    const issued = await registration.issueCode(request.id);
+    if (issued.error) return fail(issued.error);
+    await sendMail({ to: contactEmail, ...emailTemplates.verificationCode({ contactName, companyName, code: issued.code }) });
+
+    return res.redirect(`/register/verify?rid=${request.id}`);
+  } catch (e) {
+    return fail('Something went wrong — please try again.');
+  }
+});
+
+router.get('/register/verify', async (req, res) => {
+  const request = await loadRegistration(req.query.rid);
+  if (!request) return res.redirect('/register');
+  if (request.status !== 'pending_verification') return res.redirect(`/register/plan?rid=${request.id}`);
+  return registerView(res, 'verify', { request, maskedEmail: maskEmail(request.contactEmail), notice: req.query.sent ? 'A new code is on its way to your inbox.' : null });
+});
+
+router.post('/register/verify', registerLimiter, async (req, res) => {
+  const request = await loadRegistration(req.body.rid);
+  if (!request) return res.redirect('/register');
+  if (request.status !== 'pending_verification') return res.redirect(`/register/plan?rid=${request.id}`);
+  const result = await registration.verifyCode(request.id, req.body.code || '');
+  if (result.error) return registerView(res, 'verify', { request, maskedEmail: maskEmail(request.contactEmail), error: result.error });
+  return res.redirect(`/register/plan?rid=${request.id}`);
+});
+
+router.post('/register/resend', registerLimiter, async (req, res) => {
+  const request = await loadRegistration(req.body.rid);
+  if (!request || request.status !== 'pending_verification') return res.redirect('/register');
+  const issued = await registration.issueCode(request.id);
+  if (issued.error) return registerView(res, 'verify', { request, maskedEmail: maskEmail(request.contactEmail), error: issued.error });
+  await sendMail({ to: request.contactEmail, ...emailTemplates.verificationCode({ contactName: request.contactName, companyName: request.companyName, code: issued.code }) });
+  return res.redirect(`/register/verify?rid=${request.id}&sent=1`);
+});
+
+router.get('/register/plan', async (req, res) => {
+  const request = await loadRegistration(req.query.rid);
+  if (!request) return res.redirect('/register');
+  if (request.status === 'pending_verification') return res.redirect(`/register/verify?rid=${request.id}`);
+  if (request.status === 'pending_activation' || request.status === 'provisioned') return res.redirect(`/register/done?rid=${request.id}`);
+  if (request.status === 'rejected') return res.redirect('/register');
+  const suggested = planForFleetBand(request.fleetSize);
+  return registerView(res, 'plan', { request, suggestedPlan: suggested.key });
+});
+
+router.post('/register/plan', registerLimiter, async (req, res) => {
+  const request = await loadRegistration(req.body.rid);
+  if (!request || request.status !== 'verified') return res.redirect('/register');
+  const plan = getPlan(req.body.plan);
+  if (!plan) {
+    return registerView(res, 'plan', { request, suggestedPlan: planForFleetBand(request.fleetSize).key, error: 'Please choose a tier to continue.' });
+  }
+  await prisma.registrationRequest.update({ where: { id: request.id }, data: { plan: plan.key, status: 'pending_activation' } });
+
+  // Applicant confirmation + ops heads-up (director, cc alerts).
+  await sendMail({ to: request.contactEmail, ...emailTemplates.registrationPending({ contactName: request.contactName, companyName: request.companyName, tierLabel: plan.label }) });
+  const ch = request.chLookup || {};
+  const chSummary = !ch.checked ? 'not checked' : !ch.found ? 'NOT FOUND' : `${ch.companyName} — ${ch.companyStatus}${ch.nameMatches ? '' : ' (name mismatch)'}`;
+  sendMail({
+    ...opsRecipients(),
+    ...emailTemplates.opsNewRegistration({
+      companyName: request.companyName, companyRegNo: request.companyRegNo,
+      contactName: request.contactName, contactEmail: request.contactEmail, contactPhone: request.contactPhone,
+      fleetSize: request.fleetSize, region: request.region, tierLabel: plan.label, chSummary,
+      reviewUrl: `${req.protocol}://${req.get('host')}/platform`,
+    }),
+  }).catch(() => {});
+
+  return res.redirect(`/register/done?rid=${request.id}`);
+});
+
+router.get('/register/done', async (req, res) => {
+  const request = await loadRegistration(req.query.rid);
+  if (!request) return res.redirect('/register');
+  return registerView(res, 'done', { request });
+});
+
 router.get('/documents/:kind/:id', webAuth, async (req, res) => {
   try {
     const doc = await loadDocumentRecord(req.params.kind, req.params.id, req.user);
@@ -2411,17 +2572,7 @@ const platformAdminOnly = (req, res, next) => {
   return res.status(403).render('error', { title: 'Access denied', message: 'Only a platform administrator can onboard businesses.', code: 403 });
 };
 
-// Readable temporary password: letters + digits + a hyphen, e.g. "Fleet-kRtMq482".
-const generateTempPassword = () => {
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz';
-  const digits = '23456789';
-  let p = 'Fleet-';
-  for (let i = 0; i < 5; i++) p += letters[crypto.randomInt(letters.length)];
-  for (let i = 0; i < 3; i++) p += digits[crypto.randomInt(digits.length)];
-  return p;
-};
-
-const TENANT_ADMIN_ROLES = ['director', 'transport_manager', 'operations_manager', 'hr_manager'];
+const { provisionTenant, generateTempPassword, TENANT_ADMIN_ROLES } = require('../services/provisioning.service');
 
 router.get('/platform', webAuth, platformAdminOnly, async (req, res) => {
   try {
@@ -2429,15 +2580,86 @@ router.get('/platform', webAuth, platformAdminOnly, async (req, res) => {
       include: { _count: { select: { users: true, companies: true, branches: true } } },
       orderBy: [{ onboardedAt: 'desc' }, { createdAt: 'desc' }],
     });
+    const registrations = await prisma.registrationRequest.findMany({
+      where: { status: { in: ['pending_verification', 'verified', 'pending_activation'] } },
+      orderBy: { createdAt: 'desc' },
+    });
     const kpis = {
       total: tenants.length,
       active: tenants.filter(t => t.status === 'active').length,
       trial: tenants.filter(t => t.status === 'trial').length,
       suspended: tenants.filter(t => t.status === 'suspended').length,
       users: tenants.reduce((s, t) => s + t._count.users, 0),
+      pendingRegistrations: registrations.filter(r => r.status === 'pending_activation').length,
     };
-    res.render('platform/index', { title: 'Platform Admin', tenants, kpis, formatDate, path: '/platform' });
+    res.render('platform/index', { title: 'Platform Admin', tenants, registrations, kpis, formatDate, getPlan, path: '/platform' });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Self-serve registration review queue ────────────────────────────────
+router.post('/platform/registrations/:id/activate', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const request = await prisma.registrationRequest.findUnique({ where: { id: req.params.id } });
+    if (!request) return res.status(404).render('error', { title: 'Not found', message: 'Registration not found.', code: 404 });
+    if (!['verified', 'pending_activation'].includes(request.status)) {
+      return res.status(400).render('error', { title: 'Cannot activate', message: `This registration is ${request.status.replace(/_/g, ' ')} — only verified registrations can be activated.`, code: 400 });
+    }
+
+    const nameParts = request.contactName.trim().split(/\s+/);
+    const { tenant, adminUser, tempPassword } = await provisionTenant({
+      tradingName: request.companyName,
+      plan: request.plan || 'starter',
+      status: 'active',
+      registeredAddress: null,
+      adminEmail: request.contactEmail,
+      adminFirst: nameParts[0],
+      adminLast: nameParts.slice(1).join(' ') || nameParts[0],
+      adminPhone: request.contactPhone,
+      notes: [
+        'Self-serve registration.',
+        request.companyRegNo ? `Company reg no: ${request.companyRegNo}` : null,
+        `Fleet size: ${request.fleetSize}`,
+        request.region ? `Region: ${request.region}` : null,
+        req.body.reviewNotes ? `Review notes: ${req.body.reviewNotes}` : null,
+      ].filter(Boolean).join(' '),
+    });
+
+    await prisma.registrationRequest.update({
+      where: { id: request.id },
+      data: { status: 'provisioned', tenantId: tenant.id, provisionedAt: new Date(), reviewNotes: req.body.reviewNotes || null },
+    });
+
+    const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+    const result = await sendMail({
+      to: adminUser.email,
+      ...emailTemplates.welcome({ tradingName: tenant.name, adminFirst: adminUser.firstName, loginUrl, adminEmail: adminUser.email, tempPassword }),
+    });
+
+    return res.render('platform/onboarded', {
+      title: 'Business activated',
+      tenant, admin: adminUser, tempPassword, emailed: !!result.sent, reset: false,
+      loginUrl, path: '/platform',
+    });
+  } catch (e) {
+    return res.status(400).render('error', { title: 'Activation failed', message: e.message || 'Could not activate this registration.', code: 400 });
+  }
+});
+
+router.post('/platform/registrations/:id/reject', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const request = await prisma.registrationRequest.findUnique({ where: { id: req.params.id } });
+    if (!request) return res.status(404).render('error', { title: 'Not found', message: 'Registration not found.', code: 404 });
+    await prisma.registrationRequest.update({
+      where: { id: request.id },
+      data: { status: 'rejected', reviewNotes: req.body.reviewNotes || null },
+    });
+    if (req.body.notify) {
+      await sendMail({ to: request.contactEmail, ...emailTemplates.registrationRejected({ contactName: request.contactName, companyName: request.companyName }) });
+    }
+    return res.redirect('/platform?rejected=1');
+  } catch (e) {
+    return res.status(400).render('error', { title: 'Rejection failed', message: e.message, code: 400 });
+  }
 });
 
 router.get('/platform/onboard', webAuth, platformAdminOnly, (req, res) => {
@@ -2445,74 +2667,27 @@ router.get('/platform/onboard', webAuth, platformAdminOnly, (req, res) => {
 });
 
 router.post('/platform/onboard', webAuth, platformAdminOnly, async (req, res) => {
-  const bcrypt = require('bcryptjs');
   const b = req.body;
   const form = { ...b };
   const render = (error) => res.render('platform/onboard', { title: 'Onboard a business', error, form, adminRoles: TENANT_ADMIN_ROLES, roleLabel, path: '/platform' });
   try {
-    const tradingName = (b.tradingName || '').trim();
-    const adminEmail = (b.adminEmail || '').trim().toLowerCase();
-    const adminFirst = (b.adminFirstName || '').trim();
-    const adminLast = (b.adminLastName || '').trim();
-    if (!tradingName) return render('Business trading name is required.');
-    if (!adminFirst || !adminLast) return render("The primary admin's first and last name are required.");
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) return render('A valid primary admin email is required.');
-
-    // Global email-uniqueness check (raw query bypasses tenant scoping).
-    const exists = await prisma.$queryRaw`SELECT 1 FROM "User" WHERE LOWER(email) = ${adminEmail} LIMIT 1`;
-    if (Array.isArray(exists) && exists.length) return render('That admin email is already in use on the platform.');
-
-    const adminRole = TENANT_ADMIN_ROLES.includes(b.adminRole) ? b.adminRole : 'director';
-    const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
-
-    const tenant = await prisma.tenant.create({
-      data: {
-        name: tradingName,
-        slug: slugify(b.slug || tradingName) || slugify(tradingName + '-' + Date.now()),
-        plan: (b.plan || 'starter').trim(),
-        status: ['active', 'trial', 'suspended'].includes(b.status) ? b.status : 'trial',
-        onboardedAt: new Date(),
-        primaryContactName: `${adminFirst} ${adminLast}`,
-        primaryContactEmail: adminEmail,
-        primaryContactPhone: b.adminPhone || null,
-        notes: b.notes || null,
-      },
-    });
-
-    let adminUser;
-    await runWithTenant(tenant.id, async () => {
-      const company = await prisma.company.create({
-        data: {
-          name: (b.publicName || tradingName).trim(),
-          legalName: b.legalName || null,
-          operatorLicenceNumber: b.operatorLicence || null,
-          registeredAddress: b.registeredAddress || null,
-          timezone: b.timezone || 'Europe/London',
-          branding: { publicName: (b.publicName || tradingName).trim(), accentColor: b.accentColour || '#e11d2a' },
-        },
-      });
-      const branch = await prisma.branch.create({ data: { name: b.branchName?.trim() || 'Head Office', companyId: company.id } });
-      adminUser = await prisma.user.create({
-        data: {
-          email: adminEmail, passwordHash, role: adminRole, roles: [adminRole],
-          firstName: adminFirst, lastName: adminLast, phone: b.adminPhone || null,
-          isActive: true, mustChangePassword: true, companyId: company.id, branchIds: [branch.id],
-        },
-      });
+    const { tenant, adminUser, tempPassword } = await provisionTenant({
+      tradingName: b.tradingName, slug: b.slug, plan: b.plan, status: b.status,
+      publicName: b.publicName, legalName: b.legalName, operatorLicence: b.operatorLicence,
+      registeredAddress: b.registeredAddress, timezone: b.timezone, accentColour: b.accentColour, branchName: b.branchName,
+      adminEmail: b.adminEmail, adminFirst: (b.adminFirstName || '').trim(), adminLast: (b.adminLastName || '').trim(),
+      adminPhone: b.adminPhone, adminRole: b.adminRole, notes: b.notes,
     });
 
     // Optional welcome email with credentials + first-login instructions.
     let emailed = false;
     if (b.sendEmail) {
       const loginUrl = `${req.protocol}://${req.get('host')}/login`;
-      try {
-        await sendMail({
-          to: adminEmail,
-          ...emailTemplates.welcome({ tradingName, adminFirst, loginUrl, adminEmail, tempPassword }),
-        });
-        emailed = true;
-      } catch (mailErr) { emailed = false; }
+      const result = await sendMail({
+        to: adminUser.email,
+        ...emailTemplates.welcome({ tradingName: tenant.name, adminFirst: adminUser.firstName, loginUrl, adminEmail: adminUser.email, tempPassword }),
+      });
+      emailed = !!result.sent;
     }
 
     return res.render('platform/onboarded', {

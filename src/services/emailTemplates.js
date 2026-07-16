@@ -184,6 +184,74 @@ const alertDigest = ({ dateStr, counts, items }) => {
   };
 };
 
+const verificationCode = ({ contactName, companyName, code }) => ({
+  subject: `${code} is your FLEET.HQ verification code`,
+  text: `Hi ${contactName || 'there'},\n\nYour FLEET.HQ verification code for registering ${companyName} is:\n\n${code}\n\nThe code is valid for 15 minutes. If you didn't start a registration, you can ignore this email.\n\nFLEET.HQ`,
+  html: layout({
+    preheader: `Your verification code: ${code} (valid 15 minutes).`,
+    heading: 'Verify your email',
+    bodyHtml: `<p style="margin:0 0 12px;">Hi ${esc(contactName || 'there')},</p>
+      <p style="margin:0 0 18px;">Enter this code to continue registering <strong>${esc(companyName)}</strong> on FLEET.HQ:</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%"><tr><td align="center" style="padding:18px;background:${BRAND.bg};border:1px dashed ${BRAND.line};border-radius:12px;">
+        <span style="font-family:Consolas,Menlo,monospace;font-size:34px;font-weight:800;letter-spacing:10px;color:${BRAND.ink};">${esc(code)}</span>
+      </td></tr></table>
+      <p style="margin:16px 0 0;font-size:13px;color:${BRAND.muted};">The code is valid for <strong>15 minutes</strong>. If you didn't start a registration, you can safely ignore this email.</p>`,
+    footerNote: 'Verification codes are sent from alerts@fleetshq.com — we will never ask for your code by phone or reply.',
+  }),
+});
+
+const registrationPending = ({ contactName, companyName, tierLabel }) => ({
+  subject: `Registration received — ${companyName} on FLEET.HQ`,
+  text: `Hi ${contactName},\n\nThanks — your registration for ${companyName} (${tierLabel} tier) has been received and your email is verified.\n\nWhat happens next:\n1. Our team confirms your details and annual licence payment.\n2. Your private FLEET.HQ environment is provisioned.\n3. You receive sign-in credentials by email — usually within one business day.\n\nFLEET.HQ`,
+  html: layout({
+    preheader: 'Your registration is verified and queued for activation.',
+    heading: 'Registration received',
+    bodyHtml: `<p style="margin:0 0 12px;">Hi ${esc(contactName)},</p>
+      <p style="margin:0 0 14px;">Thanks — your registration for <strong>${esc(companyName)}</strong> on the <strong>${esc(tierLabel)}</strong> tier has been received and your email is verified.</p>
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:${BRAND.muted};">What happens next</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid ${BRAND.line};border-radius:10px;">
+        <tr><td style="padding:11px 16px;border-bottom:1px solid ${BRAND.line};font-size:13.5px;"><strong style="color:${BRAND.red};">1.</strong>&nbsp; Our team confirms your details and the annual licence payment.</td></tr>
+        <tr><td style="padding:11px 16px;border-bottom:1px solid ${BRAND.line};font-size:13.5px;"><strong style="color:${BRAND.red};">2.</strong>&nbsp; Your private FLEET.HQ environment is provisioned.</td></tr>
+        <tr><td style="padding:11px 16px;font-size:13.5px;"><strong style="color:${BRAND.red};">3.</strong>&nbsp; You receive sign-in credentials by email — usually within one business day.</td></tr>
+      </table>`,
+    footerNote: 'Questions in the meantime? Just reply to this email.',
+  }),
+});
+
+const opsNewRegistration = ({ companyName, companyRegNo, contactName, contactEmail, contactPhone, fleetSize, region, tierLabel, chSummary, reviewUrl }) => {
+  const row = (label, value) => `<tr>
+    <td style="padding:9px 14px;border-bottom:1px solid ${BRAND.line};font-size:12px;color:${BRAND.muted};white-space:nowrap;vertical-align:top;">${esc(label)}</td>
+    <td style="padding:9px 14px;border-bottom:1px solid ${BRAND.line};font-size:13.5px;color:${BRAND.ink};">${esc(value)}</td></tr>`;
+  return {
+    subject: `New registration pending activation: ${companyName} (${tierLabel})`,
+    text: `New verified registration awaiting activation.\n\nCompany: ${companyName}\nReg no: ${companyRegNo || '-'}\nContact: ${contactName} <${contactEmail}> ${contactPhone || ''}\nFleet: ${fleetSize} · Region: ${region || '-'}\nTier: ${tierLabel}\nCompanies House: ${chSummary}\n\nReview: ${reviewUrl}`,
+    html: layout({
+      preheader: `${companyName} — ${tierLabel}, fleet ${fleetSize}. Awaiting activation.`,
+      heading: 'New registration pending activation',
+      bodyHtml: `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid ${BRAND.line};border-radius:10px;">
+        ${row('Company', companyName)}${row('Reg number', companyRegNo || '—')}${row('Contact', `${contactName} · ${contactEmail}${contactPhone ? ' · ' + contactPhone : ''}`)}
+        ${row('Fleet size', fleetSize)}${row('Region', region || '—')}${row('Tier', tierLabel)}${row('Companies House', chSummary)}
+      </table>
+      <p style="margin:14px 0 0;font-size:13px;color:${BRAND.muted};">Email ownership is verified. Confirm payment, then approve to provision their environment — credentials are emailed automatically.</p>`,
+      cta: { label: 'Review & activate', url: reviewUrl },
+      footerNote: 'Sent automatically when a self-serve registration completes verification and tier selection.',
+    }),
+  };
+};
+
+const registrationRejected = ({ contactName, companyName }) => ({
+  subject: `Update on your FLEET.HQ registration — ${companyName}`,
+  text: `Hi ${contactName},\n\nThank you for your interest in FLEET.HQ. After reviewing your registration for ${companyName}, we're unable to activate an account at this time.\n\nIf you believe this is a mistake or want to provide more information, just reply to this email.\n\nFLEET.HQ`,
+  html: layout({
+    preheader: 'An update on your FLEET.HQ registration.',
+    heading: 'Update on your registration',
+    bodyHtml: `<p style="margin:0 0 12px;">Hi ${esc(contactName)},</p>
+      <p style="margin:0 0 12px;">Thank you for your interest in FLEET.HQ. After reviewing your registration for <strong>${esc(companyName)}</strong>, we're unable to activate an account at this time.</p>
+      <p style="margin:0;">If you believe this is a mistake, or you'd like to provide more information, just reply to this email and our team will take another look.</p>`,
+    footerNote: 'This decision was made after manual review by the FLEET.HQ team.',
+  }),
+});
+
 const testMessage = ({ hostname }) => ({
   subject: 'FLEET.HQ email test — configuration OK',
   text: `This is a test message from FLEET.HQ (${hostname}). If you're reading this, SMTP delivery is working.`,
@@ -196,4 +264,7 @@ const testMessage = ({ hostname }) => ({
   }),
 });
 
-module.exports = { resetPassword, passwordChanged, welcome, enquiry, invoiceReminder, alertDigest, testMessage };
+module.exports = {
+  resetPassword, passwordChanged, welcome, enquiry, invoiceReminder, alertDigest, testMessage,
+  verificationCode, registrationPending, opsNewRegistration, registrationRejected,
+};

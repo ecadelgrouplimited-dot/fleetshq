@@ -1,5 +1,13 @@
 <%
   const statusBadge = { active: 'badge-green', trial: 'badge-amber', suspended: 'badge-red' };
+  const regBadge = { pending_verification: 'badge-slate', verified: 'badge-amber', pending_activation: 'badge-green' };
+  const regLabel = { pending_verification: 'Awaiting email code', verified: 'Verified — no tier yet', pending_activation: 'Ready to activate' };
+  const chSummary = (r) => {
+    const ch = r.chLookup || {};
+    if (!ch.checked) return 'Companies House: not checked';
+    if (!ch.found) return 'Companies House: NOT FOUND';
+    return `Companies House: ${ch.companyName} (${ch.companyStatus})${ch.nameMatches ? '' : ' — name mismatch'}`;
+  };
 %>
 <%- include('../layouts/main', { body: `
 <div class="page-head">
@@ -23,6 +31,7 @@
     { label: 'On Trial', value: kpis.trial, tone: 'amber', sub: 'Evaluating' },
     { label: 'Suspended', value: kpis.suspended, tone: kpis.suspended > 0 ? 'red' : 'green', sub: 'Paused' },
     { label: 'Total Users', value: kpis.users, tone: 'blue', sub: 'Across all tenants' },
+    { label: 'Pending Activation', value: kpis.pendingRegistrations, tone: kpis.pendingRegistrations > 0 ? 'amber' : 'green', sub: 'Self-serve sign-ups' },
   ].map(k => `
     <div class="plat-kpi ${k.tone}">
       <div class="plat-kpi-value">${k.value}</div>
@@ -30,6 +39,47 @@
       <div class="plat-kpi-sub">${k.sub}</div>
     </div>`).join('')}
 </div>
+
+${registrations.length === 0 ? '' : `
+<div class="card mb-4">
+  <div class="card-header"><h3>Self-serve registrations</h3><span class="text-sm text-muted">${registrations.length} in flight — activate once payment is confirmed</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Company</th><th scope="col">Contact</th><th scope="col">Fleet / Region</th><th scope="col">Tier</th><th scope="col">Status</th><th scope="col">Submitted</th><th scope="col">Actions</th></tr></thead>
+      <tbody>
+        ${registrations.map(r => `
+          <tr>
+            <td>
+              <div style="font-weight:700">${esc(r.companyName)}</div>
+              <div class="cell-muted" style="font-size:11px">${r.companyRegNo ? `Reg no ${esc(r.companyRegNo)} · ` : ''}${esc(chSummary(r))}</div>
+            </td>
+            <td>
+              <div style="font-size:13px">${esc(r.contactName)}</div>
+              <div class="cell-muted" style="font-size:11px">${esc(r.contactEmail)}${r.contactPhone ? ' · ' + esc(r.contactPhone) : ''}</div>
+            </td>
+            <td class="cell-muted">${esc(r.fleetSize)} vehicles${r.region ? `<div style="font-size:11px">${esc(r.region)}</div>` : ''}</td>
+            <td>${r.plan ? `<span class="badge badge-slate" style="text-transform:capitalize">${esc(r.plan)}</span>` : '<span class="text-light">—</span>'}</td>
+            <td><span class="badge ${regBadge[r.status] || 'badge-slate'}">${regLabel[r.status] || esc(r.status)}</span></td>
+            <td class="cell-muted">${formatDate(r.createdAt)}</td>
+            <td>
+              <div class="flex gap-2" style="flex-wrap:wrap">
+                ${['verified', 'pending_activation'].includes(r.status) ? `
+                <form method="post" action="/platform/registrations/${r.id}/activate" onsubmit="return confirm('Activate ${esc(r.companyName).replace(/'/g, '')}? This provisions their environment and emails sign-in credentials to ${esc(r.contactEmail)}. Only do this once payment is confirmed.')">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <button class="btn btn-primary btn-sm" type="submit">Activate →</button>
+                </form>` : ''}
+                <form method="post" action="/platform/registrations/${r.id}/reject" onsubmit="return confirm('Reject this registration? The applicant will be emailed a polite decline.')">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <input type="hidden" name="notify" value="1">
+                  <button class="btn btn-ghost btn-sm" type="submit">Reject</button>
+                </form>
+              </div>
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>`}
 
 <div class="card">
   <div class="card-header"><h3>Platform Tenants</h3><span class="text-sm text-muted">${tenants.length} business${tenants.length === 1 ? '' : 'es'}</span></div>
@@ -78,7 +128,7 @@
 </div>
 
 <style>
-  .plat-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+  .plat-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
   .plat-kpi { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; position:relative; overflow:hidden; box-shadow:var(--shadow-xs); }
   .plat-kpi::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-md); }
   .plat-kpi.blue::before { background:var(--primary); } .plat-kpi.green::before { background:var(--success); }

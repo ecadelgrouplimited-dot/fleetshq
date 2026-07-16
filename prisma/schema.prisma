@@ -1349,3 +1349,56 @@ model DriverRiskProfile {
 
   @@index([tenantId])
 }
+
+// ─────────────────────────────────────────
+// SELF-SERVE REGISTRATION (platform-level — NOT tenant-scoped)
+// ─────────────────────────────────────────
+
+enum RegistrationStatus {
+  pending_verification // details submitted, email code not yet confirmed
+  verified             // email confirmed, tier not yet chosen
+  pending_activation   // tier chosen — awaiting payment confirmation + provisioning
+  provisioned          // tenant created, credentials sent
+  rejected             // declined by platform admin
+}
+
+model RegistrationRequest {
+  id           String             @id @default(uuid())
+  companyName  String
+  companyRegNo String?            // Companies House number
+  contactName  String
+  contactEmail String
+  contactPhone String?
+  fleetSize    String             // band key: "1-5" | "6-20" | "21-50" | "50+"
+  region       String?
+  plan         String?            // chosen tier (plans catalogue key)
+  status       RegistrationStatus @default(pending_verification)
+  chLookup     Json?              // Companies House validation snapshot
+  reviewNotes  String?            // platform admin notes (approve/reject)
+  tenantId     String?            // set once provisioned
+  ipAddress    String?
+  userAgent    String?
+
+  codes VerificationCode[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  verifiedAt    DateTime?
+  provisionedAt DateTime?
+
+  @@index([status])
+  @@index([contactEmail])
+}
+
+model VerificationCode {
+  id        String              @id @default(uuid())
+  request   RegistrationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId String
+  codeHash  String
+  attempts  Int                 @default(0)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime            @default(now())
+
+  @@index([requestId])
+}

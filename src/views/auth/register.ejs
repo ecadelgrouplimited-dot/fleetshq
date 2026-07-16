@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="index, follow">
+  <title><%= title %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #0a0a0c; --panel: rgba(22,22,27,.72); --panel-2: rgba(255,255,255,.04);
+      --line: rgba(255,255,255,.1); --line-2: rgba(255,255,255,.18);
+      --text: #e8e8ec; --muted: #9d9da8; --soft: #6f6f7a;
+      --red: #e11d2a; --red-deep: #a60f1a; --gold: #f5b301; --green: #10b981;
+    }
+    html, body { min-height: 100%; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+    a { text-decoration: none; color: inherit; }
+
+    .bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+    .bg::before { content: ""; position: absolute; inset: 0;
+      background: radial-gradient(ellipse 55% 45% at 12% 8%, rgba(225,29,42,.13), transparent 60%),
+                  radial-gradient(ellipse 45% 40% at 90% 92%, rgba(245,179,1,.07), transparent 60%); }
+
+    .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 34px 20px 60px; }
+    .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
+    .lockup { display: inline-flex; align-items: center; gap: 12px; }
+    .mark { position: relative; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+      background: linear-gradient(145deg, var(--red), var(--red-deep)); display: grid; place-items: center;
+      color: #fff; box-shadow: 0 10px 28px rgba(225,29,42,.45); isolation: isolate; overflow: hidden; }
+    .mark::before { content: ""; position: absolute; inset: 8px 9px 7px; border: 2px solid var(--gold); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); opacity: .85; z-index: -1; }
+    .mark::after { content: "F"; font-weight: 900; font-size: 18px; }
+    .wordmark { font-weight: 900; color: #fff; font-size: 17px; letter-spacing: -.3px; line-height: 1; }
+    .wordmark b { color: var(--red); }
+    .wordmark small { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--soft); margin-top: 4px; }
+    .signin-link { font-size: 13px; font-weight: 600; color: var(--muted); }
+    .signin-link b { color: var(--gold); }
+    .signin-link:hover b { text-decoration: underline; }
+
+    /* Stepper */
+    .steps { display: flex; align-items: center; gap: 8px; margin-bottom: 26px; }
+    .stepdot { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--soft); }
+    .stepdot .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11.5px; font-weight: 800;
+      border: 1.5px solid var(--line-2); color: var(--muted); background: var(--panel-2); }
+    .stepdot.on { color: var(--text); }
+    .stepdot.on .n { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 3px rgba(245,179,1,.12); }
+    .stepdot.done .n { border-color: var(--green); color: var(--green); }
+    .steps .bar { flex: 1; height: 1.5px; background: var(--line); min-width: 14px; }
+    .steps .label { display: none; }
+    @media (min-width: 640px) { .steps .label { display: inline; } }
+
+    .card { position: relative; background: linear-gradient(180deg, rgba(28,28,34,.86), rgba(16,16,20,.92));
+      border: 1px solid var(--line-2); border-radius: 20px; padding: 34px 34px 30px;
+      backdrop-filter: blur(18px); box-shadow: 0 30px 80px rgba(0,0,0,.55); }
+    .card::before { content: ""; position: absolute; top: 0; left: 22px; right: 22px; height: 2px; border-radius: 999px;
+      background: linear-gradient(90deg, transparent, var(--red), var(--gold), transparent); }
+    .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold); }
+    h1 { margin-top: 8px; font-size: 26px; font-weight: 800; letter-spacing: -.5px; color: #fff; }
+    .sub { margin-top: 6px; font-size: 14px; color: var(--muted); margin-bottom: 24px; line-height: 1.55; }
+
+    .error-box, .notice-box { display: flex; align-items: center; gap: 9px; border-radius: 10px; padding: 11px 13px; font-size: 13px; font-weight: 500; margin-bottom: 18px; }
+    .error-box { background: rgba(225,29,42,.1); border: 1px solid rgba(225,29,42,.4); color: #fca5a5; }
+    .notice-box { background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.35); color: #6ee7b7; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+    .group { margin-bottom: 16px; }
+    .group label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 7px; letter-spacing: .2px; }
+    .group label .opt { color: var(--soft); font-weight: 600; }
+    .inp, select.inp { width: 100%; padding: 12px 14px; font-size: 15px; font-family: inherit; color: #fff;
+      background: rgba(255,255,255,.04); border: 1.5px solid var(--line-2); border-radius: 11px; transition: border-color .15s, box-shadow .15s; }
+    .inp::placeholder { color: var(--soft); }
+    .inp:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,.06); box-shadow: 0 0 0 3px rgba(245,179,1,.18); }
+    select.inp option { background: #16161b; color: #fff; }
+    .hint { margin-top: 6px; font-size: 11.5px; color: var(--soft); line-height: 1.5; }
+
+    .btn { width: 100%; margin-top: 10px; padding: 14px; font-size: 15px; font-weight: 800; font-family: inherit; letter-spacing: .2px;
+      color: #fff; background: linear-gradient(135deg, var(--red), var(--red-deep)); border: 1px solid rgba(255,255,255,.14);
+      border-radius: 11px; cursor: pointer; transition: transform .15s, box-shadow .15s; box-shadow: 0 12px 30px rgba(225,29,42,.4); min-height: 50px; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(225,29,42,.55); }
+    .btn-ghost { display: inline-block; margin-top: 14px; background: none; border: 0; color: var(--muted); font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-ghost:hover { color: var(--gold); }
+
+    /* Verify step */
+    .code-inp { text-align: center; font-size: 30px !important; font-weight: 800; letter-spacing: 14px; font-family: Consolas, Menlo, monospace; padding: 16px 8px 16px 22px !important; }
+
+    /* Plan step */
+    .plans { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 4px 0 18px; }
+    .plan { position: relative; border: 1.5px solid var(--line-2); border-radius: 14px; padding: 18px 16px 16px; cursor: pointer; background: var(--panel-2); transition: border-color .15s, box-shadow .15s; display: block; }
+    .plan:hover { border-color: var(--line-2); box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+    .plan input { position: absolute; opacity: 0; pointer-events: none; }
+    .plan .tick { position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-2); }
+    .plan:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,179,1,.15); }
+    .plan:has(input:checked) .tick { border-color: var(--gold); background: var(--gold);
+      box-shadow: inset 0 0 0 3.5px #16161b; }
+    .plan .pname { font-size: 15px; font-weight: 800; color: #fff; }
+    .plan .pfleet { display: inline-block; margin-top: 6px; padding: 3px 9px; border-radius: 100px; background: rgba(245,179,1,.12); color: var(--gold); font-size: 10.5px; font-weight: 800; letter-spacing: .5px; }
+    .plan .pblurb { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .plan ul { margin: 10px 0 0; padding: 0; list-style: none; }
+    .plan li { font-size: 11.5px; color: var(--soft); padding: 2.5px 0 2.5px 16px; position: relative; }
+    .plan li::before { content: "•"; position: absolute; left: 4px; color: var(--red); }
+    .plan .pprice { margin-top: 10px; font-size: 12px; font-weight: 700; color: var(--text); }
+    .plan .suggested { position: absolute; top: -9px; left: 14px; padding: 2px 9px; border-radius: 100px; background: var(--red); color: #fff; font-size: 9.5px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+
+    /* Done step */
+    .done-icon { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 18px;
+      background: rgba(16,185,129,.12); border: 1.5px solid rgba(16,185,129,.4); }
+    .done-icon svg { width: 26px; height: 26px; color: var(--green); }
+    .next-steps { margin-top: 18px; border: 1px solid var(--line); border-radius: 12px; }
+    .next-steps > div { display: flex; gap: 12px; padding: 13px 16px; font-size: 13.5px; color: var(--muted); border-bottom: 1px solid var(--line); line-height: 1.5; }
+    .next-steps > div:last-child { border-bottom: 0; }
+    .next-steps b.num { color: var(--red); font-weight: 900; }
+    .next-steps strong { color: var(--text); }
+
+    .trust { display: flex; align-items: center; gap: 8px; margin-top: 20px; font-size: 11.5px; color: var(--soft); }
+    .trust svg { width: 14px; height: 14px; color: var(--green); flex-shrink: 0; }
+    @media (max-width: 640px) { .card { padding: 26px 20px 24px; } h1 { font-size: 23px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="wrap">
+
+    <div class="top">
+      <a class="lockup" href="/welcome" aria-label="FLEET.HQ home">
+        <span class="mark" aria-hidden="true"></span>
+        <span class="wordmark">FLEET<b>.</b>HQ<small>One platform. Total control.</small></span>
+      </a>
+      <a class="signin-link" href="/login">Already registered? <b>Sign in</b></a>
+    </div>
+
+    <%
+      const stepIndex = { details: 1, verify: 2, plan: 3, done: 4 }[step] || 1;
+      const stepDefs = [[1, 'Company'], [2, 'Verify'], [3, 'Tier'], [4, 'Done']];
+    %>
+    <div class="steps" aria-label="Registration progress">
+      <% stepDefs.forEach(([n, label], i) => { %>
+        <span class="stepdot <%= n === stepIndex ? 'on' : '' %> <%= n < stepIndex ? 'done' : '' %>">
+          <span class="n"><%= n < stepIndex ? '✓' : n %></span><span class="label"><%= label %></span>
+        </span>
+        <% if (i < stepDefs.length - 1) { %><span class="bar"></span><% } %>
+      <% }) %>
+    </div>
+
+    <div class="card">
+      <% if (error) { %>
+        <div class="error-box" role="alert">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3h.008v.008H12v-.008zM21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <%= error %>
+        </div>
+      <% } %>
+      <% if (notice) { %>
+        <div class="notice-box" role="status">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <%= notice %>
+        </div>
+      <% } %>
+
+      <% if (step === 'details') { %>
+        <span class="eyebrow">Get started</span>
+        <h1>Register your company</h1>
+        <p class="sub">Tell us about your operation. We'll verify your email, you pick a tier, and our team activates your private FLEET.HQ environment.</p>
+        <form method="POST" action="/register" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="grid2">
+            <div class="group">
+              <label for="companyName">Company name</label>
+              <input class="inp" id="companyName" name="companyName" required maxlength="120" placeholder="Acme Haulage Ltd" value="<%= form.companyName || '' %>" autofocus>
+            </div>
+            <div class="group">
+              <label for="companyRegNo">Company registration number <span class="opt">(optional)</span></label>
+              <input class="inp" id="companyRegNo" name="companyRegNo" maxlength="12" placeholder="e.g. 01234567" value="<%= form.companyRegNo || '' %>">
+              <p class="hint">Your Companies House number — helps us verify your business faster.</p>
+            </div>
+            <div class="group">
+              <label for="contactName">Your full name</label>
+              <input class="inp" id="contactName" name="contactName" required maxlength="80" placeholder="Sam Taylor" value="<%= form.contactName || '' %>">
+            </div>
+            <div class="group">
+              <label for="contactEmail">Work email</label>
+              <input class="inp" id="contactEmail" name="contactEmail" type="email" required maxlength="120" placeholder="you@company.com" value="<%= form.contactEmail || '' %>">
+              <p class="hint">We'll send a 6-digit verification code here. This becomes your admin sign-in.</p>
+            </div>
+            <div class="group">
+              <label for="contactPhone">Phone <span class="opt">(optional)</span></label>
+              <input class="inp" id="contactPhone" name="contactPhone" maxlength="20" placeholder="07700 900123" value="<%= form.contactPhone || '' %>">
+            </div>
+            <div class="group">
+              <label for="fleetSize">Fleet size</label>
+              <select class="inp" id="fleetSize" name="fleetSize" required>
+                <option value="" <%= !form.fleetSize ? 'selected' : '' %> disabled>Select…</option>
+                <% fleetBands.forEach((band) => { %>
+                  <option value="<%= band %>" <%= form.fleetSize === band ? 'selected' : '' %>><%= band %> vehicles</option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="group">
+              <label for="region">Operational region <span class="opt">(optional)</span></label>
+              <input class="inp" id="region" name="region" maxlength="80" placeholder="e.g. West Midlands / UK-wide" value="<%= form.region || '' %>">
+            </div>
+          </div>
+          <button class="btn" type="submit">Continue — verify email</button>
+        </form>
+        <div class="trust">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
+          No card required to register. Annual licensing is confirmed before activation.
+        </div>
+
+      <% } else if (step === 'verify') { %>
+        <span class="eyebrow">Step 2 of 4</span>
+        <h1>Check your inbox</h1>
+        <p class="sub">We've emailed a 6-digit code to <strong style="color:var(--text);"><%= maskedEmail %></strong> from <strong style="color:var(--gold);">alerts@fleetshq.com</strong>. It's valid for 15 minutes.</p>
+        <form method="POST" action="/register/verify" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="rid" value="<%= request.id %>">
+          <div class="group">
+            <label for="code">Verification code</label>
+            <input class="inp code-inp" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autofocus>
+          </div>
+          <button class="btn" type="submit">Verify email</button>
+        </form>
+        <form method="POST" action="/register/resend" style="text-align:center;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="rid" value="<%= request.id %>">
+          <button class="btn-ghost" type="submit">Didn't get it? Check spam, or resend the code</button>
+        </form>
+
+      <% } else if (step === 'plan') { %>
+        <span class="eyebrow">Step 3 of 4 — email verified ✓</span>
+        <h1>Choose your tier</h1>
+        <p class="sub">Tiers are based on fleet scale, on an annual licence. Based on your fleet size (<strong style="color:var(--text);"><%= request.fleetSize %> vehicles</strong>) we've suggested a tier — you can pick any.</p>
+        <form method="POST" action="/register/plan" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="rid" value="<%= request.id %>">
+          <div class="plans">
+            <% plans.forEach((p) => { %>
+              <label class="plan">
+                <% if (p.key === suggestedPlan) { %><span class="suggested">Suggested</span><% } %>
+                <input type="radio" name="plan" value="<%= p.key %>" <%= p.key === suggestedPlan ? 'checked' : '' %>>
+                <span class="tick" aria-hidden="true"></span>
+                <div class="pname"><%= p.label %></div>
+                <div class="pfleet"><%= p.fleetLabel %></div>
+                <div class="pblurb"><%= p.blurb %></div>
+                <ul><% p.features.forEach((f) => { %><li><%= f %></li><% }) %></ul>
+                <div class="pprice"><%= formatPrice(p.priceAnnualPence) ? formatPrice(p.priceAnnualPence) + ' / year' : 'Annual licence — confirmed on activation' %></div>
+              </label>
+            <% }) %>
+          </div>
+          <button class="btn" type="submit">Complete registration</button>
+        </form>
+
+      <% } else { %>
+        <div class="done-icon" aria-hidden="true">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <span class="eyebrow">Registration complete</span>
+        <h1>You're in the queue, <%= (request.contactName || '').split(' ')[0] %></h1>
+        <p class="sub"><strong style="color:var(--text);"><%= request.companyName %></strong> is registered and your email is verified. We've sent a confirmation to your inbox.</p>
+        <div class="next-steps">
+          <div><b class="num">1.</b><span>Our team confirms your details and the <strong>annual licence payment</strong> for your tier.</span></div>
+          <div><b class="num">2.</b><span>Your <strong>private FLEET.HQ environment</strong> is provisioned.</span></div>
+          <div><b class="num">3.</b><span>You receive <strong>sign-in credentials by email</strong> — usually within one business day.</span></div>
+        </div>
+        <div class="trust">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Questions in the meantime? Email <a href="mailto:alerts@fleetshq.com" style="color:var(--gold);font-weight:700;">alerts@fleetshq.com</a> or reply to your confirmation email.
+        </div>
+      <% } %>
+    </div>
+  </div>
+</body>
+</html>
