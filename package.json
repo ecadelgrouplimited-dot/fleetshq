@@ -1,5 +1,5 @@
 {
-  "name": "256-logistics-compliance-hub",
+  "name": "fleetshq",
   "version": "1.0.0",
   "description": "Transport-specific compliance management system for UK HGV operators",
   "main": "server.js",

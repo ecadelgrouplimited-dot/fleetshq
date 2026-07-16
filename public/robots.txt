@@ -17,4 +17,4 @@ Disallow: /portal
 Disallow: /my-learning
 Disallow: /api/
 
-Sitemap: https://256logisticsltd.com/sitemap.xml
+Sitemap: https://fleetshq.com/sitemap.xml

@@ -22,7 +22,7 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
 const mailEnabled = () => !!transporter;
 
 async function sendMail({ to, subject, text, html }) {
-  const from = process.env.ALERT_FROM_EMAIL || 'no-reply@256logisticsltd.com';
+  const from = process.env.ALERT_FROM_EMAIL || 'no-reply@fleetshq.com';
   if (!transporter) {
     logger.warn(`[mail:disabled] would send "${subject}" to ${to} (set SMTP_* to enable)`);
     return { skipped: true };

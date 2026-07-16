@@ -1,4 +1,4 @@
-# 256 Logistics
+# FLEET.HQ (formerly 256 Logistics)
 
 > A full **UK logistics operations platform** — booking, dispatch, driver delivery, fleet, HR, finance,
 > learning, and DVSA/Home-Office compliance in one role-based system, with a public marketing site and
@@ -37,7 +37,7 @@ Plus the [public marketing site](docs/spec/04-public-site.md) (pre-login) and pl
 
 ## Where the current app fits
 
-The deployed app (`256logisticsltd.com`) is a **compliance hub MVP** — it becomes the **Compliance &
+The deployed app (`fleetshq.com`) is a **compliance hub MVP** — it becomes the **Compliance &
 Safety** panel and seeds parts of HR, Fleet, and LMS. Roughly 40% of the platform has a head start;
 ~60% (the courier operations + finance + client-facing side) is net-new. See the
 [phased roadmap](docs/spec/00-product-vision-and-architecture.md#6-phased-build-roadmap).

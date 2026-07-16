@@ -671,7 +671,7 @@ router.post('/contact', loginLimiter, async (req, res) => {
       },
     });
 
-    const notificationTo = process.env.ALERT_TO_EMAIL || process.env.SMTP_FROM || 'director@256logisticsltd.com';
+    const notificationTo = process.env.ALERT_TO_EMAIL || process.env.SMTP_FROM || 'director@fleetshq.com';
     await sendMail({
       to: notificationTo,
       subject: `New public enquiry: ${enquiryType}`,
@@ -2841,7 +2841,7 @@ router.post('/super-admin/service-types/:id', webAuth, adminWriteOnly, async (re
 router.post('/super-admin/system-config', webAuth, adminWriteOnly, async (req, res) => {
   try {
     const value = {
-      alertFrom: req.body.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@256logisticsltd.com',
+      alertFrom: req.body.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@fleetshq.com',
       smtpEnabled: req.body.smtpEnabled === 'true',
       smsProvider: req.body.smsProvider || 'not_configured',
       publicTrackingEnabled: req.body.publicTrackingEnabled === 'true',
@@ -2859,11 +2859,11 @@ router.get('/settings', webAuth, requireRoles('super_admin', 'director'), async 
     res.render('settings/index', {
       title: 'Settings',
       config: {
-        domain: '256logisticsltd.com',
+        domain: 'fleetshq.com',
         database: 'PostgreSQL',
         storage: process.env.STORAGE_TYPE || 'local',
         uploads: process.env.LOCAL_UPLOAD_DIR || './uploads',
-        alertFrom: process.env.ALERT_FROM_EMAIL || 'alerts@256logisticsltd.com',
+        alertFrom: process.env.ALERT_FROM_EMAIL || 'alerts@fleetshq.com',
         criticalDays: process.env.ALERT_CRITICAL_DAYS || 7,
         warningDays: process.env.ALERT_WARNING_DAYS || 14,
         noticeDays: process.env.ALERT_NOTICE_DAYS || 30,

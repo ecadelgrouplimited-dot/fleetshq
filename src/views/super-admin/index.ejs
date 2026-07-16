@@ -138,7 +138,7 @@ ${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. 
     <div class="card-body">
       <form method="post" action="/super-admin/system-config" class="admin-form">
         <input type="hidden" name="_csrf" value="${csrfToken}">
-        <div class="form-group"><label class="form-label">Alert sender</label><input class="form-control" name="alertFrom" value="${esc(notificationConfig.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@256logisticsltd.com')}" ${writeAttr}></div>
+        <div class="form-group"><label class="form-label">Alert sender</label><input class="form-control" name="alertFrom" value="${esc(notificationConfig.alertFrom || process.env.ALERT_FROM_EMAIL || 'alerts@fleetshq.com')}" ${writeAttr}></div>
         <div class="form-grid">
           <div class="form-group"><label class="form-label">SMS provider</label><input class="form-control" name="smsProvider" value="${esc(notificationConfig.smsProvider || 'not_configured')}" ${writeAttr}></div>
           <div class="form-group"><label class="form-label">SMTP enabled</label><select class="form-control" name="smtpEnabled" ${writeAttr}><option value="false" ${notificationConfig.smtpEnabled ? '' : 'selected'}>No</option><option value="true" ${notificationConfig.smtpEnabled ? 'selected' : ''}>Yes</option></select></div>
