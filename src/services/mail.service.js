@@ -8,6 +8,7 @@ const logger = require('../utils/logger');
  *
  * Required env to enable: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS,
  *   SMTP_SECURE (true for 465), ALERT_FROM_EMAIL.
+ * Optional: ALERT_TO_EMAIL (ops inbox), ALERT_CC_EMAIL (copied on ops mail).
  */
 let transporter = null;
 if (process.env.SMTP_HOST && process.env.SMTP_USER) {
@@ -21,14 +22,21 @@ if (process.env.SMTP_HOST && process.env.SMTP_USER) {
 
 const mailEnabled = () => !!transporter;
 
-async function sendMail({ to, subject, text, html }) {
+/** Ops notifications go to the director and are copied to the alerts inbox. */
+const opsRecipients = () => ({
+  to: process.env.ALERT_TO_EMAIL || 'director@fleetshq.com',
+  cc: process.env.ALERT_CC_EMAIL || undefined,
+});
+
+async function sendMail({ to, cc, bcc, replyTo, subject, text, html }) {
   const from = process.env.ALERT_FROM_EMAIL || 'no-reply@fleetshq.com';
   if (!transporter) {
     logger.warn(`[mail:disabled] would send "${subject}" to ${to} (set SMTP_* to enable)`);
     return { skipped: true };
   }
   try {
-    await transporter.sendMail({ from, to, subject, text, html });
+    await transporter.sendMail({ from: `FLEET.HQ <${from}>`, to, cc, bcc, replyTo, subject, text, html });
+    logger.info(`[mail] sent "${subject}" to ${to}${cc ? ` (cc ${cc})` : ''}`);
     return { sent: true };
   } catch (e) {
     logger.error(`[mail] failed to send "${subject}" to ${to}: ${e.message}`);
@@ -36,4 +44,4 @@ async function sendMail({ to, subject, text, html }) {
   }
 }
 
-module.exports = { sendMail, mailEnabled };
+module.exports = { sendMail, mailEnabled, opsRecipients };

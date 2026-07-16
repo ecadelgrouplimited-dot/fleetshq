@@ -110,6 +110,17 @@ const runAlertJob = async () => {
 
     logger.info(`Alert job complete — ${alerts.length} alerts generated`);
 
+    // Email the digest to the ops inbox (director, cc alerts) when anything is open.
+    if (alerts.length > 0) {
+      const { sendMail, opsRecipients } = require('./mail.service');
+      const emailTemplates = require('./emailTemplates');
+      const counts = alerts.reduce((c, a) => { c[a.severity] = (c[a.severity] || 0) + 1; return c; }, {});
+      const rank = { critical: 0, warning: 1, notice: 2 };
+      const items = [...alerts].sort((a, b) => (rank[a.severity] ?? 3) - (rank[b.severity] ?? 3));
+      const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Europe/London' });
+      await sendMail({ ...opsRecipients(), ...emailTemplates.alertDigest({ dateStr, counts, items }) });
+    }
+
     // Calculate and store compliance score
     const { calculateAndStore } = require('./compliance.service');
     await calculateAndStore();

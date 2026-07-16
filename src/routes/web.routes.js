@@ -15,7 +15,8 @@ const { avatar, vehicleThumb, kpiDelta, expiryClass, expiryDate, sparkline } = r
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { checkPassword } = require('../utils/passwordPolicy');
-const { sendMail } = require('../services/mail.service');
+const { sendMail, opsRecipients } = require('../services/mail.service');
+const emailTemplates = require('../services/emailTemplates');
 const { ROLE_LABELS, getUserRoles, hasAnyRole, getUserPanels, roleLabel } = require('../utils/rbac');
 
 router.use(cookieParser());
@@ -388,6 +389,13 @@ router.get('/logout', (req, res) => {
   res.redirect('/login');
 });
 
+// Security notice on any password change — fire-and-forget so the response
+// is never delayed or failed by SMTP issues.
+const sendPasswordChangedNotice = (user, context) => {
+  const when = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' });
+  sendMail({ to: user.email, ...emailTemplates.passwordChanged({ name: user.firstName, when, context }) }).catch(() => {});
+};
+
 // ── First-login forced password change ───────────────────────────────
 router.get('/set-password', webAuth, (req, res) => {
   res.render('auth/set-password', { title: 'Set your password', error: null, mustChange: !!req.user.mustChangePassword });
@@ -415,6 +423,7 @@ router.post('/set-password', webAuth, async (req, res) => {
       data: { passwordHash: await bcrypt.hash(newPassword, 10), mustChangePassword: false, passwordChangedAt: new Date(),
         resetTokenHash: null, resetTokenExpiry: null, failedLoginAttempts: 0, lockedUntil: null },
     });
+    sendPasswordChangedNotice(user, 'first sign-in');
     // Re-issue the JWT without the mustChangePassword flag so the gate clears.
     const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [],
       email: user.email, name: `${user.firstName} ${user.lastName}`, employeeId: req.user.employeeId || null, mustChangePassword: false });
@@ -443,12 +452,7 @@ router.post('/forgot-password', loginLimiter, async (req, res) => {
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
         await prisma.user.update({ where: { id: user.id }, data: { resetTokenHash: tokenHash, resetTokenExpiry: new Date(Date.now() + 3600000) } });
         const link = `${req.protocol}://${req.get('host')}/reset-password?token=${token}`;
-        await sendMail({
-          to: email,
-          subject: 'Reset your 256 Logistics password',
-          text: `Reset your password using this link (valid for 1 hour):\n${link}\n\nIf you didn't request this, ignore this email.`,
-          html: `<p>Reset your 256 Logistics password using the link below (valid for 1 hour):</p><p><a href="${esc(link)}">${esc(link)}</a></p><p>If you didn't request this, you can safely ignore this email.</p>`,
-        });
+        await sendMail({ to: email, ...emailTemplates.resetPassword({ name: user.firstName, link }) });
       }
     }
   } catch (e) { /* swallowed to avoid revealing whether the email exists */ }
@@ -474,6 +478,7 @@ router.post('/reset-password', loginLimiter, async (req, res) => {
       where: { id: user.id },
       data: { passwordHash: await bcrypt.hash(password, 10), resetTokenHash: null, resetTokenExpiry: null, failedLoginAttempts: 0, lockedUntil: null },
     });
+    sendPasswordChangedNotice(user, 'password reset link');
     return res.render('auth/reset-password', { title: 'Password updated', token: '', error: null, done: true });
   } catch (e) { return render('Something went wrong. Please request a new reset link.'); }
 });
@@ -671,20 +676,10 @@ router.post('/contact', loginLimiter, async (req, res) => {
       },
     });
 
-    const notificationTo = process.env.ALERT_TO_EMAIL || process.env.SMTP_FROM || 'director@fleetshq.com';
     await sendMail({
-      to: notificationTo,
-      subject: `New public enquiry: ${enquiryType}`,
-      text: [
-        `Name: ${name}`,
-        `Email: ${email}`,
-        `Phone: ${phone || '-'}`,
-        `Company: ${company || '-'}`,
-        `Type: ${enquiryType}`,
-        '',
-        message,
-      ].join('\n'),
-      html: `<p><strong>Name:</strong> ${esc(name)}</p><p><strong>Email:</strong> ${esc(email)}</p><p><strong>Phone:</strong> ${esc(phone || '-')}</p><p><strong>Company:</strong> ${esc(company || '-')}</p><p><strong>Type:</strong> ${esc(enquiryType)}</p><p>${esc(message).replace(/\n/g, '<br>')}</p>`,
+      ...opsRecipients(),
+      replyTo: email,
+      ...emailTemplates.enquiry({ name, email, phone, company, enquiryType, message, sourcePath: req.originalUrl }),
     });
 
     return res.redirect('/contact?sent=1');
@@ -2514,14 +2509,7 @@ router.post('/platform/onboard', webAuth, platformAdminOnly, async (req, res) =>
       try {
         await sendMail({
           to: adminEmail,
-          subject: `Welcome to FLEET.HQ — your ${tradingName} account is ready`,
-          html: `<p>Hi ${esc(adminFirst)},</p>
-            <p>Your <strong>${esc(tradingName)}</strong> account on FLEET.HQ has been created. Sign in and you'll be asked to set your own password on first login.</p>
-            <p><strong>Sign-in:</strong> <a href="${loginUrl}">${loginUrl}</a><br>
-            <strong>Email:</strong> ${esc(adminEmail)}<br>
-            <strong>Temporary password:</strong> ${esc(tempPassword)}</p>
-            <p>For security, this temporary password must be changed the first time you sign in.</p>
-            <p>— FLEET.HQ, powered by 256 Digital Technologies</p>`,
+          ...emailTemplates.welcome({ tradingName, adminFirst, loginUrl, adminEmail, tempPassword }),
         });
         emailed = true;
       } catch (mailErr) { emailed = false; }
@@ -3213,17 +3201,12 @@ router.post('/invoices/:id/remind', webAuth, requireRoles(...invoiceRoles), asyn
 
     await sendMail({
       to: invoice.customer.email,
-      subject: `Payment reminder — Invoice ${invoice.number}`,
-      text: [
-        `Dear ${invoice.customer.name},`,
-        '',
-        `This is a friendly reminder that invoice ${invoice.number} for £${Number(invoice.total).toFixed(2)} is due ${dueStr}.`,
-        '',
-        'If you have already made payment, please disregard this message.',
-        '',
-        '256 Logistics Ltd',
-      ].join('\n'),
-      html: `<p>Dear ${esc(invoice.customer.name)},</p><p>This is a friendly reminder that invoice <strong>${esc(invoice.number)}</strong> for <strong>£${Number(invoice.total).toFixed(2)}</strong> is due <strong>${dueStr}</strong>.</p><p>If you have already made payment, please disregard this message.</p><p>256 Logistics Ltd</p>`,
+      ...emailTemplates.invoiceReminder({
+        customerName: invoice.customer.name,
+        number: invoice.number,
+        total: Number(invoice.total).toFixed(2),
+        dueStr,
+      }),
     });
 
     res.json({ success: true });

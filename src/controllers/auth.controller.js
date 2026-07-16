@@ -6,6 +6,8 @@ const { AuthError, ValidationError } = require('../utils/errors');
 const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
 const { checkPassword } = require('../utils/passwordPolicy');
 const { getUserRoles } = require('../utils/rbac');
+const { sendMail } = require('../services/mail.service');
+const emailTemplates = require('../services/emailTemplates');
 
 exports.login = async (req, res, next) => {
   try {
@@ -85,7 +87,9 @@ exports.changePassword = async (req, res, next) => {
     if (!match) throw new AuthError('Your current password is incorrect');
     if (await bcrypt.compare(newPassword, user.passwordHash)) throw new ValidationError('New password must be different from the current one');
 
-    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } });
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await bcrypt.hash(newPassword, 10), passwordChangedAt: new Date() } });
+    const when = new Date().toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' });
+    sendMail({ to: user.email, ...emailTemplates.passwordChanged({ name: user.firstName, when, context: 'account settings' }) }).catch(() => {});
     return ok(res, { message: 'Password changed successfully' });
   } catch (e) { next(e); }
 };
