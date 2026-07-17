@@ -755,7 +755,7 @@ model ComplianceScore {
   id            String   @id @default(uuid())
   tenant        Tenant   @relation(fields: [tenantId], references: [id])
   tenantId      String   @default("00000000-0000-4000-8000-000000000001")
-  scoreDate     DateTime @unique @db.Date
+  scoreDate     DateTime @db.Date
   peopleScore   Decimal  @db.Decimal(5, 2)
   fleetScore    Decimal  @db.Decimal(5, 2)
   driverScore   Decimal  @db.Decimal(5, 2)
@@ -766,6 +766,9 @@ model ComplianceScore {
 
   createdAt DateTime @default(now())
 
+  // One score per tenant per day (was globally unique on scoreDate, which
+  // 500'd the first dashboard load of every tenant after the first).
+  @@unique([tenantId, scoreDate])
   @@index([tenantId])
 }
 

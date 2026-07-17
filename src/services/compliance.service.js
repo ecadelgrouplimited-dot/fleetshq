@@ -131,11 +131,16 @@ const calculateAndStore = async () => {
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
+  // Scores are per-tenant per-day. Resolve the tenant from the request/cron
+  // context (falls back to the platform tenant for legacy callers).
+  const { getTenantId, DEFAULT_TENANT_ID } = require('../utils/tenantContext');
+  const tenantId = getTenantId() || DEFAULT_TENANT_ID;
+
   await prisma.complianceScore.upsert({
-    where: { scoreDate: today },
+    where: { tenantId_scoreDate: { tenantId, scoreDate: today } },
     update: { peopleScore: people.score, fleetScore: fleet.score, driverScore: driver.score,
       overallScore: overall, peopleDetails: people.details, fleetDetails: fleet.details, driverDetails: driver.details },
-    create: { scoreDate: today, peopleScore: people.score, fleetScore: fleet.score,
+    create: { tenantId, scoreDate: today, peopleScore: people.score, fleetScore: fleet.score,
       driverScore: driver.score, overallScore: overall, peopleDetails: people.details,
       fleetDetails: fleet.details, driverDetails: driver.details },
   });

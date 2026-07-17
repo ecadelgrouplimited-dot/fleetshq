@@ -99,31 +99,44 @@ const generateAlerts = async () => {
 const runAlertJob = async () => {
   try {
     logger.info('Running daily alert calculations...');
-    const alerts = await generateAlerts();
+    const { runWithTenant } = require('../utils/tenantContext');
+    const { calculateAndStore } = require('./compliance.service');
 
-    // Clear today's unresolved alerts and re-insert fresh ones
-    await prisma.alert.deleteMany({ where: { isResolved: false } });
+    // Per-tenant: alerts and scores are tenant-scoped data, so the job runs
+    // inside each tenant's context (suspended tenants are skipped).
+    const tenants = await prisma.tenant.findMany({
+      where: { status: { in: ['active', 'trial'] } },
+      select: { id: true, name: true },
+    });
 
-    if (alerts.length > 0) {
-      await prisma.alert.createMany({ data: alerts, skipDuplicates: true });
+    const combined = [];
+    for (const tenant of tenants) {
+      await runWithTenant(tenant.id, async () => {
+        const alerts = await generateAlerts();
+        // Clear this tenant's unresolved alerts and re-insert fresh ones
+        await prisma.alert.deleteMany({ where: { isResolved: false } });
+        if (alerts.length > 0) {
+          await prisma.alert.createMany({ data: alerts, skipDuplicates: true });
+        }
+        await calculateAndStore();
+        combined.push(...alerts.map((a) => ({ ...a, tenantName: tenant.name })));
+      });
     }
 
-    logger.info(`Alert job complete — ${alerts.length} alerts generated`);
+    logger.info(`Alert job complete — ${combined.length} alerts across ${tenants.length} tenant${tenants.length === 1 ? '' : 's'}`);
 
-    // Email the digest to the ops inbox (director, cc alerts) when anything is open.
-    if (alerts.length > 0) {
+    // Ops digest (director, cc alerts) across all tenants.
+    if (combined.length > 0) {
       const { sendMail, opsRecipients } = require('./mail.service');
       const emailTemplates = require('./emailTemplates');
-      const counts = alerts.reduce((c, a) => { c[a.severity] = (c[a.severity] || 0) + 1; return c; }, {});
+      const counts = combined.reduce((c, a) => { c[a.severity] = (c[a.severity] || 0) + 1; return c; }, {});
       const rank = { critical: 0, warning: 1, notice: 2 };
-      const items = [...alerts].sort((a, b) => (rank[a.severity] ?? 3) - (rank[b.severity] ?? 3));
+      const items = [...combined]
+        .sort((a, b) => (rank[a.severity] ?? 3) - (rank[b.severity] ?? 3))
+        .map((a) => (tenants.length > 1 ? { ...a, message: `[${a.tenantName}] ${a.message}` } : a));
       const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Europe/London' });
       await sendMail({ ...opsRecipients(), ...emailTemplates.alertDigest({ dateStr, counts, items }) });
     }
-
-    // Calculate and store compliance score
-    const { calculateAndStore } = require('./compliance.service');
-    await calculateAndStore();
   } catch (e) {
     logger.error('Alert job failed:', e);
   }
