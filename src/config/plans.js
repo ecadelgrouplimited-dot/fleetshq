@@ -3,10 +3,11 @@
  *
  * Single source of truth for tiers shown on the public registration flow and
  * used by provisioning. Prices are annual (prepaid licence, per the business
- * model). `priceAnnualPence: null` means pricing is not yet published — the UI
- * shows the tier without a figure and activation is confirmed by the team.
- * Fill in real prices once commercial terms are agreed (see
- * docs/ONBOARDING_AND_BILLING_PLAN.md §5 / §10).
+ * model). Current figures are launch pricing agreed as a starting point before
+ * Stripe integration — adjust here when commercial terms are finalised (see
+ * docs/ONBOARDING_AND_BILLING_PLAN.md §5 / §10). `priceAnnualPence: null`
+ * means custom pricing (Enterprise) — the UI shows no figure and terms are
+ * agreed before activation.
  */
 
 const PLANS = {
@@ -15,7 +16,7 @@ const PLANS = {
     label: 'Starter',
     fleetBand: '1-5',
     fleetLabel: '1–5 vehicles',
-    priceAnnualPence: null,
+    priceAnnualPence: 49900,
     blurb: 'Compliance, drivers and vehicles for small operators.',
     features: ['Full compliance hub', 'Driver & vehicle records', 'Daily walk-around checks', 'Email alerts & digests'],
   },
@@ -24,7 +25,7 @@ const PLANS = {
     label: 'Growth',
     fleetBand: '6-20',
     fleetLabel: '6–20 vehicles',
-    priceAnnualPence: null,
+    priceAnnualPence: 99900,
     blurb: 'For growing fleets that need dispatch and finance too.',
     features: ['Everything in Starter', 'Dispatch & shipments', 'Invoicing & finance', 'Learning management'],
   },
@@ -33,7 +34,7 @@ const PLANS = {
     label: 'Scale',
     fleetBand: '21-50',
     fleetLabel: '21–50 vehicles',
-    priceAnnualPence: null,
+    priceAnnualPence: 199900,
     blurb: 'Multi-branch operations with full analytics.',
     features: ['Everything in Growth', 'Multi-branch support', 'Executive analytics', 'Priority support'],
   },

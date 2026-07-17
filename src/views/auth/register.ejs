@@ -244,7 +244,7 @@
                 <div class="pfleet"><%= p.fleetLabel %></div>
                 <div class="pblurb"><%= p.blurb %></div>
                 <ul><% p.features.forEach((f) => { %><li><%= f %></li><% }) %></ul>
-                <div class="pprice"><%= formatPrice(p.priceAnnualPence) ? formatPrice(p.priceAnnualPence) + ' / year' : 'Annual licence — confirmed on activation' %></div>
+                <div class="pprice"><%= formatPrice(p.priceAnnualPence) ? formatPrice(p.priceAnnualPence) + ' / year' : 'Custom pricing — agreed before activation' %></div>
               </label>
             <% }) %>
           </div>

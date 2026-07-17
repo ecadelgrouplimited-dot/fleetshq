@@ -31,6 +31,13 @@ exports.login = async (req, res, next) => {
     }
 
     await registerSuccess(user);
+
+    // Suspension gate at sign-in.
+    const { isTenantSuspended } = require('../utils/tenantStatus');
+    if (await isTenantSuspended(user.tenantId)) {
+      throw new AuthError("This organisation's FLEET.HQ subscription is paused. Contact your administrator.");
+    }
+
     await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     const token = sign({

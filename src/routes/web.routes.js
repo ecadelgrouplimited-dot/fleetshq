@@ -5,6 +5,7 @@ const path = require('path');
 const prisma = require('../config/database');
 const { verify } = require('../config/jwt');
 const { DEFAULT_TENANT_ID, runWithTenant } = require('../utils/tenantContext');
+const { isTenantSuspended } = require('../utils/tenantStatus');
 const { UPLOAD_DIR, upload } = require('../config/storage');
 const { daysUntil, formatDate } = require('../utils/dateHelpers');
 const { TRAINING_LABELS, CHECK_ITEM_LABELS, CHECK_ITEMS, TASK_CATEGORIES, TASK_CATEGORY_LABELS, TASK_PRIORITIES, TASK_STATUSES,
@@ -22,7 +23,7 @@ const { ROLE_LABELS, getUserRoles, hasAnyRole, getUserPanels, roleLabel } = requ
 router.use(cookieParser());
 
 // Web auth middleware
-const webAuth = (req, res, next) => {
+const webAuth = async (req, res, next) => {
   const token = req.cookies?.token;
   if (!token) return res.redirect('/login');
   const payload = verify(token);
@@ -30,6 +31,14 @@ const webAuth = (req, res, next) => {
   payload.tenantId = payload.tenantId || DEFAULT_TENANT_ID;
   payload.roles = getUserRoles(payload);
   payload.branchIds = payload.branchIds || [];
+
+  // Suspension gate: a paused tenant sees the lock screen, not the app.
+  try {
+    if (await isTenantSuspended(payload.tenantId)) {
+      return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEET.HQ' });
+    }
+  } catch (e) { /* fail open — a status-lookup blip must not lock everyone out */ }
+
   runWithTenant(payload.tenantId, () => {
     req.user = payload;
     // First-login gate: force a password change before any app access.
@@ -374,6 +383,13 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     await registerSuccess(user);
+
+    // Suspension gate at sign-in — clearer than bouncing off the lock screen.
+    const { isTenantSuspended } = require('../utils/tenantStatus');
+    if (await isTenantSuspended(user.tenantId)) {
+      return res.render('auth/login', { title: 'Login', error: "Your organisation's FLEET.HQ subscription is paused. Contact your administrator, or email alerts@fleetshq.com to reactivate." });
+    }
+
     const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [], email: user.email,
       name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null, mustChangePassword: user.mustChangePassword || false });
 
@@ -2712,6 +2728,8 @@ router.post('/platform/tenants/:id/update', webAuth, platformAdminOnly, async (r
     if (typeof req.body.primaryContactEmail === 'string') data.primaryContactEmail = req.body.primaryContactEmail.trim().toLowerCase() || null;
     if (typeof req.body.primaryContactPhone === 'string') data.primaryContactPhone = req.body.primaryContactPhone.trim() || null;
     await prisma.tenant.update({ where: { id: req.params.id }, data });
+    // Suspend/reactivate must take effect immediately, not after the cache TTL.
+    if (data.status) require('../utils/tenantStatus').bustTenantStatusCache(req.params.id);
     res.redirect(req.body.redirect === 'detail' ? `/platform/tenants/${req.params.id}?saved=tenant` : '/platform');
   } catch (e) { res.redirect('/platform'); }
 });
