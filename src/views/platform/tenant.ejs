@@ -39,6 +39,28 @@ ${saved && savedMsg[saved] ? `<div class="card mb-4" style="border-left:4px soli
   ].map(k => `<div class="plat-kpi ${k.tone}"><div class="plat-kpi-value">${k.value}</div><div class="plat-kpi-label">${k.label}</div></div>`).join('')}
 </div>
 
+${saved === 'renewal' ? `<div class="card mb-4" style="padding:12px 16px;border-left:4px solid var(--success);font-size:13.5px;font-weight:600">Renewal recorded — the licence period was extended and the tenant reactivated if it was suspended.</div>` : ''}
+
+<!-- Licence & billing -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h3>Licence &amp; billing</h3>
+    ${subscription ? `<span class="badge ${subscription.status === 'active' ? 'badge-green' : subscription.status === 'past_due' ? 'badge-amber' : 'badge-red'}" style="text-transform:capitalize">${subscription.status.replace(/_/g, ' ')}</span>` : '<span class="badge badge-slate">No subscription</span>'}
+  </div>
+  <div style="padding:16px 20px;display:flex;gap:26px;flex-wrap:wrap;align-items:center">
+    ${subscription ? `
+    <div><div class="text-sm text-muted">Tier</div><div style="font-weight:800;text-transform:capitalize">${subPlan ? subPlan.label : subscription.plan}</div></div>
+    <div><div class="text-sm text-muted">Annual price</div><div style="font-weight:800">${formatPrice(subscription.priceAnnualPence) || 'Custom'}</div></div>
+    <div><div class="text-sm text-muted">Licensed until</div><div style="font-weight:800">${formatDate(subscription.currentPeriodEnd)}</div></div>
+    <div><div class="text-sm text-muted">Payments</div><div style="font-weight:800">${subscription.payments.length}</div></div>
+    ` : `<div class="text-sm text-muted">This tenant has no licence record (onboarded before billing existed, or internal). Recording a renewal creates one.</div>`}
+    <form method="post" action="/platform/tenants/${tenant.id}/renew" style="margin-left:auto" onsubmit="return confirm('Record a paid renewal? This extends the licence by one term${subscription && subscription.status !== 'active' ? ' and reactivates the tenant' : ''}.')">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <button class="btn btn-primary btn-sm" type="submit">Record paid renewal (+1 term)</button>
+    </form>
+  </div>
+</div>
+
 <div class="grid-2 mb-4">
   <!-- Tenant settings -->
   <div class="card">

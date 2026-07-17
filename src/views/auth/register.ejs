@@ -255,14 +255,23 @@
         <div class="done-icon" aria-hidden="true">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
-        <span class="eyebrow">Registration complete</span>
-        <h1>You're in the queue, <%= (request.contactName || '').split(' ')[0] %></h1>
+        <span class="eyebrow"><%= paid ? 'Payment received' : 'Registration complete' %></span>
+        <h1><%= paid ? 'Welcome aboard' : "You're in the queue" %>, <%= (request.contactName || '').split(' ')[0] %></h1>
+        <% if (paid) { %>
+        <p class="sub">Payment for <strong style="color:var(--text);"><%= request.companyName %></strong> is confirmed. Your private FLEET.HQ environment is being provisioned <strong style="color:var(--text);">right now</strong>.</p>
+        <div class="next-steps">
+          <div><b class="num">1.</b><span><strong>Check your inbox</strong> — your sign-in credentials arrive within a few minutes.</span></div>
+          <div><b class="num">2.</b><span>Sign in and you'll be asked to <strong>set your own password</strong>.</span></div>
+          <div><b class="num">3.</b><span>Add your drivers, vehicles and team — you're licensed for <strong>12 months</strong>.</span></div>
+        </div>
+        <% } else { %>
         <p class="sub"><strong style="color:var(--text);"><%= request.companyName %></strong> is registered and your email is verified. We've sent a confirmation to your inbox.</p>
         <div class="next-steps">
           <div><b class="num">1.</b><span>Our team confirms your details and the <strong>annual licence payment</strong> for your tier.</span></div>
           <div><b class="num">2.</b><span>Your <strong>private FLEET.HQ environment</strong> is provisioned.</span></div>
           <div><b class="num">3.</b><span>You receive <strong>sign-in credentials by email</strong> — usually within one business day.</span></div>
         </div>
+        <% } %>
         <div class="trust">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           Questions in the meantime? Email <a href="mailto:alerts@fleetshq.com" style="color:var(--gold);font-weight:700;">alerts@fleetshq.com</a> or reply to your confirmation email.

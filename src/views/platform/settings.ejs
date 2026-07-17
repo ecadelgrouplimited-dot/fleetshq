@@ -1,0 +1,68 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Platform Admin</div>
+    <h1>Platform Settings</h1>
+    <p class="page-sub">Payment gateway, company verification and licence lifecycle configuration. Secrets are stored encrypted-at-rest in the platform database and never shown again in full.</p>
+  </div>
+  <div class="page-head-actions">
+    <a class="btn btn-outline" href="/platform">← Back to Platform Admin</a>
+  </div>
+</div>
+
+${saved ? `<div class="card mb-4" style="padding:12px 16px;border-left:4px solid var(--success);font-size:13.5px;font-weight:600">Settings saved. ${cfg.stripeEnabled ? 'Stripe checkout is <strong>enabled</strong> — new registrations with a priced tier will pay online and auto-provision.' : ''}</div>` : ''}
+
+<form method="post" action="/platform/settings">
+  <input type="hidden" name="_csrf" value="${csrfToken}">
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3>Stripe payment gateway</h3>
+      <span class="badge ${cfg.stripeEnabled ? 'badge-green' : 'badge-slate'}">${cfg.stripeEnabled ? 'Configured — checkout live' : 'Not configured — manual activation'}</span>
+    </div>
+    <div style="padding:18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">Secret key ${cfg.stripeSecretKeyHint ? `<span class="text-muted">(current: ${cfg.stripeSecretKeyHint})</span>` : ''}</label>
+        <input class="form-control" name="stripeSecretKey" type="password" autocomplete="off" placeholder="${cfg.stripeSecretKeyHint ? 'Leave blank to keep the current key' : 'sk_live_…'}">
+        <div class="text-sm text-muted" style="margin-top:5px">From <b>Stripe Dashboard → Developers → API keys</b>. Enables online checkout at registration and renewals.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Publishable key ${cfg.stripePublishableKeyHint ? `<span class="text-muted">(current: ${cfg.stripePublishableKeyHint})</span>` : ''}</label>
+        <input class="form-control" name="stripePublishableKey" autocomplete="off" placeholder="${cfg.stripePublishableKeyHint ? 'Leave blank to keep' : 'pk_live_…'}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Webhook signing secret ${cfg.stripeWebhookSecretHint ? `<span class="text-muted">(current: ${cfg.stripeWebhookSecretHint})</span>` : ''}</label>
+        <input class="form-control" name="stripeWebhookSecret" type="password" autocomplete="off" placeholder="${cfg.stripeWebhookSecretHint ? 'Leave blank to keep' : 'whsec_…'}">
+        <div class="text-sm text-muted" style="margin-top:5px">Create a webhook endpoint for <b>https://fleetshq.com/webhooks/stripe</b> listening to <b>checkout.session.completed</b>, then paste its signing secret here.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><h3>Company verification</h3><span class="badge ${cfg.chApiKeyHint ? 'badge-green' : 'badge-slate'}">${cfg.chApiKeyHint ? 'Configured' : 'Not configured'}</span></div>
+    <div style="padding:18px 20px">
+      <div class="form-group" style="max-width:520px">
+        <label class="form-label">Companies House API key ${cfg.chApiKeyHint ? `<span class="text-muted">(current: ${cfg.chApiKeyHint})</span>` : ''}</label>
+        <input class="form-control" name="chApiKey" type="password" autocomplete="off" placeholder="${cfg.chApiKeyHint ? 'Leave blank to keep' : 'Free key from developer.company-information.service.gov.uk'}">
+        <div class="text-sm text-muted" style="margin-top:5px">Automatically validates the company registration number on self-serve sign-ups. Without a key, registrations show &ldquo;not checked&rdquo; and rely on manual review.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header"><h3>Licence lifecycle</h3></div>
+    <div style="padding:18px 20px;display:flex;gap:24px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="width:180px">
+        <label class="form-label">Grace period (days)</label>
+        <input class="form-control" name="graceDays" type="number" min="0" max="90" value="${cfg.graceDays}">
+        <div class="text-sm text-muted" style="margin-top:5px">After expiry, access continues this many days before auto-suspension.</div>
+      </div>
+      <div class="text-sm text-muted" style="padding-bottom:24px">
+        Renewal reminders are sent <b>${cfg.reminderDays.join(' / ')} days</b> before expiry (daily job, 07:00 UTC), copied to the alerts inbox.
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" type="submit">Save settings</button>
+</form>
+` }) %>

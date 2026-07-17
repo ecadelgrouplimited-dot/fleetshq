@@ -74,17 +74,18 @@ const verifyCode = async (requestId, submitted) => {
 };
 
 /**
- * Companies House lookup (optional — set CH_API_KEY to enable).
- * Never blocks registration: failures return a snapshot marked accordingly and
- * the request goes to manual review in Platform Admin.
+ * Companies House lookup (optional — set the key in /platform/settings or the
+ * CH_API_KEY env). Never blocks registration: failures return a snapshot
+ * marked accordingly and the request goes to manual review in Platform Admin.
  */
 const companiesHouseLookup = async (companyRegNo, companyName) => {
-  if (!process.env.CH_API_KEY) return { checked: false, reason: 'no_api_key' };
+  const { chApiKey } = await require('./platformConfig.service').getPlatformConfig();
+  if (!chApiKey) return { checked: false, reason: 'no_api_key' };
   if (!companyRegNo) return { checked: false, reason: 'no_number_given' };
   try {
     const number = String(companyRegNo).replace(/\s+/g, '').toUpperCase();
     const res = await fetch(`https://api.company-information.service.gov.uk/company/${encodeURIComponent(number)}`, {
-      headers: { Authorization: `Basic ${Buffer.from(process.env.CH_API_KEY + ':').toString('base64')}` },
+      headers: { Authorization: `Basic ${Buffer.from(chApiKey + ':').toString('base64')}` },
       signal: AbortSignal.timeout(8000),
     });
     if (res.status === 404) return { checked: true, found: false };

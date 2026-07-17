@@ -1,9 +1,14 @@
 # FLEET.HQ — Self-Serve Onboarding, Subscriptions & Client Sovereignty — Implementation Plan
 
-**Status:** Phases 0–1 built (2026-07-17): SMTP live, `/register` flow with email
-verification codes, tier selection, Platform Admin review queue, `provisionTenant()`
-service. Activation is currently manual (payment confirmed by team → Activate).
-Phase 2 (Stripe checkout + automated activation) awaits pricing + gateway sign-off (§10).
+**Status:** Phases 0–4 built (2026-07-17): SMTP live, `/register` flow with email
+verification codes, tier selection (launch pricing seeded), Platform Admin review
+queue, `provisionTenant()`. **Phase 2:** Stripe Checkout + `/webhooks/stripe`
+auto-provisioning are implemented and dormant until keys are entered at
+`/platform/settings` (manual activation is the fallback). **Phase 3:** Subscription +
+Payment models, renewal reminders (30/14/3d), expiry → grace → auto-suspension cron,
+manual "record paid renewal" in tenant detail. **Phase 4 (partial):** tenant
+`/billing` page (plan, price, renewal, payment history, online renew). Remaining:
+branding self-service, rate cards, release channels (§7).
 **Date:** 2026-07-17
 **Source:** Client brief (onboarding & registration, subscription & payment gateway, client sovereignty & control)
 **Sender for verification codes:** `alerts@fleetshq.com` (mailbox being set up manually; DNS ready)

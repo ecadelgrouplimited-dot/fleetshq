@@ -47,6 +47,20 @@ app.use(helmet({
 
 app.use(cors());
 app.use(cookieParser());
+
+// Stripe webhook — needs the RAW body for signature verification, so it is
+// mounted before the JSON parser (and never passes through CSRF/auth).
+app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const { handleStripeWebhook } = require('./src/services/billing.service');
+    const result = await handleStripeWebhook(req.body, req.headers['stripe-signature']);
+    res.json({ received: true, ...result });
+  } catch (e) {
+    require('./src/utils/logger').error(`[billing] webhook rejected: ${e.message}`);
+    res.status(400).json({ error: 'Webhook error' });
+  }
+});
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Asset cache-busting: derive a short version token from the mtimes of the two

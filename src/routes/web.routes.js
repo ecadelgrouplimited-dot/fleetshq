@@ -33,8 +33,10 @@ const webAuth = async (req, res, next) => {
   payload.branchIds = payload.branchIds || [];
 
   // Suspension gate: a paused tenant sees the lock screen, not the app.
+  // /billing stays reachable so a director can renew and restore access.
+  const suspensionExempt = ['/billing', '/billing/renew', '/logout'];
   try {
-    if (await isTenantSuspended(payload.tenantId)) {
+    if (!suspensionExempt.includes(req.path) && await isTenantSuspended(payload.tenantId)) {
       return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEET.HQ' });
     }
   } catch (e) { /* fail open — a status-lookup blip must not lock everyone out */ }
@@ -46,6 +48,7 @@ const webAuth = async (req, res, next) => {
       return res.redirect('/set-password');
     }
     res.locals.user = payload;
+    res.locals.isPlatformAdmin = isPlatformAdmin(payload);
     res.locals.formatDate = formatDate;
     res.locals.daysUntil = daysUntil;
     res.locals.esc = esc;
@@ -64,6 +67,12 @@ const webAuth = async (req, res, next) => {
 };
 
 const hasRole = (user, roles) => hasAnyRole(user, roles);
+
+// Platform admin = super_admin/director of the PLATFORM tenant only. Tenant
+// directors must never see cross-tenant management.
+const isPlatformAdmin = (user) => !!user
+  && (user.tenantId || DEFAULT_TENANT_ID) === DEFAULT_TENANT_ID
+  && hasAnyRole(user, ['super_admin', 'director']);
 
 const requireRoles = (...roles) => (req, res, next) => {
   if (hasRole(req.user, roles)) return next();
@@ -519,7 +528,7 @@ const registerLimiter = require('express-rate-limit')({
 
 const registerView = (res, step, data = {}) => res.render('auth/register', {
   title: 'Register your company — FLEET.HQ',
-  step, error: null, notice: null, form: {}, request: null,
+  step, error: null, notice: null, form: {}, request: null, paid: false,
   plans: Object.values(PLANS), fleetBands: FLEET_BANDS, formatPrice,
   ...data,
 });
@@ -637,8 +646,7 @@ router.post('/register/plan', registerLimiter, async (req, res) => {
   }
   await prisma.registrationRequest.update({ where: { id: request.id }, data: { plan: plan.key, status: 'pending_activation' } });
 
-  // Applicant confirmation + ops heads-up (director, cc alerts).
-  await sendMail({ to: request.contactEmail, ...emailTemplates.registrationPending({ contactName: request.contactName, companyName: request.companyName, tierLabel: plan.label }) });
+  // Ops heads-up (director, cc alerts) in both payment paths.
   const ch = request.chLookup || {};
   const chSummary = !ch.checked ? 'not checked' : !ch.found ? 'NOT FOUND' : `${ch.companyName} — ${ch.companyStatus}${ch.nameMatches ? '' : ' (name mismatch)'}`;
   sendMail({
@@ -651,13 +659,58 @@ router.post('/register/plan', registerLimiter, async (req, res) => {
     }),
   }).catch(() => {});
 
+  // If Stripe is configured and the tier has a published price, take payment
+  // now — the webhook auto-provisions on confirmed funds. Otherwise fall back
+  // to the manual path (team confirms payment, then activates).
+  try {
+    const billing = require('../services/billing.service');
+    const session = await billing.createRegistrationCheckout(request, plan, `${req.protocol}://${req.get('host')}`);
+    if (session?.url) return res.redirect(303, session.url);
+  } catch (e) {
+    require('../utils/logger').warn(`[billing] checkout unavailable, using manual activation: ${e.message}`);
+  }
+
+  await sendMail({ to: request.contactEmail, ...emailTemplates.registrationPending({ contactName: request.contactName, companyName: request.companyName, tierLabel: plan.label }) });
   return res.redirect(`/register/done?rid=${request.id}`);
 });
 
 router.get('/register/done', async (req, res) => {
   const request = await loadRegistration(req.query.rid);
   if (!request) return res.redirect('/register');
-  return registerView(res, 'done', { request });
+  return registerView(res, 'done', { request, paid: req.query.paid === '1' || request.status === 'provisioned' });
+});
+
+// ── Tenant billing & licence (directors) ─────────────────────────────
+const billingRoles = ['super_admin', 'director', 'finance_officer'];
+
+router.get('/billing', webAuth, requireRoles(...billingRoles), async (req, res) => {
+  try {
+    const subscription = await prisma.subscription.findUnique({
+      where: { tenantId: req.user.tenantId },
+      include: { payments: { orderBy: { createdAt: 'desc' }, take: 24 } },
+    });
+    const plan = subscription ? getPlan(subscription.plan) : null;
+    const { stripeEnabled } = require('../services/platformConfig.service');
+    res.render('billing/index', {
+      title: 'Billing & Licence',
+      subscription, plan, formatPrice,
+      daysLeft: subscription ? Math.ceil((new Date(subscription.currentPeriodEnd) - Date.now()) / 86400000) : null,
+      canPayOnline: (await stripeEnabled()) && !!(subscription?.priceAnnualPence || plan?.priceAnnualPence),
+      renewed: req.query.renewed === '1',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/billing/renew', webAuth, requireRoles(...billingRoles), async (req, res) => {
+  try {
+    const subscription = await prisma.subscription.findUnique({ where: { tenantId: req.user.tenantId } });
+    if (!subscription) return res.redirect('/billing');
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.user.tenantId } });
+    const billing = require('../services/billing.service');
+    const session = await billing.createRenewalCheckout(subscription, tenant, `${req.protocol}://${req.get('host')}`);
+    if (session?.url) return res.redirect(303, session.url);
+    return res.redirect('/billing?contact=1');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
 router.get('/documents/:kind/:id', webAuth, async (req, res) => {
@@ -1245,6 +1298,17 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       isOverdue: t.dueDate && new Date(t.dueDate) < new Date(),
     }));
 
+    // Platform admins get a heads-up card for self-serve registrations
+    // awaiting review/activation (queue lives at /platform).
+    let platformQueue = null;
+    if (isPlatformAdmin(req.user)) {
+      const [pendingActivation, inFlight] = await Promise.all([
+        prisma.registrationRequest.count({ where: { status: 'pending_activation' } }),
+        prisma.registrationRequest.count({ where: { status: { in: ['pending_verification', 'verified'] } } }),
+      ]);
+      if (pendingActivation + inFlight > 0) platformQueue = { pendingActivation, inFlight };
+    }
+
     res.render('dashboard/index', {
       title: 'Dashboard',
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
@@ -1253,6 +1317,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
       complianceTiles, complianceTrend, scoreDelta, upcomingTasks,
       alerts, alertGroups, recentDefects, chartData, healthCards,
+      platformQueue,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
@@ -2582,10 +2647,10 @@ const ensureCompanyProfile = async () => {
   });
 };
 
-// ── Platform Admin — tenant onboarding (super_admin / director) ─────────
+// ── Platform Admin — tenant onboarding (platform-tenant super_admin/director) ──
 const platformAdminOnly = (req, res, next) => {
-  if (hasRole(req.user, ['super_admin', 'director'])) return next();
-  return res.status(403).render('error', { title: 'Access denied', message: 'Only a platform administrator can onboard businesses.', code: 403 });
+  if (isPlatformAdmin(req.user)) return next();
+  return res.status(403).render('error', { title: 'Access denied', message: 'Only a platform administrator can manage tenants.', code: 403 });
 };
 
 const { provisionTenant, generateTempPassword, TENANT_ADMIN_ROLES } = require('../services/provisioning.service');
@@ -2615,49 +2680,92 @@ router.get('/platform', webAuth, platformAdminOnly, async (req, res) => {
 // ── Self-serve registration review queue ────────────────────────────────
 router.post('/platform/registrations/:id/activate', webAuth, platformAdminOnly, async (req, res) => {
   try {
-    const request = await prisma.registrationRequest.findUnique({ where: { id: req.params.id } });
-    if (!request) return res.status(404).render('error', { title: 'Not found', message: 'Registration not found.', code: 404 });
-    if (!['verified', 'pending_activation'].includes(request.status)) {
-      return res.status(400).render('error', { title: 'Cannot activate', message: `This registration is ${request.status.replace(/_/g, ' ')} — only verified registrations can be activated.`, code: 400 });
+    const billing = require('../services/billing.service');
+    const result = await billing.activateRegistration(req.params.id, {
+      via: 'platform admin', reviewNotes: req.body.reviewNotes || null,
+      payment: null, // payment recorded manually until Stripe checkout is used
+    });
+    if (result.alreadyProvisioned) {
+      return res.status(400).render('error', { title: 'Cannot activate', message: 'This registration was already provisioned.', code: 400 });
     }
-
-    const nameParts = request.contactName.trim().split(/\s+/);
-    const { tenant, adminUser, tempPassword } = await provisionTenant({
-      tradingName: request.companyName,
-      plan: request.plan || 'starter',
-      status: 'active',
-      registeredAddress: null,
-      adminEmail: request.contactEmail,
-      adminFirst: nameParts[0],
-      adminLast: nameParts.slice(1).join(' ') || nameParts[0],
-      adminPhone: request.contactPhone,
-      notes: [
-        'Self-serve registration.',
-        request.companyRegNo ? `Company reg no: ${request.companyRegNo}` : null,
-        `Fleet size: ${request.fleetSize}`,
-        request.region ? `Region: ${request.region}` : null,
-        req.body.reviewNotes ? `Review notes: ${req.body.reviewNotes}` : null,
-      ].filter(Boolean).join(' '),
-    });
-
-    await prisma.registrationRequest.update({
-      where: { id: request.id },
-      data: { status: 'provisioned', tenantId: tenant.id, provisionedAt: new Date(), reviewNotes: req.body.reviewNotes || null },
-    });
-
-    const loginUrl = `${req.protocol}://${req.get('host')}/login`;
-    const result = await sendMail({
-      to: adminUser.email,
-      ...emailTemplates.welcome({ tradingName: tenant.name, adminFirst: adminUser.firstName, loginUrl, adminEmail: adminUser.email, tempPassword }),
-    });
-
     return res.render('platform/onboarded', {
       title: 'Business activated',
-      tenant, admin: adminUser, tempPassword, emailed: !!result.sent, reset: false,
-      loginUrl, path: '/platform',
+      tenant: result.tenant, admin: result.adminUser, tempPassword: result.tempPassword,
+      emailed: result.emailed, reset: false,
+      loginUrl: `${req.protocol}://${req.get('host')}/login`, path: '/platform',
     });
   } catch (e) {
     return res.status(400).render('error', { title: 'Activation failed', message: e.message || 'Could not activate this registration.', code: 400 });
+  }
+});
+
+// Manual renewal (bank transfer / offline payment) — extends the licence a term.
+router.post('/platform/tenants/:id/renew', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const billing = require('../services/billing.service');
+    let subscription = await prisma.subscription.findUnique({ where: { tenantId: req.params.id } });
+    const tenant = await prisma.tenant.findUnique({ where: { id: req.params.id } });
+    if (!tenant) return res.status(404).render('error', { title: 'Not found', message: 'Tenant not found.', code: 404 });
+    if (!subscription) subscription = await billing.createSubscriptionForTenant(tenant.id, tenant.plan || 'starter');
+    else {
+      await billing.renewSubscription(subscription, {
+        payment: subscription.priceAnnualPence
+          ? { amountPence: subscription.priceAnnualPence, status: 'manual', description: 'Annual licence renewal — recorded manually' }
+          : null,
+      });
+    }
+    const sub = await prisma.subscription.findUnique({ where: { tenantId: tenant.id } });
+    if (tenant.primaryContactEmail) {
+      const plan = getPlan(sub.plan);
+      sendMail({
+        to: tenant.primaryContactEmail, cc: opsRecipients().cc,
+        ...emailTemplates.renewalConfirmed({
+          companyName: tenant.name, tierLabel: plan?.label || sub.plan,
+          amount: formatPrice(sub.priceAnnualPence),
+          periodEnd: new Date(sub.currentPeriodEnd).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        }),
+      }).catch(() => {});
+    }
+    return res.redirect(`/platform/tenants/${tenant.id}?saved=renewal`);
+  } catch (e) {
+    return res.status(400).render('error', { title: 'Renewal failed', message: e.message, code: 400 });
+  }
+});
+
+// ── Platform settings (Stripe keys, Companies House, billing knobs) ─────
+router.get('/platform/settings', webAuth, platformAdminOnly, async (req, res) => {
+  const { getPlatformConfig, maskSecret } = require('../services/platformConfig.service');
+  const cfg = await getPlatformConfig();
+  res.render('platform/settings', {
+    title: 'Platform Settings',
+    path: '/platform',
+    saved: req.query.saved === '1',
+    cfg: {
+      stripeSecretKeyHint: maskSecret(cfg.stripeSecretKey),
+      stripePublishableKeyHint: maskSecret(cfg.stripePublishableKey),
+      stripeWebhookSecretHint: maskSecret(cfg.stripeWebhookSecret),
+      chApiKeyHint: maskSecret(cfg.chApiKey),
+      graceDays: cfg.graceDays,
+      reminderDays: cfg.reminderDays,
+      stripeEnabled: !!cfg.stripeSecretKey,
+    },
+  });
+});
+
+router.post('/platform/settings', webAuth, platformAdminOnly, async (req, res) => {
+  try {
+    const { savePlatformConfig } = require('../services/platformConfig.service');
+    const graceDays = parseInt(req.body.graceDays, 10);
+    await savePlatformConfig({
+      stripeSecretKey: (req.body.stripeSecretKey || '').trim(),
+      stripePublishableKey: (req.body.stripePublishableKey || '').trim(),
+      stripeWebhookSecret: (req.body.stripeWebhookSecret || '').trim(),
+      chApiKey: (req.body.chApiKey || '').trim(),
+      graceDays: Number.isFinite(graceDays) && graceDays >= 0 && graceDays <= 90 ? graceDays : undefined,
+    });
+    return res.redirect('/platform/settings?saved=1');
+  } catch (e) {
+    return res.status(400).render('error', { title: 'Could not save settings', message: e.message, code: 400 });
   }
 });
 
@@ -2754,8 +2862,13 @@ router.get('/platform/tenants/:id', webAuth, platformAdminOnly, async (req, res)
       ]);
       detail = { company, branches, users, counts: { users: uCount, branches: bCount, vehicles: vCount, employees: eCount } };
     });
+    const subscription = await prisma.subscription.findUnique({
+      where: { tenantId: tenant.id },
+      include: { payments: { orderBy: { createdAt: 'desc' }, take: 10 } },
+    });
     res.render('platform/tenant', {
       title: tenant.name, tenant, ...detail, addRoles: TENANT_USER_ROLES, roleLabel,
+      subscription, subPlan: subscription ? getPlan(subscription.plan) : null, formatPrice,
       saved: req.query.saved || '', formatDate, path: '/platform',
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }

@@ -1402,3 +1402,54 @@ model VerificationCode {
 
   @@index([requestId])
 }
+
+// ─────────────────────────────────────────
+// BILLING (platform-level — NOT tenant-scoped)
+// ─────────────────────────────────────────
+
+enum SubscriptionStatus {
+  active    // paid and inside the licence period
+  past_due  // period ended, inside the grace window
+  suspended // grace exhausted — tenant access is gated
+  cancelled // ended deliberately
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  tenantId           String             @unique
+  plan               String             // plans catalogue key
+  status             SubscriptionStatus @default(active)
+  termYears          Int                @default(1)
+  priceAnnualPence   Int?               // snapshot at purchase (null = custom/Enterprise)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  remindersSent      Json?              // { "30": iso, "14": iso, "3": iso } for the current period
+  stripeCustomerId   String?
+  graceDays          Int                @default(14)
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([currentPeriodEnd])
+}
+
+model Payment {
+  id                    String       @id @default(uuid())
+  subscription          Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId        String
+  amountPence           Int
+  currency              String       @default("gbp")
+  status                String       @default("paid") // paid | failed | refunded | manual
+  description           String?
+  stripeCheckoutId      String?      @unique
+  stripePaymentIntentId String?
+  receiptUrl            String?
+  paidAt                DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([subscriptionId])
+}

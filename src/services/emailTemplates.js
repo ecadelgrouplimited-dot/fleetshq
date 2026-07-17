@@ -252,6 +252,57 @@ const registrationRejected = ({ contactName, companyName }) => ({
   }),
 });
 
+const renewalReminder = ({ companyName, tierLabel, renewalDate, daysLeft, price, renewUrl }) => ({
+  subject: `Your FLEET.HQ licence renews in ${daysLeft} day${daysLeft === 1 ? '' : 's'} — ${companyName}`,
+  text: `Hi,\n\nThe annual FLEET.HQ licence for ${companyName} (${tierLabel} tier${price ? `, ${price}/year` : ''}) is due for renewal on ${renewalDate} — ${daysLeft} day${daysLeft === 1 ? '' : 's'} from now.\n\nRenew: ${renewUrl}\n\nIf the licence lapses there is a short grace period, after which access is paused (your data stays safe).\n\nFLEET.HQ`,
+  html: layout({
+    preheader: `${companyName} renews on ${renewalDate}.`,
+    heading: `Licence renewal in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`,
+    bodyHtml: `<p style="margin:0 0 12px;">The annual FLEET.HQ licence for <strong>${esc(companyName)}</strong> (<strong>${esc(tierLabel)}</strong> tier${price ? `, <strong>${esc(price)}</strong>/year` : ''}) is due for renewal on <strong>${esc(renewalDate)}</strong>.</p>
+      <p style="margin:0;">Renewing keeps your drivers, vehicles and compliance records exactly as they are. If the licence lapses there is a short grace period, after which access is paused &mdash; your data stays safe either way.</p>`,
+    cta: { label: 'Review & renew', url: renewUrl },
+    footerNote: 'You are receiving this because you are the primary contact for this FLEET.HQ environment.',
+  }),
+});
+
+const licenceExpired = ({ companyName, graceUntil, renewUrl }) => ({
+  subject: `Action needed — the FLEET.HQ licence for ${companyName} has expired`,
+  text: `Hi,\n\nThe annual licence for ${companyName} expired. Access continues during a grace period until ${graceUntil}, after which sign-in is paused (your data stays safe).\n\nRenew now: ${renewUrl}\n\nFLEET.HQ`,
+  html: layout({
+    preheader: `Grace period until ${graceUntil} — renew to avoid interruption.`,
+    heading: 'Your licence has expired',
+    bodyHtml: `<p style="margin:0 0 12px;">The annual FLEET.HQ licence for <strong>${esc(companyName)}</strong> has expired.</p>
+      <p style="margin:0;">Access continues during a grace period until <strong>${esc(graceUntil)}</strong>. After that, sign-in is paused until the licence is renewed &mdash; all of your data stays safe and nothing is deleted.</p>`,
+    cta: { label: 'Renew now', url: renewUrl },
+    footerNote: 'Renewing during the grace period keeps access uninterrupted.',
+  }),
+});
+
+const licenceSuspended = ({ companyName, renewUrl }) => ({
+  subject: `FLEET.HQ access paused — ${companyName}`,
+  text: `Hi,\n\nThe grace period for ${companyName} has ended and access is now paused. Your data is safe and access resumes the moment the licence is renewed.\n\nRenew: ${renewUrl}\n\nFLEET.HQ`,
+  html: layout({
+    preheader: 'Access is paused until the licence is renewed. Data is safe.',
+    heading: 'Access paused',
+    bodyHtml: `<p style="margin:0 0 12px;">The grace period for <strong>${esc(companyName)}</strong> has ended and access to your FLEET.HQ environment is now <strong>paused</strong>.</p>
+      <p style="margin:0;">All of your data is safe and nothing has been deleted. Access resumes automatically the moment the licence is renewed.</p>`,
+    cta: { label: 'Renew & restore access', url: renewUrl },
+    footerNote: 'Need help or more time? Reply to this email and the FLEET.HQ team will assist.',
+  }),
+});
+
+const renewalConfirmed = ({ companyName, tierLabel, amount, periodEnd }) => ({
+  subject: `Renewal confirmed — ${companyName} on FLEET.HQ`,
+  text: `Hi,\n\nThanks — the FLEET.HQ licence for ${companyName} (${tierLabel}${amount ? `, ${amount}` : ''}) has been renewed. Your environment is licensed until ${periodEnd}.\n\nFLEET.HQ`,
+  html: layout({
+    preheader: `Licensed until ${periodEnd}.`,
+    heading: 'Renewal confirmed',
+    bodyHtml: `<p style="margin:0 0 12px;">Thanks &mdash; the FLEET.HQ licence for <strong>${esc(companyName)}</strong> (<strong>${esc(tierLabel)}</strong>${amount ? `, <strong>${esc(amount)}</strong>` : ''}) has been renewed.</p>
+      <p style="margin:0;">Your environment is licensed until <strong>${esc(periodEnd)}</strong>. No further action is needed.</p>`,
+    footerNote: 'A payment receipt is available from your billing page.',
+  }),
+});
+
 const testMessage = ({ hostname }) => ({
   subject: 'FLEET.HQ email test — configuration OK',
   text: `This is a test message from FLEET.HQ (${hostname}). If you're reading this, SMTP delivery is working.`,
@@ -267,4 +318,5 @@ const testMessage = ({ hostname }) => ({
 module.exports = {
   resetPassword, passwordChanged, welcome, enquiry, invoiceReminder, alertDigest, testMessage,
   verificationCode, registrationPending, opsNewRegistration, registrationRejected,
+  renewalReminder, licenceExpired, licenceSuspended, renewalConfirmed,
 };

@@ -1,0 +1,78 @@
+<%
+  const subStatusBadge = { active: 'badge-green', past_due: 'badge-amber', suspended: 'badge-red', cancelled: 'badge-slate' };
+  const subStatusLabel = { active: 'Active', past_due: 'Payment overdue — in grace period', suspended: 'Suspended', cancelled: 'Cancelled' };
+  const money = (pence) => pence == null ? '—' : '£' + (pence / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 });
+%>
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Account</div>
+    <h1>Billing &amp; Licence</h1>
+    <p class="page-sub">Your FLEET.HQ annual licence, renewal status and payment history.</p>
+  </div>
+</div>
+
+${renewed ? `<div class="card mb-4" style="padding:12px 16px;border-left:4px solid var(--success);font-size:13.5px;font-weight:600">Payment received — thank you. Your licence has been extended and access is fully restored.</div>` : ''}
+
+${!subscription ? `
+<div class="card"><div class="empty-state" style="padding:48px 14px">
+  <p>No licence record yet</p>
+  <div class="empty-hint">Your environment doesn't have a subscription on record. If you believe this is wrong, contact <a href="mailto:alerts@fleetshq.com">alerts@fleetshq.com</a>.</div>
+</div></div>
+` : `
+<div class="card mb-4">
+  <div class="card-header"><h3>Current licence</h3><span class="badge ${subStatusBadge[subscription.status] || 'badge-slate'}">${subStatusLabel[subscription.status] || esc(subscription.status)}</span></div>
+  <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px">
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div class="text-sm text-muted">Tier</div>
+      <div style="font-size:19px;font-weight:900;margin-top:4px;text-transform:capitalize">${esc(plan ? plan.label : subscription.plan)}</div>
+      <div class="text-sm text-muted" style="margin-top:2px">${plan ? esc(plan.fleetLabel) : ''}</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div class="text-sm text-muted">Annual licence</div>
+      <div style="font-size:19px;font-weight:900;margin-top:4px">${subscription.priceAnnualPence ? money(subscription.priceAnnualPence) + ' / year' : 'Custom terms'}</div>
+      <div class="text-sm text-muted" style="margin-top:2px">Prepaid, ${subscription.termYears} year${subscription.termYears === 1 ? '' : 's'} per term</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px">
+      <div class="text-sm text-muted">${subscription.status === 'active' ? 'Renews' : 'Expired'}</div>
+      <div style="font-size:19px;font-weight:900;margin-top:4px">${formatDate(subscription.currentPeriodEnd)}</div>
+      <div class="text-sm ${daysLeft !== null && daysLeft <= 14 ? 'text-danger' : 'text-muted'}" style="margin-top:2px">${daysLeft === null ? '' : daysLeft >= 0 ? daysLeft + ' day' + (daysLeft === 1 ? '' : 's') + ' remaining' : Math.abs(daysLeft) + ' day' + (Math.abs(daysLeft) === 1 ? '' : 's') + ' overdue'}</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:8px">
+      ${canPayOnline ? `
+      <form method="post" action="/billing/renew">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <button class="btn btn-primary" type="submit" style="width:100%">${subscription.status === 'active' ? 'Renew early' : 'Renew now'} →</button>
+      </form>
+      <div class="text-sm text-muted" style="text-align:center">Secure card payment via Stripe</div>
+      ` : `
+      <a class="btn btn-primary" href="mailto:alerts@fleetshq.com?subject=Licence renewal — ${encodeURIComponent(user.name || '')}" style="text-align:center">Arrange renewal</a>
+      <div class="text-sm text-muted" style="text-align:center">Renewals are arranged with the FLEET.HQ team</div>
+      `}
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h3>Payment history</h3><span class="text-sm text-muted">${subscription.payments.length} payment${subscription.payments.length === 1 ? '' : 's'}</span></div>
+  ${subscription.payments.length === 0 ? `
+  <div class="empty-state" style="padding:36px 14px"><p>No payments recorded yet</p><div class="empty-hint">Payments made online or recorded by the FLEET.HQ team will appear here.</div></div>
+  ` : `
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Date</th><th scope="col">Description</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Receipt</th></tr></thead>
+      <tbody>
+        ${subscription.payments.map(p => `
+        <tr>
+          <td>${formatDate(p.paidAt || p.createdAt)}</td>
+          <td>${esc(p.description || 'Annual licence')}</td>
+          <td style="font-weight:700">${money(p.amountPence)}</td>
+          <td><span class="badge ${p.status === 'paid' || p.status === 'manual' ? 'badge-green' : p.status === 'refunded' ? 'badge-slate' : 'badge-red'}">${esc(p.status)}</span></td>
+          <td>${p.receiptUrl ? `<a class="btn btn-ghost btn-sm" href="${esc(p.receiptUrl)}" target="_blank" rel="noopener">View</a>` : '<span class="text-light">—</span>'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`}
+</div>
+`}
+` }) %>
