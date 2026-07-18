@@ -1298,6 +1298,21 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       isOverdue: t.dueDate && new Date(t.dueDate) < new Date(),
     }));
 
+    // First-run experience: a "getting started" checklist until the tenant
+    // has the basics in place (new environments land on an empty dashboard).
+    let setup = null;
+    if (hasRole(req.user, ['director', 'super_admin', 'transport_manager', 'hr_manager', 'operations_manager'])) {
+      const [usersCount, company] = await Promise.all([prisma.user.count(), prisma.company.findFirst()]);
+      const steps = [
+        { label: 'Complete your company profile', hint: 'Legal name, operator licence and registered address', href: '/super-admin',
+          done: !!(company && (company.legalName || company.registeredAddress || company.operatorLicenceNumber)) },
+        { label: 'Add your first employee or driver', hint: 'People, right-to-work and training records start here', href: '/employees/new', done: totalEmp > 0 },
+        { label: 'Add your first vehicle', hint: 'MOT, insurance, tacho and PMI tracking', href: '/fleet/new', done: totalVehicles > 0 },
+        { label: 'Invite your team', hint: 'Managers and drivers each get role-based sign-in', href: '/users', done: usersCount > 1 },
+      ];
+      if (steps.some((s) => !s.done)) setup = { steps, doneCount: steps.filter((s) => s.done).length };
+    }
+
     // Platform admins get a heads-up card for self-serve registrations
     // awaiting review/activation (queue lives at /platform).
     let platformQueue = null;
@@ -1317,7 +1332,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
       complianceTiles, complianceTrend, scoreDelta, upcomingTasks,
       alerts, alertGroups, recentDefects, chartData, healthCards,
-      platformQueue,
+      platformQueue, setup,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
