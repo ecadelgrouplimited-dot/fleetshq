@@ -29,6 +29,9 @@ const layout = ({ preheader = '', heading, bodyHtml, cta = null, footerNote = ''
         <!-- Masthead -->
         <tr><td style="background:${BRAND.dark};border-radius:14px 14px 0 0;padding:22px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="36" style="padding-right:12px;">
+              <img src="${APP_URL()}/img/logo-fleetshq-icon.png" width="36" height="36" alt="FLEET.HQ" style="display:block;width:36px;height:36px;">
+            </td>
             <td style="font-size:20px;font-weight:900;letter-spacing:-0.3px;color:#ffffff;">
               FLEET<span style="color:${BRAND.red};">.</span>HQ
               <div style="font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#8a8a94;margin-top:4px;">One platform. Total control.</div>

@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
   <title><%= title %></title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="/img/favicon-64.png">
+  <link rel="apple-touch-icon" href="/img/favicon-180.png">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -26,11 +29,8 @@
     .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 34px 20px 60px; }
     .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px; }
     .lockup { display: inline-flex; align-items: center; gap: 12px; }
-    .mark { position: relative; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
-      background: linear-gradient(145deg, var(--red), var(--red-deep)); display: grid; place-items: center;
-      color: #fff; box-shadow: 0 10px 28px rgba(225,29,42,.45); isolation: isolate; overflow: hidden; }
-    .mark::before { content: ""; position: absolute; inset: 8px 9px 7px; border: 2px solid var(--gold); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); opacity: .85; z-index: -1; }
-    .mark::after { content: "F"; font-weight: 900; font-size: 18px; }
+    .mark { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; }
+    .mark img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(37,99,235,.45)); }
     .wordmark { font-weight: 900; color: #fff; font-size: 17px; letter-spacing: -.3px; line-height: 1; }
     .wordmark b { color: var(--red); }
     .wordmark small { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--soft); margin-top: 4px; }
@@ -125,7 +125,7 @@
 
     <div class="top">
       <a class="lockup" href="/welcome" aria-label="FLEET.HQ home">
-        <span class="mark" aria-hidden="true"></span>
+        <span class="mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span>
         <span class="wordmark">FLEET<b>.</b>HQ<small>One platform. Total control.</small></span>
       </a>
       <a class="signin-link" href="/login">Already registered? <b>Sign in</b></a>

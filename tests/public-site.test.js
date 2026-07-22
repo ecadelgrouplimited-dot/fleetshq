@@ -18,7 +18,7 @@ describe('public site', () => {
   });
 
   it.each([
-    ['/welcome', 'operating system for modern logistics'],
+    ['/welcome', 'operating system for transport companies'],
     ['/about', 'built for proof'],
     ['/services', 'Service catalogue'],
     ['/contact', 'Send an enquiry'],
