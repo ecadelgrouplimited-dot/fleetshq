@@ -5,7 +5,7 @@ const { runWithTenant } = require('../utils/tenantContext');
 
 /**
  * Tenant provisioning — the single place a paying/approved business becomes a
- * live FLEET.HQ environment: Tenant + Company + head-office Branch + admin
+ * live FLEETS.HQ environment: Tenant + Company + head-office Branch + admin
  * User (temp password, forced change on first sign-in).
  *
  * Used by Platform Admin manual onboarding and by self-serve registration

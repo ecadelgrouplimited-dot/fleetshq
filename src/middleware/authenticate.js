@@ -21,7 +21,7 @@ module.exports = async (req, res, next) => {
   // Suspension gate: a paused tenant's API access is blocked with a clear code.
   try {
     if (await isTenantSuspended(payload.tenantId)) {
-      return res.status(403).json({ success: false, error: { code: 'TENANT_SUSPENDED', message: 'This organisation\'s FLEET.HQ subscription is paused. Contact your administrator.' } });
+      return res.status(403).json({ success: false, error: { code: 'TENANT_SUSPENDED', message: 'This organisation\'s FLEETS.HQ subscription is paused. Contact your administrator.' } });
     }
   } catch (e) { /* fail open — a status-lookup blip must not lock everyone out */ }
 

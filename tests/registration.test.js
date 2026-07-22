@@ -67,7 +67,7 @@ describe('self-serve registration', () => {
       _csrf: token,
       companyName, contactName: 'Sam Test', contactEmail: adminEmail, fleetSize: '6-20',
     }).expect(200);
-    expect(res.text).toContain('already has a FLEET.HQ account');
+    expect(res.text).toContain('already has a FLEETS.HQ account');
   });
 
   test('POST /register creates a pending request and issues a code', async () => {

@@ -37,7 +37,7 @@ const webAuth = async (req, res, next) => {
   const suspensionExempt = ['/billing', '/billing/renew', '/logout'];
   try {
     if (!suspensionExempt.includes(req.path) && await isTenantSuspended(payload.tenantId)) {
-      return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEET.HQ' });
+      return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEETS.HQ' });
     }
   } catch (e) { /* fail open — a status-lookup blip must not lock everyone out */ }
 
@@ -396,7 +396,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Suspension gate at sign-in — clearer than bouncing off the lock screen.
     const { isTenantSuspended } = require('../utils/tenantStatus');
     if (await isTenantSuspended(user.tenantId)) {
-      return res.render('auth/login', { title: 'Login', error: "Your organisation's FLEET.HQ subscription is paused. Contact your administrator, or email alerts@fleetshq.com to reactivate." });
+      return res.render('auth/login', { title: 'Login', error: "Your organisation's FLEETS.HQ subscription is paused. Contact your administrator, or email alerts@fleetshq.com to reactivate." });
     }
 
     const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [], email: user.email,
@@ -527,7 +527,7 @@ const registerLimiter = require('express-rate-limit')({
 });
 
 const registerView = (res, step, data = {}) => res.render('auth/register', {
-  title: 'Register your company — FLEET.HQ',
+  title: 'Register your company — FLEETS.HQ',
   step, error: null, notice: null, form: {}, request: null, paid: false,
   plans: Object.values(PLANS), fleetBands: FLEET_BANDS, formatPrice,
   ...data,
@@ -566,7 +566,7 @@ router.post('/register', registerLimiter, async (req, res) => {
     // Already on the platform? Point them at sign-in instead of a new tenant.
     const existingUser = await prisma.$queryRaw`SELECT 1 FROM "User" WHERE LOWER(email) = ${contactEmail} LIMIT 1`;
     if (Array.isArray(existingUser) && existingUser.length) {
-      return fail('That email already has a FLEET.HQ account — try signing in instead.');
+      return fail('That email already has a FLEETS.HQ account — try signing in instead.');
     }
 
     // Reuse an in-flight registration for the same email (refreshed details).
@@ -849,15 +849,15 @@ const renderPublicPage = (page, title, extra = {}) => (req, res) => {
   });
 };
 
-router.get('/welcome', renderPublicPage('home', 'FLEET.HQ — One Platform. Total Control.'));
-router.get('/about', renderPublicPage('about', 'About — FLEET.HQ by 256 Logistics'));
-router.get('/services', renderPublicPage('services', 'Services — FLEET.HQ by 256 Logistics'));
+router.get('/welcome', renderPublicPage('home', 'FLEETS.HQ — One Platform. Total Control.'));
+router.get('/about', renderPublicPage('about', 'About — FLEETS.HQ by 256 Logistics'));
+router.get('/services', renderPublicPage('services', 'Services — FLEETS.HQ by 256 Logistics'));
 router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
 
 router.get('/contact', (req, res) => {
   res.render('landing/index', {
     page: 'contact',
-    title: 'Contact — FLEET.HQ by 256 Logistics',
+    title: 'Contact — FLEETS.HQ by 256 Logistics',
     leadSent: req.query.sent === '1',
     leadError: null,
     enquiryType: req.query.type || 'general',
@@ -875,7 +875,7 @@ router.post('/contact', loginLimiter, async (req, res) => {
   const message = (req.body.message || '').trim();
   const renderError = (leadError) => res.status(400).render('landing/index', {
     page: 'contact',
-    title: 'Contact — FLEET.HQ by 256 Logistics',
+    title: 'Contact — FLEETS.HQ by 256 Logistics',
     leadSent: false,
     leadError,
     enquiryType,
@@ -973,7 +973,7 @@ router.get('/track', async (req, res) => {
     }
   }
   res.render('landing/index', {
-    page: 'track', title: 'Track a shipment — FLEET.HQ', leadSent: false, leadError: null,
+    page: 'track', title: 'Track a shipment — FLEETS.HQ', leadSent: false, leadError: null,
     enquiryType: 'general', trackingRef, trackingResult,
   });
 });

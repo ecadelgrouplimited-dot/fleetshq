@@ -1,5 +1,5 @@
 /**
- * FLEET.HQ subscription tier catalogue.
+ * FLEETS.HQ subscription tier catalogue.
  *
  * Single source of truth for tiers shown on the public registration flow and
  * used by provisioning. Prices are annual (prepaid licence, per the business

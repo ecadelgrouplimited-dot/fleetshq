@@ -35,7 +35,7 @@ async function sendMail({ to, cc, bcc, replyTo, subject, text, html }) {
     return { skipped: true };
   }
   try {
-    await transporter.sendMail({ from: `FLEET.HQ <${from}>`, to, cc, bcc, replyTo, subject, text, html });
+    await transporter.sendMail({ from: `FLEETS.HQ <${from}>`, to, cc, bcc, replyTo, subject, text, html });
     logger.info(`[mail] sent "${subject}" to ${to}${cc ? ` (cc ${cc})` : ''}`);
     return { sent: true };
   } catch (e) {

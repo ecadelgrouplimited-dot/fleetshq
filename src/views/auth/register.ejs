@@ -124,9 +124,9 @@
   <div class="wrap">
 
     <div class="top">
-      <a class="lockup" href="/welcome" aria-label="FLEET.HQ home">
+      <a class="lockup" href="/welcome" aria-label="FLEETS.HQ home">
         <span class="mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span>
-        <span class="wordmark">FLEET<b>.</b>HQ<small>One platform. Total control.</small></span>
+        <span class="wordmark">FLEETS<b>.</b>HQ<small>One platform. Total control.</small></span>
       </a>
       <a class="signin-link" href="/login">Already registered? <b>Sign in</b></a>
     </div>
@@ -161,7 +161,7 @@
       <% if (step === 'details') { %>
         <span class="eyebrow">Get started</span>
         <h1>Register your company</h1>
-        <p class="sub">Tell us about your operation. We'll verify your email, you pick a tier, and our team activates your private FLEET.HQ environment.</p>
+        <p class="sub">Tell us about your operation. We'll verify your email, you pick a tier, and our team activates your private FLEETS.HQ environment.</p>
         <form method="POST" action="/register" novalidate>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="grid2">
@@ -258,7 +258,7 @@
         <span class="eyebrow"><%= paid ? 'Payment received' : 'Registration complete' %></span>
         <h1><%= paid ? 'Welcome aboard' : "You're in the queue" %>, <%= (request.contactName || '').split(' ')[0] %></h1>
         <% if (paid) { %>
-        <p class="sub">Payment for <strong style="color:var(--text);"><%= request.companyName %></strong> is confirmed. Your private FLEET.HQ environment is being provisioned <strong style="color:var(--text);">right now</strong>.</p>
+        <p class="sub">Payment for <strong style="color:var(--text);"><%= request.companyName %></strong> is confirmed. Your private FLEETS.HQ environment is being provisioned <strong style="color:var(--text);">right now</strong>.</p>
         <div class="next-steps">
           <div><b class="num">1.</b><span><strong>Check your inbox</strong> — your sign-in credentials arrive within a few minutes.</span></div>
           <div><b class="num">2.</b><span>Sign in and you'll be asked to <strong>set your own password</strong>.</span></div>
@@ -268,7 +268,7 @@
         <p class="sub"><strong style="color:var(--text);"><%= request.companyName %></strong> is registered and your email is verified. We've sent a confirmation to your inbox.</p>
         <div class="next-steps">
           <div><b class="num">1.</b><span>Our team confirms your details and the <strong>annual licence payment</strong> for your tier.</span></div>
-          <div><b class="num">2.</b><span>Your <strong>private FLEET.HQ environment</strong> is provisioned.</span></div>
+          <div><b class="num">2.</b><span>Your <strong>private FLEETS.HQ environment</strong> is provisioned.</span></div>
           <div><b class="num">3.</b><span>You receive <strong>sign-in credentials by email</strong> — usually within one business day.</span></div>
         </div>
         <% } %>

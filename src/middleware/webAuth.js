@@ -18,7 +18,7 @@ module.exports = async (req, res, next) => {
   // Suspension gate: a paused tenant sees the lock screen, not the app.
   try {
     if (await isTenantSuspended(payload.tenantId)) {
-      return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEET.HQ' });
+      return res.status(403).render('auth/suspended', { title: 'Subscription paused — FLEETS.HQ' });
     }
   } catch (e) { /* fail open — a status-lookup blip must not lock everyone out */ }
 

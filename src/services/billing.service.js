@@ -141,7 +141,7 @@ const checkoutLineItem = (plan, label) => ({
     currency: 'gbp',
     unit_amount: plan.priceAnnualPence,
     product_data: {
-      name: `FLEET.HQ ${plan.label} — 12-month licence`,
+      name: `FLEETS.HQ ${plan.label} — 12-month licence`,
       description: label,
     },
   },
