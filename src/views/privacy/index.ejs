@@ -28,15 +28,20 @@
     .orb { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.45; }
     .orb-a { width: 520px; height: 520px; background: rgba(37,99,235,0.26); top: -180px; right: -120px; }
     .orb-b { width: 360px; height: 360px; background: rgba(6,182,212,0.12); top: 50%; left: -160px; }
+    /* Top-band reveal, blue/cyan-toned to match this page's own palette
+       (not the red/gold used elsewhere) — a fourth distinct treatment. */
+    .bg-photo { position: absolute; inset: 0; background: url('/img/road-skyline.jpeg') center 40% / cover no-repeat; opacity: .12;
+      -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 60%);
+              mask-image: linear-gradient(180deg, #000 0%, #000 22%, transparent 60%); }
     main { position: relative; z-index: 1; }
 
     /* nav */
     .nav { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(14px); background: rgba(10,22,40,0.72); border-bottom: 1px solid var(--line); }
     .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; max-width: 1180px; margin: 0 auto; padding: 0 28px; }
     .brand { display: flex; align-items: center; gap: 11px; font-weight: 800; color: #fff; letter-spacing: -0.3px; }
-    .brand .dots { display: flex; gap: 4px; }
-    .brand .dots i { width: 9px; height: 9px; border-radius: 50%; display: block; }
-    .brand .dots .r { background: var(--red); } .brand .dots .y { background: var(--amber); } .brand .dots .g { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .brand-mark { width: 30px; height: 30px; flex-shrink: 0; display: grid; place-items: center; }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 14px rgba(37,99,235,.4)); }
+    .brand b { color: var(--red); }
     .brand small { display: block; font-size: 10.5px; font-weight: 500; color: var(--ink-400); letter-spacing: 1px; text-transform: uppercase; }
     .nav-back { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--ink-300); padding: 9px 16px; border-radius: 10px; border: 1px solid var(--line); transition: all .2s; }
     .nav-back:hover { color: #fff; background: rgba(255,255,255,0.05); }
@@ -119,11 +124,11 @@
   </style>
 </head>
 <body>
-  <div class="bg-field"><div class="bg-grid"></div><div class="orb orb-a"></div><div class="orb orb-b"></div></div>
+  <div class="bg-field"><div class="bg-photo"></div><div class="bg-grid"></div><div class="orb orb-a"></div><div class="orb orb-b"></div></div>
 
   <div class="nav">
     <div class="nav-inner">
-      <a href="/welcome" class="brand"><span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><span>256 Logistics<small>Compliance Hub</small></span></a>
+      <a href="/welcome" class="brand"><span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span><span>FLEETS<b>.HQ</b><small>Privacy &amp; data protection</small></span></a>
       <a href="<%= authed ? '/' : '/welcome' %>" class="nav-back">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
         <%= authed ? 'Back to dashboard' : 'Back to home' %>
@@ -136,7 +141,7 @@
       <div class="wrap">
         <div class="eyebrow"><span class="pip"></span>Legal · UK GDPR &amp; DPA 2018</div>
         <h1>Privacy <span class="grad">Policy</span></h1>
-        <p>256 Logistics Compliance Hub handles legally-sensitive personal data — passports, Right-to-Work, visas, salaries. Here is exactly how we collect it, why, how long we keep it, and the rights you hold over it.</p>
+        <p>FLEETS.HQ handles legally-sensitive personal data — passports, Right-to-Work, visas, salaries. Here is exactly how we collect it, why, how long we keep it, and the rights you hold over it.</p>
         <div class="p-meta">
           <span class="p-badge"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>UK GDPR aligned</span>
           <span class="p-badge"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Last reviewed June 2026</span>
@@ -259,7 +264,7 @@
           <div>
             <div class="credit-eyebrow"><span class="ln"></span>Developed &amp; Managed by</div>
             <div class="credit-name">ECADEL GROUP LIMITED</div>
-            <p class="credit-tag">The soul architects behind 256 Logistics — we design, engineer, and run software built to be trusted with the data that matters.</p>
+            <p class="credit-tag">The soul architects behind FLEETS.HQ — we design, engineer, and run software built to be trusted with the data that matters.</p>
           </div>
           <a class="credit-cta" href="https://ecadelgroup.com" target="_blank" rel="noopener">
             ecadelgroup.com
@@ -271,7 +276,7 @@
 
     <footer>
       <div class="foot-inner">
-        <a href="/welcome" class="brand"><span class="dots"><i class="r"></i><i class="y"></i><i class="g"></i></span><span>256 Logistics<small>Compliance Hub</small></span></a>
+        <a href="/welcome" class="brand"><span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span><span>FLEETS<b>.HQ</b><small>Privacy &amp; data protection</small></span></a>
         <div class="foot-links">
           <a href="/welcome">Home</a>
           <a href="/login">Sign in</a>
