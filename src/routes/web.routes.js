@@ -372,23 +372,31 @@ router.post('/login', loginLimiter, async (req, res) => {
   const bcrypt = require('bcryptjs');
   const { sign } = require('../config/jwt');
   const { lockMinutesRemaining, registerFailure, registerSuccess } = require('../utils/loginGuard');
-  const { email, password } = req.body;
+  const { email, password, rememberMe } = req.body;
+
+  // Two front doors (/login and the /welcome splash) share this handler —
+  // on error, send the visitor back to whichever one they came from.
+  const fromWelcome = req.body.from === 'welcome';
+  const renderError = (error) => fromWelcome
+    ? res.render('landing/welcome', { title: 'FLEETS.HQ — One Platform. Total Control.', error })
+    : res.render('auth/login', { title: 'Login', error });
+
   try {
     const user = await prisma.user.findUnique({
       where: { email: email?.toLowerCase().trim() },
       include: { employee: { select: { id: true } } },
     });
-    if (!user || !user.isActive) return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
+    if (!user || !user.isActive) return renderError('Invalid email or password');
 
     const lockedFor = lockMinutesRemaining(user);
     if (lockedFor > 0) {
-      return res.render('auth/login', { title: 'Login', error: `Account temporarily locked. Try again in ${lockedFor} minute${lockedFor !== 1 ? 's' : ''}.` });
+      return renderError(`Account temporarily locked. Try again in ${lockedFor} minute${lockedFor !== 1 ? 's' : ''}.`);
     }
 
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) {
       await registerFailure(user);
-      return res.render('auth/login', { title: 'Login', error: 'Invalid email or password' });
+      return renderError('Invalid email or password');
     }
 
     await registerSuccess(user);
@@ -396,16 +404,18 @@ router.post('/login', loginLimiter, async (req, res) => {
     // Suspension gate at sign-in — clearer than bouncing off the lock screen.
     const { isTenantSuspended } = require('../utils/tenantStatus');
     if (await isTenantSuspended(user.tenantId)) {
-      return res.render('auth/login', { title: 'Login', error: "Your organisation's FLEETS.HQ subscription is paused. Contact your administrator, or email alerts@fleetshq.com to reactivate." });
+      return renderError("Your organisation's FLEETS.HQ subscription is paused. Contact your administrator, or email alerts@fleetshq.com to reactivate.");
     }
 
     const token = sign({ id: user.id, tenantId: user.tenantId, role: user.role, roles: getUserRoles(user), branchIds: user.branchIds || [], email: user.email,
       name: `${user.firstName} ${user.lastName}`, employeeId: user.employee?.id || null, mustChangePassword: user.mustChangePassword || false });
 
-    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 8 * 60 * 60 * 1000 });
+    // "Remember me" extends the session cookie from 8 hours to 30 days.
+    const maxAge = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 8 * 60 * 60 * 1000;
+    res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge });
     res.redirect('/');
   } catch (e) {
-    res.render('auth/login', { title: 'Login', error: 'Login failed. Please try again.' });
+    renderError('Login failed. Please try again.');
   }
 });
 
@@ -849,7 +859,15 @@ const renderPublicPage = (page, title, extra = {}) => (req, res) => {
   });
 };
 
-router.get('/welcome', renderPublicPage('home', 'FLEETS.HQ — One Platform. Total Control.'));
+// Homepage: a single-screen brand + sign-in splash (not the multi-section
+// marketing template the other public pages share) — matches the client's
+// approved design. /about, /services, /contact, /track keep the full
+// marketing layout and stay reachable via this page's footer.
+router.get('/welcome', (req, res) => {
+  const token = req.cookies?.token;
+  if (token && verify(token)) return res.redirect('/');
+  res.render('landing/welcome', { title: 'FLEETS.HQ — One Platform. Total Control.', error: null });
+});
 router.get('/about', renderPublicPage('about', 'About — FLEETS.HQ by 256 Logistics'));
 router.get('/services', renderPublicPage('services', 'Services — FLEETS.HQ by 256 Logistics'));
 router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
