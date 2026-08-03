@@ -102,12 +102,33 @@
     .stat .l { font-size: 11.5px; color: var(--soft); margin-top: 4px; }
 
     /* Form side */
-    .form-side { position: relative; display: flex; align-items: center; justify-content: center; padding: 40px 32px; }
-    .theme-toggle { position: absolute; top: 24px; right: 24px; display: inline-flex; align-items: center; gap: 7px;
-      padding: 8px 13px; border-radius: 100px; border: 1px solid var(--line-2); background: var(--panel-2);
-      color: var(--muted); font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: color .15s, border-color .15s; }
-    .theme-toggle:hover { color: var(--gold); border-color: var(--gold); }
-    .theme-toggle svg { width: 14px; height: 14px; }
+    /* Extra top padding reserves space for .controls-overlay so it can
+       never collide with the vertically-centred card, at any viewport
+       height (fixed clearance, not luck-of-the-centring-math). */
+    .form-side { position: relative; display: flex; align-items: center; justify-content: center; padding: 78px 32px 40px; }
+
+    /* Icon-only theme + language controls, floating top-right */
+    .controls-overlay { position: absolute; top: 22px; right: 24px; z-index: 5; display: flex; align-items: center; gap: 8px; }
+    .ctrl-btn {
+      display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0;
+      border-radius: 50%; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--muted);
+      cursor: pointer; font-size: 16px; line-height: 1; transition: color .15s, border-color .15s, transform .15s;
+    }
+    .ctrl-btn:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-1px); }
+    .ctrl-btn svg { width: 17px; height: 17px; }
+    .lang-switch { position: relative; }
+    .lang-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; display: none; flex-direction: column; gap: 2px;
+      padding: 6px; min-width: 46px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--bg-2);
+      box-shadow: 0 16px 34px rgba(0,0,0,.35);
+    }
+    .lang-menu.is-open { display: flex; }
+    .lang-menu button {
+      display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; border: 0;
+      background: transparent; cursor: pointer; font-size: 19px; line-height: 1; transition: background .15s;
+    }
+    .lang-menu button:hover { background: var(--panel-2); }
+    .lang-menu button.is-active { box-shadow: inset 0 0 0 1.5px var(--gold); }
 
     .card {
       position: relative; width: 100%; max-width: 380px; padding: 34px 32px 28px;
@@ -190,7 +211,7 @@
       .pillars { justify-content: center; }
       .stats { display: none; }
       .tagline { display: none; }
-      .theme-toggle { position: static; margin: 0 auto 14px; }
+      .controls-overlay { position: static; justify-content: center; margin: 0 auto 14px; }
       .form-side { padding: 8px 20px 40px; flex-direction: column; }
       .bb-row { justify-content: center; text-align: center; }
       .bb-trust { max-width: none; justify-content: center; }
@@ -225,50 +246,62 @@
       </div>
       <div class="brand-photo" aria-hidden="true"></div>
 
-      <a class="brand-lockup" href="/welcome" aria-label="FLEETS.HQ home">
+      <a class="brand-lockup" href="/welcome" data-i18n="aria.brandHome" data-i18n-attr="aria-label" aria-label="FLEETS.HQ home">
         <span class="mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span>
-        <span class="wordmark">FLEETS<b>.HQ</b><small>The operating system for transport companies</small></span>
+        <span class="wordmark">FLEETS<b>.HQ</b><small data-i18n="brand.tagline">The operating system for transport companies</small></span>
       </a>
       <div class="brand-head">
-        <h1>One Platform.<br>Total <span class="accent">Control.</span></h1>
-        <p>Drivers, vehicles, compliance, tachographs and maintenance — everything your transport operation needs, in one connected platform.</p>
+        <h1 data-i18n-html="welcome.hero.headline">One Platform.<br>Total <span class="accent">Control.</span></h1>
+        <p data-i18n="welcome.hero.sub">Drivers, vehicles, compliance, tachographs and maintenance — everything your transport operation needs, in one connected platform.</p>
       </div>
       <div class="pillars">
-        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>Drivers</span>
-        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg>Vehicles</span>
-        <span class="pchip hot"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>Compliance</span>
-        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Tachographs</span>
-        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 4a2 2 0 114 0 7 7 0 014 6 3 3 0 11-4 4 7 7 0 01-8 0 3 3 0 11-4-4 7 7 0 014-6z"/></svg>Maintenance</span>
+        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg><span data-i18n="pillar.drivers">Drivers</span></span>
+        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg><span data-i18n="pillar.vehicles">Vehicles</span></span>
+        <span class="pchip hot"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg><span data-i18n="pillar.compliance">Compliance</span></span>
+        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span data-i18n="pillar.tachographs">Tachographs</span></span>
+        <span class="pchip"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 4a2 2 0 114 0 7 7 0 014 6 3 3 0 11-4 4 7 7 0 01-8 0 3 3 0 11-4-4 7 7 0 014-6z"/></svg><span data-i18n="pillar.maintenance">Maintenance</span></span>
       </div>
-      <div class="tagline"><b>Built by hauliers.</b> For hauliers.</div>
+      <div class="tagline" data-i18n-html="welcome.tagline"><b>Built by hauliers.</b> For hauliers.</div>
       <div class="stats">
-        <div class="stat"><div class="n">5</div><div class="l">Operating domains</div></div>
-        <div class="stat"><div class="n">DVSA</div><div class="l">Audit-ready</div></div>
-        <div class="stat"><div class="n">UK</div><div class="l">Hosted &amp; GDPR-aligned</div></div>
-        <div class="stat"><div class="n">24/7</div><div class="l">Compliance monitoring</div></div>
+        <div class="stat"><div class="n">5</div><div class="l" data-i18n="stat.domains.l">Operating domains</div></div>
+        <div class="stat"><div class="n">DVSA</div><div class="l" data-i18n="stat.dvsa.l">Audit-ready</div></div>
+        <div class="stat"><div class="n">UK</div><div class="l" data-i18n-html="stat.uk.l">Hosted &amp; GDPR-aligned</div></div>
+        <div class="stat"><div class="n">24/7</div><div class="l" data-i18n="stat.monitoring.l">Compliance monitoring</div></div>
       </div>
     </section>
 
     <!-- Form side -->
     <section class="form-side">
-      <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-        <svg id="toggleIconDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-        <svg id="toggleIconLight" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.02 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        <span id="toggleLabel">Dark</span>
-      </button>
+      <div class="controls-overlay">
+        <div class="lang-switch">
+          <button type="button" class="ctrl-btn" id="langToggle" aria-haspopup="true" aria-expanded="false" data-i18n="aria.toggleLanguage" data-i18n-attr="aria-label" aria-label="Change language">
+            <span data-lang-current>🇬🇧</span>
+          </button>
+          <div class="lang-menu" id="langMenu" role="menu">
+            <button type="button" role="menuitem" data-lang-option="en" title="English">🇬🇧</button>
+            <button type="button" role="menuitem" data-lang-option="fr" title="Français">🇫🇷</button>
+            <button type="button" role="menuitem" data-lang-option="es" title="Español">🇪🇸</button>
+            <button type="button" role="menuitem" data-lang-option="pt" title="Português">🇵🇹</button>
+          </div>
+        </div>
+        <button type="button" class="ctrl-btn" id="themeToggle" data-i18n="aria.toggleTheme" data-i18n-attr="aria-label" aria-label="Toggle theme">
+          <svg id="toggleIconDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg id="toggleIconLight" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.02 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+      </div>
 
       <div class="card">
-        <a class="card-logo" href="/welcome" aria-label="FLEETS.HQ home">
+        <a class="card-logo" href="/welcome" data-i18n="aria.brandHome" data-i18n-attr="aria-label" aria-label="FLEETS.HQ home">
           <span class="mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span>
           <span class="wordmark">FLEETS<b>.HQ</b></span>
         </a>
 
         <div class="eyebrow">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          Secure access
+          <span data-i18n="form.eyebrow">Secure access</span>
         </div>
-        <h2>Welcome back</h2>
-        <p class="sub">Sign in to your FLEETS.HQ dashboard.</p>
+        <h2 data-i18n="form.title">Welcome back</h2>
+        <p class="sub" data-i18n="form.subtitle">Sign in to your FLEETS.HQ dashboard.</p>
 
         <% if (error) { %>
           <div class="error-box">
@@ -281,38 +314,38 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="from" value="welcome">
           <div class="group">
-            <label for="emailInput">Email address</label>
+            <label for="emailInput" data-i18n="form.emailLabel">Email address</label>
             <div class="iwrap">
               <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
               <input class="inp" type="email" name="email" id="emailInput" placeholder="you@fleetshq.com" required autocomplete="username" autofocus>
             </div>
           </div>
           <div class="group">
-            <label for="passInput">Password</label>
+            <label for="passInput" data-i18n="form.passwordLabel">Password</label>
             <div class="iwrap">
               <svg class="ic" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
               <input class="inp has-toggle" type="password" name="password" id="passInput" placeholder="••••••••" required autocomplete="current-password">
-              <button type="button" class="toggle-pw" id="togglePw" aria-label="Show password">
+              <button type="button" class="toggle-pw" id="togglePw" data-i18n="aria.showPassword" data-i18n-attr="aria-label" aria-label="Show password">
                 <svg id="eyeOpen" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                 <svg id="eyeOff" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
               </button>
             </div>
             <div class="row-between">
-              <label class="remember"><input type="checkbox" name="rememberMe" value="1"> Remember me</label>
-              <a class="forgot" href="/forgot-password">Forgot password?</a>
+              <label class="remember"><input type="checkbox" name="rememberMe" value="1"> <span data-i18n="form.remember">Remember me</span></label>
+              <a class="forgot" href="/forgot-password" data-i18n="form.forgot">Forgot password?</a>
             </div>
           </div>
           <button type="submit" class="btn" id="submitBtn">
-            <span class="btn-label">Sign in to dashboard</span>
+            <span class="btn-label" data-i18n="form.submit">Sign in to dashboard</span>
             <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
           </button>
         </form>
 
         <div class="trust">
           <svg class="lock" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-          Encrypted session · JWT authenticated · UK-hosted
+          <span data-i18n="form.trust">Encrypted session · JWT authenticated · UK-hosted</span>
         </div>
-        <div class="register-note">New here? <a href="/register">Register your company</a></div>
+        <div class="register-note"><span data-i18n="form.registerPrompt">New here?</span> <a href="/register" data-i18n="form.registerLink">Register your company</a></div>
       </div>
     </section>
   </main>
@@ -321,34 +354,33 @@
     <div class="bb-row">
       <div class="bb-trust">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        Enterprise-grade security. Your data is protected, encrypted in transit and at rest, on UK-hosted infrastructure.
+        <span data-i18n="footer.trust">Enterprise-grade security. Your data is protected, encrypted in transit and at rest, on UK-hosted infrastructure.</span>
       </div>
       <div class="bb-right">
-        <span>Powered by <b>256 Digital Technologies</b></span>
+        <span><span data-i18n="footer.poweredBy">Powered by</span> <b>256 Digital Technologies</b></span>
         <span>© <%= new Date().getFullYear() %> 256 Logistics Ltd</span>
       </div>
     </div>
     <div class="bb-links">
-      <a href="/about">About</a><span class="sep">·</span>
-      <a href="/services">Services</a><span class="sep">·</span>
-      <a href="/contact">Contact</a><span class="sep">·</span>
-      <a href="/track">Track a shipment</a><span class="sep">·</span>
-      <a href="/privacy">Privacy</a>
+      <a href="/about" data-i18n="footer.about">About</a><span class="sep">·</span>
+      <a href="/services" data-i18n="footer.services">Services</a><span class="sep">·</span>
+      <a href="/contact" data-i18n="footer.contact">Contact</a><span class="sep">·</span>
+      <a href="/track" data-i18n="footer.track">Track a shipment</a><span class="sep">·</span>
+      <a href="/privacy" data-i18n="footer.privacy">Privacy</a>
     </div>
   </footer>
 
+  <script src="/js/i18n.js?v=<%= assetVersion %>"></script>
   <script>
     (function () {
       var root = document.documentElement;
       var toggle = document.getElementById('themeToggle');
       var iconDark = document.getElementById('toggleIconDark');
       var iconLight = document.getElementById('toggleIconLight');
-      var label = document.getElementById('toggleLabel');
       function reflectTheme(theme) {
         var isLight = theme === 'light';
         iconDark.style.display = isLight ? 'none' : '';
         iconLight.style.display = isLight ? '' : 'none';
-        label.textContent = isLight ? 'Light' : 'Dark';
       }
       reflectTheme(root.getAttribute('data-theme'));
       toggle.addEventListener('click', function () {
@@ -357,6 +389,26 @@
         localStorage.setItem('public-theme', next);
         document.cookie = 'publicTheme=' + next + '; Path=/; Max-Age=31536000; SameSite=Lax';
         reflectTheme(next);
+      });
+
+      // Language switcher popover
+      var langToggle = document.getElementById('langToggle');
+      var langMenu = document.getElementById('langMenu');
+      function closeLangMenu() {
+        langMenu.classList.remove('is-open');
+        langToggle.setAttribute('aria-expanded', 'false');
+      }
+      langToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = langMenu.classList.toggle('is-open');
+        langToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', function (e) {
+        if (!langMenu.contains(e.target) && e.target !== langToggle) closeLangMenu();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLangMenu(); });
+      langMenu.querySelectorAll('[data-lang-option]').forEach(function (btn) {
+        btn.addEventListener('click', closeLangMenu);
       });
 
       var form = document.getElementById('loginForm');
@@ -370,12 +422,15 @@
         pw.type = show ? 'text' : 'password';
         eyeOpen.style.display = show ? 'none' : '';
         eyeOff.style.display = show ? '' : 'none';
-        pwToggle.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        var lang = (window.FleetI18n && FleetI18n.detectLang()) || 'en';
+        pwToggle.setAttribute('aria-label', FleetI18n.t(show ? 'aria.hidePassword' : 'aria.showPassword', lang));
         pw.focus();
       });
       form.addEventListener('submit', function () {
         btn.disabled = true;
-        btn.innerHTML = '<span class="spin"></span><span class="btn-label">Signing in…</span>';
+        var lang = (window.FleetI18n && FleetI18n.detectLang()) || 'en';
+        var submitting = window.FleetI18n ? FleetI18n.t('form.submitting', lang) : 'Signing in…';
+        btn.innerHTML = '<span class="spin"></span><span class="btn-label">' + submitting + '</span>';
       });
     }());
   </script>
