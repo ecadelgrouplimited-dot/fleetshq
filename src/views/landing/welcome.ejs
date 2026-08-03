@@ -205,14 +205,34 @@
     /* Responsive */
     @media (max-width: 940px) {
       .auth { grid-template-columns: 1fr; }
-      .brand-side { padding: 36px 24px 20px; text-align: center; align-items: center; }
+      .brand-side { padding: 36px 24px 28px; text-align: center; align-items: center; }
       .brand-lockup { justify-content: center; }
       .brand-head p { margin-left: auto; margin-right: auto; }
       .pillars { justify-content: center; }
       .stats { display: none; }
       .tagline { display: none; }
-      .controls-overlay { position: static; justify-content: center; margin: 0 auto 14px; }
-      .form-side { padding: 8px 20px 40px; flex-direction: column; }
+      /* Fixed to the viewport corner (not static in the flow) so it never
+         creates its own orphaned section between the brand and form areas. */
+      .controls-overlay { position: fixed; top: 14px; right: 14px; z-index: 20; }
+      .ctrl-btn { background: var(--panel); backdrop-filter: blur(10px); box-shadow: 0 8px 20px rgba(0,0,0,.28); }
+      .form-side { padding: 24px 20px 40px; flex-direction: column; }
+      /* The logo already appears once in .brand-side above — showing it
+         again in the card is redundant now that brand-side stays visible
+         on mobile (unlike the desktop-only pattern this card was based on). */
+      .card-logo { display: none; }
+      /* Fade the photo/netmap out toward the bottom instead of the desktop
+         left-to-right reveal, so it blends into the form section below
+         instead of cutting off in a hard rectangle. */
+      .brand-photo {
+        -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,.6) 0%, #000 30%, #000 68%, transparent 100%);
+                mask-image: linear-gradient(180deg, rgba(0,0,0,.6) 0%, #000 30%, #000 68%, transparent 100%);
+      }
+      .netmap-bg {
+        justify-content: center; opacity: .35;
+        -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+                mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 100%);
+      }
+      .netmap-bg svg { width: 85%; }
       .bb-row { justify-content: center; text-align: center; }
       .bb-trust { max-width: none; justify-content: center; }
     }
