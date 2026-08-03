@@ -187,7 +187,8 @@ ${selected ? `
             ${i < arr.length-1 ? `<div class="ct-wf-line ${s[1]==='done' ? 'done' : ''}"></div>` : ''}
           `).join('')}
         </div>
-        <form method="post" action="/compliance-tasks/${selected.id}/delete" onsubmit="return confirm('Delete this task?')" style="margin-top:14px">
+        <form method="post" action="/compliance-tasks/${selected.id}/delete" style="margin-top:14px"
+          data-confirm="Delete this task?" data-confirm-title="Delete task" data-confirm-label="Delete" data-confirm-tone="danger">
           <input type="hidden" name="_csrf" value="${csrfToken}">
           <button class="btn btn-danger-soft btn-sm" type="submit">Delete task</button>
         </form>

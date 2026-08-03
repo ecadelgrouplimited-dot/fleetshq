@@ -36,7 +36,9 @@ ${typeof query !== 'undefined' && query.erased ? '<div class="alert alert-succes
     <div class="card-body">
       <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">Anonymises the individual's personal identifiers (name, DOB, address, NI, passport, visa, phone, email) and removes their login account. <strong>Operational records (checks, defects, training) are retained to meet DVSA legal obligations.</strong></p>
       <p style="font-size:13px;color:var(--danger-t);margin-bottom:16px;font-weight:600">This action is irreversible.</p>
-      <form method="POST" action="/privacy/erase" onsubmit="return confirm('Are you sure? This will permanently anonymise the employee\'s personal data and cannot be undone.')">
+      <form method="POST" action="/privacy/erase"
+        data-confirm="Are you sure? This will permanently anonymise the employee's personal data and cannot be undone."
+        data-confirm-title="Erase personal data" data-confirm-label="Erase data" data-confirm-tone="danger">
         <input type="hidden" name="_csrf" value="${csrfToken}">
         <div class="form-group">
           <label class="form-label">Select employee to erase</label>

@@ -68,11 +68,15 @@ ${registrations.length === 0 ? '' : `
             <td>
               <div class="flex gap-2" style="flex-wrap:wrap">
                 ${['verified', 'pending_activation'].includes(r.status) ? `
-                <form method="post" action="/platform/registrations/${r.id}/activate" onsubmit="return confirm('Activate ${esc(r.companyName).replace(/'/g, '')}? This provisions their environment and emails sign-in credentials to ${esc(r.contactEmail)}. Only do this once payment is confirmed.')">
+                <form method="post" action="/platform/registrations/${r.id}/activate"
+                  data-confirm="Activate ${esc(r.companyName)}? This provisions their environment and emails sign-in credentials to ${esc(r.contactEmail)}. Only do this once payment is confirmed."
+                  data-confirm-title="Activate business" data-confirm-label="Activate">
                   <input type="hidden" name="_csrf" value="${csrfToken}">
                   <button class="btn btn-primary btn-sm" type="submit">Activate →</button>
                 </form>` : ''}
-                <form method="post" action="/platform/registrations/${r.id}/reject" onsubmit="return confirm('Reject this registration? The applicant will be emailed a polite decline.')">
+                <form method="post" action="/platform/registrations/${r.id}/reject"
+                  data-confirm="Reject this registration? The applicant will be emailed a polite decline."
+                  data-confirm-title="Reject registration" data-confirm-label="Reject" data-confirm-tone="danger">
                   <input type="hidden" name="_csrf" value="${csrfToken}">
                   <input type="hidden" name="notify" value="1">
                   <button class="btn btn-ghost btn-sm" type="submit">Reject</button>
@@ -119,7 +123,9 @@ ${registrations.length === 0 ? '' : `
             <td>
               <div class="flex gap-2" style="flex-wrap:wrap">
                 <a class="btn btn-outline btn-sm" href="/platform/tenants/${t.id}">Manage →</a>
-                <form method="post" action="/platform/tenants/${t.id}/reset-admin" onsubmit="return confirm('Generate a new temporary password for this tenant\\'s admin? They will be forced to set a new one at next sign-in.')">
+                <form method="post" action="/platform/tenants/${t.id}/reset-admin"
+                  data-confirm="Generate a new temporary password for this tenant's admin? They will be forced to set a new one at next sign-in."
+                  data-confirm-title="Reset admin password" data-confirm-label="Reset password" data-confirm-tone="danger">
                   <input type="hidden" name="_csrf" value="${csrfToken}">
                   <button class="btn btn-ghost btn-sm" type="submit">Reset password</button>
                 </form>

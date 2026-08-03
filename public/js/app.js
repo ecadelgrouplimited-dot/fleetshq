@@ -143,6 +143,34 @@ function confirmAction(message, fn, options) {
   });
 }
 
+// ── Global form confirm ─────────────────────────────────────────────────
+// Any <form data-confirm="…"> uses the branded dialog above instead of the
+// browser's native confirm() popup — no per-page wiring needed. Optional:
+// data-confirm-title, data-confirm-tone ("danger"|"primary"),
+// data-confirm-label, data-confirm-cancel-label.
+document.addEventListener('submit', function(event) {
+  var form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  var message = form.getAttribute('data-confirm');
+  if (!message || form.dataset.confirmed === '1') return;
+  event.preventDefault();
+  showConfirmDialog({
+    title: form.getAttribute('data-confirm-title') || 'Confirm action',
+    message: message,
+    confirmLabel: form.getAttribute('data-confirm-label') || 'Confirm',
+    cancelLabel: form.getAttribute('data-confirm-cancel-label') || 'Cancel',
+    tone: form.getAttribute('data-confirm-tone') || 'primary',
+  }).then(function(confirmed) {
+    if (!confirmed) return;
+    form.dataset.confirmed = '1';
+    // .requestSubmit() (not .submit()) re-runs the submit event — but our
+    // guard above short-circuits it this time — and preserves the clicked
+    // submit button's name/value if the form has more than one action.
+    if (form.requestSubmit) form.requestSubmit();
+    else form.submit();
+  });
+});
+
 // ── Button loading state ──────────────────────────────────────────────
 function setButtonLoading(btn, loading, loadingText) {
   if (!btn) return;
