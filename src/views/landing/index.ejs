@@ -3,10 +3,10 @@
   const selectedType = typeof enquiryType !== 'undefined' ? enquiryType : 'general';
   const form = typeof formData !== 'undefined' ? formData : {};
   const nav = [
-    ['Services', '/services', 'services'],
-    ['About', '/about', 'about'],
-    ['Track', '/track', 'track'],
-    ['Contact', '/contact', 'contact'],
+    ['Services', '/services', 'services', 'nav.services'],
+    ['About', '/about', 'about', 'nav.about'],
+    ['Track', '/track', 'track', 'nav.track'],
+    ['Contact', '/contact', 'contact', 'nav.contact'],
   ];
   const pageTitles = {
     home: ['One Platform. Total Control.', 'The operating system for transport companies. Drivers, vehicles, compliance, tachographs and maintenance — one connected platform that keeps every mile accountable.'],
@@ -147,13 +147,33 @@
     .nav { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: saturate(150%) blur(16px); }
     .nav-inner { min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
     .nav-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-    .nav-links > a, .nav-action {
+    .nav-links > a {
       border: 0; background: transparent; color: var(--muted);
       border-radius: 9px; padding: 9px 13px; cursor: pointer; font-weight: 600; font-size: 14.5px; transition: all .15s;
     }
-    .nav-links > a:hover, .nav-links > a.is-active, .nav-action:hover { color: var(--heading); background: color-mix(in srgb, var(--panel-strong) 70%, transparent); }
-    .nav-action { display: inline-flex; align-items: center; gap: 7px; }
+    .nav-links > a:hover, .nav-links > a.is-active { color: var(--heading); background: color-mix(in srgb, var(--panel-strong) 70%, transparent); }
     .nav-sep { width: 1px; height: 22px; background: var(--line-2); margin: 0 6px; }
+    /* Icon-only theme + language controls (no "Theme"/"Language" text) */
+    .ctrl-btn {
+      display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 50%; border: 1px solid var(--line-2); background: transparent; color: var(--muted);
+      cursor: pointer; font-size: 15px; line-height: 1; transition: color .15s, border-color .15s, background .15s;
+    }
+    .ctrl-btn:hover { color: var(--heading); background: color-mix(in srgb, var(--panel-strong) 70%, transparent); }
+    .ctrl-btn svg { width: 16px; height: 16px; }
+    .lang-switch { position: relative; }
+    .lang-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; display: none; flex-direction: column; gap: 2px;
+      padding: 6px; min-width: 46px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--panel-strong);
+      box-shadow: var(--shadow);
+    }
+    .lang-menu.is-open { display: flex; }
+    .lang-menu button {
+      display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; border: 0;
+      background: transparent; cursor: pointer; font-size: 19px; line-height: 1; transition: background .15s;
+    }
+    .lang-menu button:hover { background: color-mix(in srgb, var(--panel-strong) 70%, transparent); }
+    .lang-menu button.is-active { box-shadow: inset 0 0 0 1.5px var(--brand-2); }
     .cta {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       min-height: 44px; padding: 11px 20px; border-radius: 10px; font-weight: 700; font-size: 14.5px;
@@ -406,7 +426,7 @@
       .nav-inner { flex-direction: column; align-items: stretch; padding: 12px 0; gap: 10px; }
       .nav-links { overflow-x: auto; scrollbar-width: none; }
       .nav-links::-webkit-scrollbar { display: none; }
-      .nav-links > a, .nav-action { white-space: nowrap; flex: 0 0 auto; }
+      .nav-links > a { white-space: nowrap; flex: 0 0 auto; }
       .nav-sep { display: none; }
       .grid.two, .grid.three, .stats, .footer-grid, .track-summary { grid-template-columns: 1fr; }
       .pillars { grid-template-columns: 1fr; }
@@ -440,18 +460,32 @@
 
   <nav class="nav">
     <div class="wrap nav-inner">
-      <a href="/welcome" class="brand" aria-label="FLEETS.HQ home">
+      <a href="/welcome" class="brand" data-i18n="aria.brandHome" data-i18n-attr="aria-label" aria-label="FLEETS.HQ home">
         <span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span>
-        <span>FLEETS<b>.HQ</b><small>The operating system for transport companies</small></span>
+        <span>FLEETS<b>.HQ</b><small data-i18n="brand.tagline">The operating system for transport companies</small></span>
       </a>
       <div class="nav-links">
-        <% nav.forEach(([label, href, key]) => { %>
-          <a href="<%= href %>" class="<%= currentPage === key ? 'is-active' : '' %>"><%= label %></a>
+        <% nav.forEach(([label, href, key, i18nKey]) => { %>
+          <a href="<%= href %>" class="<%= currentPage === key ? 'is-active' : '' %>" data-i18n="<%= i18nKey %>"><%= label %></a>
         <% }) %>
-        <button class="nav-action" type="button" id="themeToggle" aria-label="Toggle theme"><span aria-hidden="true">◐</span> Theme</button>
+        <div class="lang-switch">
+          <button type="button" class="ctrl-btn" id="langToggle" aria-haspopup="true" aria-expanded="false" data-i18n="aria.toggleLanguage" data-i18n-attr="aria-label" aria-label="Change language">
+            <span data-lang-current>🇬🇧</span>
+          </button>
+          <div class="lang-menu" id="langMenu" role="menu">
+            <button type="button" role="menuitem" data-lang-option="en" title="English">🇬🇧</button>
+            <button type="button" role="menuitem" data-lang-option="fr" title="Français">🇫🇷</button>
+            <button type="button" role="menuitem" data-lang-option="es" title="Español">🇪🇸</button>
+            <button type="button" role="menuitem" data-lang-option="pt" title="Português">🇵🇹</button>
+          </div>
+        </div>
+        <button class="ctrl-btn" type="button" id="themeToggle" data-i18n="aria.toggleTheme" data-i18n-attr="aria-label" aria-label="Toggle theme">
+          <svg id="toggleIconDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg id="toggleIconLight" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.02 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
         <span class="nav-sep" aria-hidden="true"></span>
-        <a href="/register">Get started</a>
-        <a href="/login">Sign in</a>
+        <a href="/register" data-i18n="nav.getStarted">Get started</a>
+        <a href="/login" data-i18n="nav.signIn">Sign in</a>
         <a class="cta" href="/contact?type=quote">Get a quote</a>
       </div>
     </div>
@@ -462,18 +496,18 @@
       <span class="ribbon" aria-hidden="true"></span>
       <div class="wrap hero-grid">
         <div>
-          <h1><%= heading[0].includes('.') ? heading[0].replace(/\.([^.]*)$/, '') : heading[0] %><span class="grad">.</span></h1>
-          <p class="intro"><%= heading[1] %></p>
+          <h1 data-i18n-html="<%= currentPage %>.hero.title"><%= heading[0].includes('.') ? heading[0].replace(/\.([^.]*)$/, '') : heading[0] %><span class="grad">.</span></h1>
+          <p class="intro" data-i18n="<%= currentPage %>.hero.sub"><%= heading[1] %></p>
           <div class="hero-actions">
-            <a class="cta" href="/contact?type=quote">Request a quote
+            <a class="cta" href="/contact?type=quote"><span data-i18n="hero.requestQuote">Request a quote</span>
               <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </a>
-            <a class="cta secondary" href="/track">Track a shipment</a>
+            <a class="cta secondary" href="/track" data-i18n="hero.trackShipment">Track a shipment</a>
           </div>
           <div class="metrics">
-            <div class="metric"><strong>5</strong><span>operating domains</span></div>
-            <div class="metric"><strong>DVSA</strong><span>audit-ready</span></div>
-            <div class="metric"><strong>24/7</strong><span>real-time monitoring</span></div>
+            <div class="metric"><strong>5</strong><span data-i18n="metric.domains">operating domains</span></div>
+            <div class="metric"><strong>DVSA</strong><span data-i18n="metric.dvsa">audit-ready</span></div>
+            <div class="metric"><strong>24/7</strong><span data-i18n="metric.monitoring">real-time monitoring</span></div>
           </div>
         </div>
         <div class="hero-art">
@@ -499,11 +533,11 @@
           </div>
           <div class="float-chip one">
             <span class="dot" style="background:rgba(16,185,129,.18)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#34d399"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg></span>
-            <div>Audit readiness 98%<small>People · Fleet · Driver</small></div>
+            <div><span data-i18n="chip.audit">Audit readiness 98%</span><small data-i18n="chip.auditSub">People · Fleet · Driver</small></div>
           </div>
           <div class="float-chip two">
             <span class="dot" style="background:rgba(225,29,42,.2)"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#f87171"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/></svg></span>
-            <div>Live monitoring<small>fleet-wide · real time</small></div>
+            <div><span data-i18n="chip.live">Live monitoring</span><small data-i18n="chip.liveSub">fleet-wide · real time</small></div>
           </div>
         </div>
       </div>
@@ -512,22 +546,22 @@
       <div class="wrap">
         <div class="pillars reveal">
           <% [
-            ['Drivers','Licences, CPC, training &amp; more','M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
-            ['Vehicles','Maintenance, inspections, MOT &amp; defects','M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14'],
-            ['Compliance','DVSA, Home Office, audits &amp; docs','M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
-            ['Tachographs','Digital analysis, alerts &amp; downloads','M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-            ['Maintenance','Workshops, PMI, scheduling &amp; costs','M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z'],
-          ].forEach(([name, desc, d]) => { %>
+            ['Drivers','Licences, CPC, training &amp; more','M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z','pillar.drivers','pillars.drivers.desc'],
+            ['Vehicles','Maintenance, inspections, MOT &amp; defects','M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14','pillar.vehicles','pillars.vehicles.desc'],
+            ['Compliance','DVSA, Home Office, audits &amp; docs','M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z','pillar.compliance','pillars.compliance.desc'],
+            ['Tachographs','Digital analysis, alerts &amp; downloads','M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z','pillar.tachographs','pillars.tachographs.desc'],
+            ['Maintenance','Workshops, PMI, scheduling &amp; costs','M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z','pillar.maintenance','pillars.maintenance.desc'],
+          ].forEach(([name, desc, d, nameKey, descKey]) => { %>
             <div class="pillar">
               <div class="pillar-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="<%= d %>"/></svg></div>
-              <h4><%= name %></h4>
-              <p><%- desc %></p>
+              <h4 data-i18n="<%= nameKey %>"><%= name %></h4>
+              <p data-i18n-html="<%= descKey %>"><%- desc %></p>
             </div>
           <% }) %>
         </div>
         <div class="builtby reveal">
-          <span class="bold-gold">Built by hauliers. For hauliers.</span>
-          <span class="bold-white">One platform. Total control.</span>
+          <span class="bold-gold" data-i18n="builtby.gold">Built by hauliers. For hauliers.</span>
+          <span class="bold-white" data-i18n="builtby.white">One platform. Total control.</span>
         </div>
       </div>
       <% } %>
@@ -536,19 +570,19 @@
     <% if (currentPage === 'home') { %>
       <section class="band">
         <div class="wrap">
-          <div class="section-head reveal"><span class="kicker">One connected system</span><h2>Move, prove, improve — without the spreadsheets.</h2><p>Customer booking, dispatch, driver delivery, fleet maintenance, HR, finance and compliance stop being separate tools. They become one source of truth.</p></div>
+          <div class="section-head reveal"><span class="kicker" data-i18n="band.oneSystem.kicker">One connected system</span><h2 data-i18n="band.oneSystem.title">Move, prove, improve — without the spreadsheets.</h2><p data-i18n="band.oneSystem.sub">Customer booking, dispatch, driver delivery, fleet maintenance, HR, finance and compliance stop being separate tools. They become one source of truth.</p></div>
           <div class="grid three">
             <article class="card lift reveal">
               <div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg></div>
-              <h3>Deliver</h3><p>Same-day, next-day, scheduled and multi-drop movements — booked by customers, allocated by dispatch, run by drivers with proof of delivery.</p>
+              <h3 data-i18n="card.deliver.title">Deliver</h3><p data-i18n="card.deliver.desc">Same-day, next-day, scheduled and multi-drop movements — booked by customers, allocated by dispatch, run by drivers with proof of delivery.</p>
             </article>
             <article class="card lift reveal">
               <div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
-              <h3>Prove</h3><p>Every check, defect, document and training record becomes DVSA and Home-Office audit evidence — assembled in one click when an inspector knocks.</p>
+              <h3 data-i18n="card.prove.title">Prove</h3><p data-i18n="card.prove.desc">Every check, defect, document and training record becomes DVSA and Home-Office audit evidence — assembled in one click when an inspector knocks.</p>
             </article>
             <article class="card lift reveal">
               <div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
-              <h3>Improve</h3><p>A live compliance score and cross-domain KPIs show exactly where you stand — and where the next risk is, before it costs you.</p>
+              <h3 data-i18n="card.improve.title">Improve</h3><p data-i18n="card.improve.desc">A live compliance score and cross-domain KPIs show exactly where you stand — and where the next risk is, before it costs you.</p>
             </article>
           </div>
         </div>
@@ -559,27 +593,27 @@
           <div class="stats">
             <div class="stat reveal">
               <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
-              <strong data-count="10">10</strong><span>Connected role panels</span>
+              <strong data-count="10">10</strong><span data-i18n="stats2.rolePanels">Connected role panels</span>
             </div>
             <div class="stat reveal">
               <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg></span>
-              <strong data-count="5">5</strong><span>Operating domains, one platform</span>
+              <strong data-count="5">5</strong><span data-i18n="stats2.domainsOnePlatform">Operating domains, one platform</span>
             </div>
             <div class="stat reveal">
               <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
-              <strong data-count="1" data-suffix="-click">1-click</strong><span>DVSA audit evidence packs</span>
+              <strong data-count="1" data-suffix="-click">1-click</strong><span data-i18n="stats2.auditPacks">DVSA audit evidence packs</span>
             </div>
             <div class="stat reveal">
               <span class="stat-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
-              <strong>24/7</strong><span>Real-time monitoring</span>
+              <strong>24/7</strong><span data-i18n="stats2.realTimeMonitoring">Real-time monitoring</span>
             </div>
           </div>
           <div class="trust reveal" style="margin-top:18px">
             <div class="trust-left">
               <span class="trust-shield"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></span>
-              <p><b>Enterprise-grade security.</b> Your data is protected, encrypted in transit and at rest, on UK-hosted infrastructure.</p>
+              <p><b data-i18n="trust.security.title">Enterprise-grade security.</b> <span data-i18n="trust.security.desc">Your data is protected, encrypted in transit and at rest, on UK-hosted infrastructure.</span></p>
             </div>
-            <span class="trust-powered">Powered by <b>256 Digital Technologies</b></span>
+            <span class="trust-powered"><span data-i18n="trust.powered">Powered by</span> <b>256 Digital Technologies</b></span>
           </div>
         </div>
       </section>
@@ -587,8 +621,8 @@
       <section>
         <div class="wrap">
           <div class="grid two">
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div><h3>For shippers</h3><p>Request a quote, book a collection, track a parcel and download proof of delivery — without needing an account to get started.</p><a class="more" href="/services">See services →</a></article>
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-4h2m6 0h2M9 9h2m4 0h2M9 13h2m4 0h2"/></svg></div><h3>For operators</h3><p>Run dispatch, fleet, people, finance and compliance from one tenant-aware platform — with role-based panels for every team.</p><a class="more" href="/login">Enter the platform →</a></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div><h3 data-i18n="card.shippers.title">For shippers</h3><p data-i18n="card.shippers.desc">Request a quote, book a collection, track a parcel and download proof of delivery — without needing an account to get started.</p><a class="more" href="/services" data-i18n="card.shippers.link">See services →</a></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-4h2m6 0h2M9 9h2m4 0h2M9 13h2m4 0h2"/></svg></div><h3 data-i18n="card.operators.title">For operators</h3><p data-i18n="card.operators.desc">Run dispatch, fleet, people, finance and compliance from one tenant-aware platform — with role-based panels for every team.</p><a class="more" href="/login" data-i18n="card.operators.link">Enter the platform →</a></article>
           </div>
         </div>
       </section>
@@ -597,47 +631,47 @@
     <% if (currentPage === 'services') { %>
       <section class="band">
         <div class="wrap">
-          <div class="section-head reveal"><span class="kicker">Service catalogue</span><h2>Pick the lane that fits the load.</h2><p>Clear service lanes today, with deeper booking and fulfilment as the platform expands.</p></div>
+          <div class="section-head reveal"><span class="kicker" data-i18n="services.kicker">Service catalogue</span><h2 data-i18n="services.title">Pick the lane that fits the load.</h2><p data-i18n="services.sub">Clear service lanes today, with deeper booking and fulfilment as the platform expands.</p></div>
           <div class="grid three">
             <% [
-              ['Same-day delivery','Urgent','Time-sensitive collections and deliveries with direct operational oversight and live tracking.'],
-              ['Next-day delivery','Planned','Reliable business-to-business movement across regular lanes with confirmed windows.'],
-              ['Economy freight','Value','Cost-conscious consignments planned around efficient capacity and shared routes.'],
-              ['Pallet & freight','Freight','Commercial loads, palletised freight and larger consignment handling.'],
-              ['Courier work','Light','Smaller urgent movements with clear contact and delivery expectations.'],
-              ['Returns & contracts','Recurring','Reverse logistics, recurring routes and contract transport patterns.'],
-            ].forEach(([name, tag, body]) => { %>
+              ['Same-day delivery','Urgent','Time-sensitive collections and deliveries with direct operational oversight and live tracking.','service.sameDay'],
+              ['Next-day delivery','Planned','Reliable business-to-business movement across regular lanes with confirmed windows.','service.nextDay'],
+              ['Economy freight','Value','Cost-conscious consignments planned around efficient capacity and shared routes.','service.economy'],
+              ['Pallet & freight','Freight','Commercial loads, palletised freight and larger consignment handling.','service.pallet'],
+              ['Courier work','Light','Smaller urgent movements with clear contact and delivery expectations.','service.courier'],
+              ['Returns & contracts','Recurring','Reverse logistics, recurring routes and contract transport patterns.','service.returns'],
+            ].forEach(([name, tag, body, key]) => { %>
               <article class="card lift service-card reveal">
-                <div class="service-top"><h3><%= name %></h3><span class="tag"><%= tag %></span></div>
-                <p><%= body %></p>
-                <a class="more" href="/contact?type=quote">Request this service →</a>
+                <div class="service-top"><h3 data-i18n-html="<%= key %>.name"><%= name %></h3><span class="tag" data-i18n="<%= key %>.tag"><%= tag %></span></div>
+                <p data-i18n="<%= key %>.desc"><%= body %></p>
+                <a class="more" href="/contact?type=quote" data-i18n="service.requestCta">Request this service →</a>
               </article>
             <% }) %>
           </div>
         </div>
       </section>
       <section>
-        <div class="wrap"><div class="cta-band reveal"><h2>Not sure which service you need?</h2><p>Tell us what you're moving and where — we'll recommend the right lane and price it up.</p><div class="hero-actions"><a class="cta" href="/contact?type=quote">Get a quote</a><a class="cta secondary" href="/track">Track a shipment</a></div></div></div>
+        <div class="wrap"><div class="cta-band reveal"><h2 data-i18n="cta.notSure.title">Not sure which service you need?</h2><p data-i18n="cta.notSure.sub">Tell us what you're moving and where — we'll recommend the right lane and price it up.</p><div class="hero-actions"><a class="cta" href="/contact?type=quote" data-i18n="cta.getQuote">Get a quote</a><a class="cta secondary" href="/track" data-i18n="cta.trackShipment">Track a shipment</a></div></div></div>
       </section>
     <% } %>
 
     <% if (currentPage === 'about') { %>
       <section class="band">
         <div class="wrap split">
-          <div class="section-head reveal" style="margin:0"><span class="kicker">Mission &amp; vision</span><h2>Logistics you can prove.</h2><p>Our mission is to make transport operations reliable, auditable and easier to run — by connecting daily logistics work to the evidence that protects the business.</p></div>
+          <div class="section-head reveal" style="margin:0"><span class="kicker" data-i18n-html="about.mission.kicker">Mission &amp; vision</span><h2 data-i18n="about.mission.title">Logistics you can prove.</h2><p data-i18n="about.mission.sub">Our mission is to make transport operations reliable, auditable and easier to run — by connecting daily logistics work to the evidence that protects the business.</p></div>
           <div class="grid two" style="grid-template-columns:1fr">
-            <article class="card reveal"><h3>Mission</h3><p>Give UK operators one system to run the whole operation, where every shipment, driver, vehicle and document is connected — never scattered across tools.</p></article>
-            <article class="card reveal"><h3>Vision</h3><p>A logistics platform where compliance isn't paperwork chased after the fact, but evidence produced automatically by the work itself.</p></article>
+            <article class="card reveal"><h3 data-i18n="about.mission.cardTitle">Mission</h3><p data-i18n="about.mission.cardDesc">Give UK operators one system to run the whole operation, where every shipment, driver, vehicle and document is connected — never scattered across tools.</p></article>
+            <article class="card reveal"><h3 data-i18n="about.vision.cardTitle">Vision</h3><p data-i18n="about.vision.cardDesc">A logistics platform where compliance isn't paperwork chased after the fact, but evidence produced automatically by the work itself.</p></article>
           </div>
         </div>
       </section>
       <section>
         <div class="wrap">
-          <div class="section-head center reveal"><span class="kicker">What we stand for</span><h2>Built for accountability.</h2></div>
+          <div class="section-head center reveal"><span class="kicker" data-i18n="about.standFor.kicker">What we stand for</span><h2 data-i18n="about.standFor.title">Built for accountability.</h2></div>
           <div class="grid three">
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3>Accountable</h3><p>Every enquiry, shipment and record belongs to a tenant and can be followed end to end.</p></article>
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div><h3>Compliant</h3><p>Designed around operator-licence obligations, document trails and reviewable records.</p></article>
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><h3>Responsive</h3><p>Clients get a clear, fast route to request work and reach the team — without friction.</p></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3 data-i18n="about.value.accountable.title">Accountable</h3><p data-i18n="about.value.accountable.desc">Every enquiry, shipment and record belongs to a tenant and can be followed end to end.</p></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div><h3 data-i18n="about.value.compliant.title">Compliant</h3><p data-i18n="about.value.compliant.desc">Designed around operator-licence obligations, document trails and reviewable records.</p></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><h3 data-i18n="about.value.responsive.title">Responsive</h3><p data-i18n="about.value.responsive.desc">Clients get a clear, fast route to request work and reach the team — without friction.</p></article>
           </div>
         </div>
       </section>
@@ -647,37 +681,37 @@
       <section class="band">
         <div class="wrap split">
           <div>
-            <div class="section-head reveal" style="margin:0 0 24px"><span class="kicker">Get in touch</span><h2>Send an enquiry.</h2><p>Quotes, service questions, partnerships or support — it lands straight in the operations queue.</p></div>
+            <div class="section-head reveal" style="margin:0 0 24px"><span class="kicker" data-i18n="contact.form.kicker">Get in touch</span><h2 data-i18n="contact.form.title">Send an enquiry.</h2><p data-i18n="contact.form.sub">Quotes, service questions, partnerships or support — it lands straight in the operations queue.</p></div>
             <div class="card contact-aside reveal">
-              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span><div><small>Email</small><strong>director@fleetshq.com</strong></div></div>
-              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span><div><small>Hours</small><strong>Mon–Fri · 08:00–18:00</strong></div></div>
-              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span><div><small>Urgent work</small><strong>Submit any time — visible in intake</strong></div></div>
+              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></span><div><small data-i18n="contact.info.emailLabel">Email</small><strong>director@fleetshq.com</strong></div></div>
+              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span><div><small data-i18n="contact.info.hoursLabel">Hours</small><strong data-i18n="contact.info.hoursValue">Mon–Fri · 08:00–18:00</strong></div></div>
+              <div class="info-line"><span class="ii"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></span><div><small data-i18n="contact.info.urgentLabel">Urgent work</small><strong data-i18n="contact.info.urgentValue">Submit any time — visible in intake</strong></div></div>
             </div>
           </div>
           <form class="card form reveal" method="post" action="/contact" novalidate>
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <% if (leadSent) { %><div class="notice success">Thanks — your enquiry has been received. We'll be in touch shortly.</div><% } %>
+            <% if (leadSent) { %><div class="notice success" data-i18n="contact.form.successNotice">Thanks — your enquiry has been received. We'll be in touch shortly.</div><% } %>
             <% if (leadError) { %><div class="notice error"><%= leadError %></div><% } %>
             <div class="grid two">
-              <div class="field-row"><label for="name">Name</label><input id="name" name="name" autocomplete="name" value="<%= form.name || '' %>" required></div>
-              <div class="field-row"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" value="<%= form.email || '' %>" required></div>
+              <div class="field-row"><label for="name" data-i18n="contact.form.nameLabel">Name</label><input id="name" name="name" autocomplete="name" value="<%= form.name || '' %>" required></div>
+              <div class="field-row"><label for="email" data-i18n="contact.form.emailLabel">Email</label><input id="email" name="email" type="email" autocomplete="email" value="<%= form.email || '' %>" required></div>
             </div>
             <div class="grid two">
-              <div class="field-row"><label for="phone">Phone</label><input id="phone" name="phone" autocomplete="tel" value="<%= form.phone || '' %>"></div>
-              <div class="field-row"><label for="company">Company</label><input id="company" name="company" autocomplete="organization" value="<%= form.company || '' %>"></div>
+              <div class="field-row"><label for="phone" data-i18n="contact.form.phoneLabel">Phone</label><input id="phone" name="phone" autocomplete="tel" value="<%= form.phone || '' %>"></div>
+              <div class="field-row"><label for="company" data-i18n="contact.form.companyLabel">Company</label><input id="company" name="company" autocomplete="organization" value="<%= form.company || '' %>"></div>
             </div>
             <div class="field-row">
-              <label for="enquiryType">Enquiry type</label>
+              <label for="enquiryType" data-i18n="contact.form.typeLabel">Enquiry type</label>
               <select id="enquiryType" name="enquiryType">
-                <option value="quote" <%= selectedType === 'quote' ? 'selected' : '' %>>Quote request</option>
-                <option value="service" <%= selectedType === 'service' ? 'selected' : '' %>>Service question</option>
-                <option value="tracking" <%= selectedType === 'tracking' ? 'selected' : '' %>>Tracking support</option>
-                <option value="partnership" <%= selectedType === 'partnership' ? 'selected' : '' %>>Partnership</option>
-                <option value="general" <%= selectedType === 'general' ? 'selected' : '' %>>General enquiry</option>
+                <option value="quote" data-i18n="contact.form.type.quote" <%= selectedType === 'quote' ? 'selected' : '' %>>Quote request</option>
+                <option value="service" data-i18n="contact.form.type.service" <%= selectedType === 'service' ? 'selected' : '' %>>Service question</option>
+                <option value="tracking" data-i18n="contact.form.type.tracking" <%= selectedType === 'tracking' ? 'selected' : '' %>>Tracking support</option>
+                <option value="partnership" data-i18n="contact.form.type.partnership" <%= selectedType === 'partnership' ? 'selected' : '' %>>Partnership</option>
+                <option value="general" data-i18n="contact.form.type.general" <%= selectedType === 'general' ? 'selected' : '' %>>General enquiry</option>
               </select>
             </div>
-            <div class="field-row"><label for="message">Message</label><textarea id="message" name="message" required><%= form.message || '' %></textarea></div>
-            <button class="cta" type="submit">Send enquiry
+            <div class="field-row"><label for="message" data-i18n="contact.form.messageLabel">Message</label><textarea id="message" name="message" required><%= form.message || '' %></textarea></div>
+            <button class="cta" type="submit"><span data-i18n="contact.form.submit">Send enquiry</span>
               <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
             </button>
           </form>
@@ -690,33 +724,33 @@
         <div class="wrap track-shell">
           <aside class="card track-form reveal">
             <form class="form" method="get" action="/track">
-              <div class="field-row"><label for="ref">Tracking reference</label><input id="ref" name="ref" value="<%= trackingRef || '' %>" placeholder="e.g. 256-LANE-042" required></div>
-              <button class="cta" type="submit">Check status</button>
+              <div class="field-row"><label for="ref" data-i18n="track.form.refLabel">Tracking reference</label><input id="ref" name="ref" value="<%= trackingRef || '' %>" placeholder="e.g. 256-LANE-042" data-i18n-attr="placeholder" data-i18n="track.form.refPlaceholder" required></div>
+              <button class="cta" type="submit" data-i18n="track.form.submit">Check status</button>
             </form>
             <div class="quick-refs" aria-label="Example tracking references">
               <a href="/track?ref=256-DEMO-184">256-DEMO-184</a>
               <a href="/track?ref=256-LANE-042">256-LANE-042</a>
             </div>
-            <p class="notice" style="margin-top:16px">Enter a reference for live status, ETA and milestone history. Need help? <a href="/contact?type=tracking" style="color:var(--brand);font-weight:700">Contact the desk</a>.</p>
+            <p class="notice" style="margin-top:16px"><span data-i18n="track.help">Enter a reference for live status, ETA and milestone history. Need help?</span> <a href="/contact?type=tracking" style="color:var(--brand);font-weight:700" data-i18n="track.help.contactDesk">Contact the desk</a>.</p>
           </aside>
           <div class="track-board">
             <% if (trackingResult) { %>
               <article class="card status-card reveal">
                 <div class="status-head">
-                  <div class="status-ref"><span>Tracking reference</span><strong><%= trackingResult.reference %></strong></div>
+                  <div class="status-ref"><span data-i18n="track.result.refLabel">Tracking reference</span><strong><%= trackingResult.reference %></strong></div>
                   <div class="status-pill"><%= trackingResult.status %></div>
                 </div>
                 <div class="track-map" aria-hidden="true">
-                  <span class="route-label start">Collection</span><span class="route-label end">Delivery</span>
+                  <span class="route-label start" data-i18n="track.result.collection">Collection</span><span class="route-label end" data-i18n="track.result.delivery">Delivery</span>
                   <span class="route-line"></span><span class="route-pin start"></span><span class="route-pin mid"></span><span class="route-pin end"></span>
                 </div>
                 <div class="track-summary">
-                  <div class="track-stat"><span>Service</span><strong><%= trackingResult.service %></strong></div>
-                  <div class="track-stat"><span>ETA window</span><strong><%= trackingResult.etaWindow %></strong></div>
-                  <div class="track-stat"><span>Vehicle slot</span><strong><%= trackingResult.vehicle %></strong></div>
+                  <div class="track-stat"><span data-i18n="track.result.serviceLabel">Service</span><strong><%= trackingResult.service %></strong></div>
+                  <div class="track-stat"><span data-i18n="track.result.etaLabel">ETA window</span><strong><%= trackingResult.etaWindow %></strong></div>
+                  <div class="track-stat"><span data-i18n="track.result.vehicleLabel">Vehicle slot</span><strong><%= trackingResult.vehicle %></strong></div>
                 </div>
               </article>
-              <div class="notice success reveal"><strong>Next action:</strong> <%= trackingResult.nextAction %></div>
+              <div class="notice success reveal"><strong data-i18n="track.result.nextAction">Next action:</strong> <%= trackingResult.nextAction %></div>
               <div class="timeline reveal" aria-label="Shipment milestones">
                 <% trackingResult.checkpoints.forEach((checkpoint) => { %>
                   <div class="step is-<%= checkpoint.state %>">
@@ -728,20 +762,20 @@
             <% } else { %>
               <article class="card status-card reveal">
                 <div class="status-head">
-                  <div class="status-ref"><span>Awaiting reference</span><strong>Ready to track</strong></div>
-                  <div class="status-pill">Live tracking</div>
+                  <div class="status-ref"><span data-i18n="track.empty.awaitingRef">Awaiting reference</span><strong data-i18n="track.empty.readyToTrack">Ready to track</strong></div>
+                  <div class="status-pill" data-i18n="track.empty.liveTracking">Live tracking</div>
                 </div>
                 <div class="track-map" aria-hidden="true">
-                  <span class="route-label start">Collection</span><span class="route-label end">Delivery</span>
+                  <span class="route-label start" data-i18n="track.result.collection">Collection</span><span class="route-label end" data-i18n="track.result.delivery">Delivery</span>
                   <span class="route-line"></span><span class="route-pin start"></span><span class="route-pin mid"></span><span class="route-pin end"></span>
                 </div>
                 <div class="track-summary">
-                  <div class="track-stat"><span>Status</span><strong>Enter a reference</strong></div>
-                  <div class="track-stat"><span>Milestones</span><strong>Preview enabled</strong></div>
-                  <div class="track-stat"><span>Support</span><strong><a href="/contact?type=tracking" style="color:var(--brand)">Contact desk</a></strong></div>
+                  <div class="track-stat"><span data-i18n="track.empty.statusLabel">Status</span><strong data-i18n="track.empty.statusValue">Enter a reference</strong></div>
+                  <div class="track-stat"><span data-i18n="track.empty.milestonesLabel">Milestones</span><strong data-i18n="track.empty.milestonesValue">Preview enabled</strong></div>
+                  <div class="track-stat"><span data-i18n="track.empty.supportLabel">Support</span><strong><a href="/contact?type=tracking" style="color:var(--brand)" data-i18n="track.empty.contactDesk">Contact desk</a></strong></div>
                 </div>
               </article>
-              <div class="notice reveal">Enter a public reference to preview status, ETA, vehicle slot and shipment milestones.</div>
+              <div class="notice reveal" data-i18n="track.empty.notice">Enter a public reference to preview status, ETA, vehicle slot and shipment milestones.</div>
             <% } %>
           </div>
         </div>
@@ -754,34 +788,59 @@
     <div class="wrap">
       <div class="footer-grid">
         <div>
-          <a href="/welcome" class="brand"><span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span><span>FLEETS<b>.HQ</b><small>The operating system for transport companies</small></span></a>
-          <p style="margin-top:16px">The operating system for transport companies — drivers, vehicles, compliance, tachographs and maintenance in one connected platform.</p>
+          <a href="/welcome" class="brand" data-i18n="aria.brandHome" data-i18n-attr="aria-label" aria-label="FLEETS.HQ home"><span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span><span>FLEETS<b>.HQ</b><small data-i18n="brand.tagline">The operating system for transport companies</small></span></a>
+          <p style="margin-top:16px" data-i18n="footer.tagline">The operating system for transport companies — drivers, vehicles, compliance, tachographs and maintenance in one connected platform.</p>
         </div>
-        <div><h4>Platform</h4><div class="footer-links"><a href="/services">Services</a><a href="/track">Track a shipment</a><a href="/contact?type=quote">Get a quote</a><a href="/register">Register your company</a><a href="/login">Sign in</a></div></div>
-        <div><h4>Company</h4><div class="footer-links"><a href="/about">About us</a><a href="/about">Mission &amp; vision</a><a href="/contact">Contact</a></div></div>
-        <div><h4>Legal</h4><div class="footer-links"><a href="/privacy">Privacy</a><a href="/contact?type=partnership">Partnerships</a><a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL Group</a></div></div>
+        <div><h4 data-i18n="footer.platformHeading">Platform</h4><div class="footer-links"><a href="/services" data-i18n="footer.services">Services</a><a href="/track" data-i18n="footer.track">Track a shipment</a><a href="/contact?type=quote" data-i18n="nav.getQuote">Get a quote</a><a href="/register" data-i18n="form.registerLink">Register your company</a><a href="/login" data-i18n="nav.signIn">Sign in</a></div></div>
+        <div><h4 data-i18n="footer.companyHeading">Company</h4><div class="footer-links"><a href="/about" data-i18n="footer.aboutUs">About us</a><a href="/about" data-i18n-html="footer.missionVision">Mission &amp; vision</a><a href="/contact" data-i18n="footer.contact">Contact</a></div></div>
+        <div><h4 data-i18n="footer.legalHeading">Legal</h4><div class="footer-links"><a href="/privacy" data-i18n="footer.privacy">Privacy</a><a href="/contact?type=partnership" data-i18n="footer.partnerships">Partnerships</a><a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL Group</a></div></div>
       </div>
       <div class="foot-bottom">
-        <span>© <%= new Date().getFullYear() %> 256 Logistics Ltd · UK logistics operations</span>
-        <span>A signature work by <b>ECADEL GROUP LIMITED</b></span>
+        <span>© <%= new Date().getFullYear() %> 256 Logistics Ltd · <span data-i18n="footer.ukOps">UK logistics operations</span></span>
+        <span><span data-i18n="footer.signatureWork">A signature work by</span> <b>ECADEL GROUP LIMITED</b></span>
       </div>
     </div>
   </footer>
 
+  <script src="/js/i18n.js?v=<%= assetVersion %>"></script>
   <script>
     (function () {
       var root = document.documentElement;
       var loader = document.getElementById('loader');
       var toggle = document.getElementById('themeToggle');
+      var iconDark = document.getElementById('toggleIconDark');
+      var iconLight = document.getElementById('toggleIconLight');
       function hideLoader() { document.body.classList.remove('loading'); loader && loader.classList.add('is-hidden'); }
+      function reflectTheme(theme) {
+        var isLight = theme === 'light';
+        if (iconDark) iconDark.style.display = isLight ? 'none' : '';
+        if (iconLight) iconLight.style.display = isLight ? '' : 'none';
+      }
       function setTheme(theme) {
         root.setAttribute('data-theme', theme);
         localStorage.setItem('public-theme', theme);
         document.cookie = 'publicTheme=' + theme + '; Path=/; Max-Age=31536000; SameSite=Lax';
+        reflectTheme(theme);
       }
+      reflectTheme(root.getAttribute('data-theme'));
       toggle && toggle.addEventListener('click', function () { setTheme(root.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); });
       window.addEventListener('load', hideLoader);
       setTimeout(hideLoader, 850);
+
+      // Language switcher popover
+      var langToggle = document.getElementById('langToggle');
+      var langMenu = document.getElementById('langMenu');
+      if (langToggle && langMenu) {
+        var closeLangMenu = function () { langMenu.classList.remove('is-open'); langToggle.setAttribute('aria-expanded', 'false'); };
+        langToggle.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var open = langMenu.classList.toggle('is-open');
+          langToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+        document.addEventListener('click', function (e) { if (!langMenu.contains(e.target) && e.target !== langToggle) closeLangMenu(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLangMenu(); });
+        langMenu.querySelectorAll('[data-lang-option]').forEach(function (btn) { btn.addEventListener('click', closeLangMenu); });
+      }
 
       // Scroll reveal
       var els = document.querySelectorAll('.reveal');
