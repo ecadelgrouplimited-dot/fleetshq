@@ -249,13 +249,6 @@
     .stat .stat-ic svg { width: 20px; height: 20px; color: var(--brand-2); }
     .stat span { color: var(--soft); font-size: 13.5px; font-weight: 600; }
 
-    /* Steps flow */
-    .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; counter-reset: step; }
-    .flow .node { position: relative; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
-    .flow .node .n { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; color: #fff; background: linear-gradient(135deg, var(--brand), var(--brand-deep)); margin-bottom: 14px; }
-    .flow .node h3 { margin: 0 0 7px; font-size: 17px; color: var(--heading); }
-    .flow .node p { margin: 0; color: var(--muted); font-size: 14px; }
-
     /* CTA band */
     .cta-band { position: relative; overflow: hidden; border: 1px solid var(--line-2); border-radius: 26px; padding: 60px 40px; text-align: center;
       background: radial-gradient(ellipse 70% 130% at 50% -10%, rgba(59,130,246,.28), transparent 70%), linear-gradient(180deg, var(--panel-strong), var(--panel)); box-shadow: var(--shadow); }
@@ -319,18 +312,6 @@
     .step-meta { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 4px; }
     .step-time { color: var(--soft); font-size: 13px; font-weight: 700; }
     .step p { margin: 0; color: var(--muted); font-size: 14px; }
-
-    /* ECADEL credit */
-    .credit-band { margin-top: 14px; }
-    .credit-card { position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto; gap: 28px; align-items: center; padding: 30px 34px; border-radius: 22px;
-      background: radial-gradient(ellipse 70% 150% at 10% 0%, rgba(245,158,11,.14), transparent 60%), linear-gradient(180deg, var(--panel-strong), var(--panel)); border: 1px solid rgba(245,158,11,.24); box-shadow: var(--shadow-soft); }
-    .credit-seal { width: 70px; height: 70px; filter: drop-shadow(0 8px 22px rgba(245,158,11,.4)); }
-    .credit-eyebrow { display: inline-flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #fcd34d; margin-bottom: 9px; }
-    .credit-eyebrow .ln { width: 22px; height: 1px; background: linear-gradient(90deg, #f59e0b, transparent); }
-    .credit-name { font-size: clamp(20px, 2.6vw, 27px); font-weight: 900; letter-spacing: -.02em; line-height: 1.05; background: linear-gradient(100deg, #fffbeb, #fcd34d 55%, #f59e0b); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .credit-tag { font-size: 14px; color: var(--muted); max-width: 520px; margin-top: 8px; }
-    .credit-cta { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; font-weight: 700; font-size: 14px; color: #1a1205; background: linear-gradient(135deg, #fde68a, #f59e0b); padding: 12px 20px; border-radius: 11px; box-shadow: 0 10px 26px rgba(245,158,11,.34); transition: transform .18s; }
-    .credit-cta:hover { transform: translateY(-2px); }
 
     /* Footer */
     .footer { padding: 54px 0 36px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--bg-2) 60%, transparent); margin-top: 30px; }
@@ -412,11 +393,9 @@
     @media (max-width: 940px) {
       .hero-grid, .split, .track-shell { grid-template-columns: 1fr; }
       .hero-art { order: -1; min-height: 0; }
-      .grid.three, .flow { grid-template-columns: repeat(2, 1fr); }
+      .grid.three { grid-template-columns: repeat(2, 1fr); }
       .stats { grid-template-columns: repeat(2, 1fr); }
       .footer-grid { grid-template-columns: 1fr 1fr; }
-      .credit-card { grid-template-columns: 1fr; text-align: center; gap: 18px; }
-      .credit-seal { margin: 0 auto; } .credit-eyebrow { justify-content: center; } .credit-tag { margin-inline: auto; }
       .pillars { grid-template-columns: repeat(2, 1fr); }
       .pillar { border-bottom: 1px solid var(--line); }
       .pillar:nth-child(even) { border-right: 0; }
@@ -429,7 +408,7 @@
       .nav-links::-webkit-scrollbar { display: none; }
       .nav-links > a, .nav-action { white-space: nowrap; flex: 0 0 auto; }
       .nav-sep { display: none; }
-      .grid.two, .grid.three, .flow, .stats, .footer-grid, .track-summary { grid-template-columns: 1fr; }
+      .grid.two, .grid.three, .stats, .footer-grid, .track-summary { grid-template-columns: 1fr; }
       .pillars { grid-template-columns: 1fr; }
       .pillar { border-right: 0; }
       .hero { padding: 44px 0 30px; }
@@ -605,18 +584,6 @@
         </div>
       </section>
 
-      <section class="band">
-        <div class="wrap">
-          <div class="section-head reveal"><span class="kicker">From quote to settled</span><h2>How a job flows through 256.</h2></div>
-          <div class="flow">
-            <div class="node reveal"><div class="n">1</div><h3>Book</h3><p>A customer requests a quote and books a shipment from the client portal.</p></div>
-            <div class="node reveal"><div class="n">2</div><h3>Dispatch</h3><p>Operations allocates the right driver and roadworthy vehicle, and plans the route.</p></div>
-            <div class="node reveal"><div class="n">3</div><h3>Deliver</h3><p>The driver collects, navigates, and delivers with signature, OTP and photo proof.</p></div>
-            <div class="node reveal"><div class="n">4</div><h3>Settle</h3><p>The shipment is invoiced, paid, and its evidence is filed automatically.</p></div>
-          </div>
-        </div>
-      </section>
-
       <section>
         <div class="wrap">
           <div class="grid two">
@@ -781,25 +748,6 @@
       </section>
     <% } %>
 
-    <% if (currentPage !== 'contact') { %>
-    <section>
-      <div class="wrap">
-        <div class="credit-band">
-          <div class="credit-card reveal">
-            <img class="credit-seal" src="/img/ecadel-mark.svg" alt="ECADEL Group emblem">
-            <div>
-              <div class="credit-eyebrow"><span class="ln"></span>Developed &amp; managed by</div>
-              <div class="credit-name">ECADEL GROUP LIMITED</div>
-              <p class="credit-tag">The soul architects behind FLEETS.HQ — we design, engineer and run the platform end to end.</p>
-            </div>
-            <a class="credit-cta" href="https://ecadelgroup.com" target="_blank" rel="noopener">ecadelgroup.com
-              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5h5v5m0-5L10 14M19 13v6a1 1 0 01-1 1H6a1 1 0 01-1-1V7a1 1 0 011-1h6"/></svg>
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-    <% } %>
   </main>
 
   <footer class="footer">
