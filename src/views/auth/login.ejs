@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,19 +10,36 @@
   <link rel="apple-touch-icon" href="/img/favicon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    // Pre-paint theme bootstrap — shares the public-site preference
+    // (publicTheme/public-theme) with /welcome, /contact and /track,
+    // so returning visitors don't see a flash of the wrong theme.
+    (function () {
+      var stored = localStorage.getItem('public-theme');
+      var cookie = document.cookie.match(/(?:^|; )publicTheme=([^;]+)/);
+      var preferred = stored || (cookie && cookie[1]) || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.setAttribute('data-theme', preferred);
+    }());
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0a0a0c; --panel: rgba(22,22,27,.72); --panel-2: rgba(255,255,255,.04);
+      --bg: #0a0a0c; --bg-2: #0e0e11; --panel: rgba(22,22,27,.72); --panel-2: rgba(255,255,255,.04);
       --line: rgba(255,255,255,.1); --line-2: rgba(255,255,255,.18);
       --text: #f3f4f6; --heading: #fff; --muted: #a3a7b0; --soft: #71757e;
       --red: #e11d2a; --red-deep: #a60f1a; --gold: #f5b301; --green: #10b981;
+    }
+    [data-theme="light"] {
+      --bg: #f6f6f4; --bg-2: #eeeeec; --panel: rgba(255,255,255,.9); --panel-2: rgba(10,10,12,.035);
+      --line: rgba(10,10,12,.1); --line-2: rgba(10,10,12,.16);
+      --text: #26262c; --heading: #0a0a0c; --muted: #55575f; --soft: #74767d;
     }
     html { font-size: 16px; }
     body {
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh; min-height: 100dvh; background: var(--bg); color: var(--text);
       display: flex; -webkit-font-smoothing: antialiased; overflow-x: hidden;
+      transition: background .2s ease, color .2s ease;
     }
     a { text-decoration: none; color: inherit; }
 
@@ -35,10 +52,12 @@
       -webkit-mask-image: radial-gradient(ellipse 70% 60% at 30% 20%, #000 30%, transparent 100%);
               mask-image: radial-gradient(ellipse 70% 60% at 30% 20%, #000 30%, transparent 100%);
     }
+    [data-theme="light"] .bg .grid { opacity: .5; }
     .orb { position: absolute; border-radius: 50%; filter: blur(90px); }
     .orb.a { width: 540px; height: 540px; top: -180px; left: -120px; background: radial-gradient(circle, rgba(225,29,42,.4), transparent 68%); }
     .orb.b { width: 420px; height: 420px; bottom: -160px; left: 22%; background: radial-gradient(circle, rgba(245,179,1,.22), transparent 65%); }
     .orb.c { width: 460px; height: 460px; top: 30%; right: -160px; background: radial-gradient(circle, rgba(225,29,42,.2), transparent 66%); }
+    [data-theme="light"] .orb { opacity: .5; }
     .netmap { position: absolute; top: 8%; left: 4%; width: 420px; max-width: 42vw; opacity: .5; }
     .netmap .node { fill: var(--gold); animation: pulse 3.4s ease-in-out infinite; }
     .netmap .node.hot { fill: var(--red); }
@@ -49,7 +68,7 @@
     /* Brand mark (FLEETS.HQ logo) */
     .mark { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; }
     .mark img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 8px 18px rgba(37,99,235,.45)); }
-    .wordmark { font-weight: 900; color: #fff; font-size: 17px; letter-spacing: -.3px; line-height: 1; }
+    .wordmark { font-weight: 900; color: var(--heading); font-size: 17px; letter-spacing: -.3px; line-height: 1; }
     .wordmark b { color: var(--red); }
     .wordmark small { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--soft); margin-top: 4px; }
 
@@ -61,8 +80,9 @@
     .brand-photo { position: absolute; inset: 0; z-index: -1; background: url('/img/road-skyline.jpeg') center right / cover no-repeat; opacity: .16;
       -webkit-mask-image: linear-gradient(100deg, transparent 0%, transparent 28%, #000 68%, #000 100%);
               mask-image: linear-gradient(100deg, transparent 0%, transparent 28%, #000 68%, #000 100%); }
+    [data-theme="light"] .brand-photo { opacity: .22; }
     .brand-lockup { display: inline-flex; align-items: center; gap: 12px; }
-    .brand-head h1 { font-size: clamp(34px, 4.4vw, 56px); font-weight: 900; line-height: 1.02; letter-spacing: -.035em; color: #fff; }
+    .brand-head h1 { font-size: clamp(34px, 4.4vw, 56px); font-weight: 900; line-height: 1.02; letter-spacing: -.035em; color: var(--heading); }
     .brand-head h1 .accent { color: var(--red); }
     .brand-head p { margin-top: 16px; max-width: 440px; color: var(--muted); font-size: 16px; line-height: 1.6; }
     .pillars { display: flex; flex-wrap: wrap; gap: 9px; }
@@ -70,19 +90,28 @@
     .pchip svg { width: 15px; height: 15px; color: var(--gold); }
     .pchip.hot svg { color: var(--red); }
     .stats { display: flex; gap: 30px; padding-top: 22px; border-top: 1px solid var(--line); }
-    .stat .n { font-size: 26px; font-weight: 900; color: #fff; letter-spacing: -.02em; line-height: 1; }
+    .stat .n { font-size: 26px; font-weight: 900; color: var(--heading); letter-spacing: -.02em; line-height: 1; }
     .stat .l { font-size: 12px; color: var(--soft); margin-top: 5px; }
     .powered { font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
     .powered b { color: var(--red); }
 
     /* Form side */
     .form-side { position: relative; display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .controls-overlay { position: absolute; top: 22px; right: 24px; z-index: 5; display: flex; align-items: center; gap: 8px; }
+    .ctrl-btn {
+      display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex-shrink: 0;
+      border-radius: 50%; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--muted);
+      cursor: pointer; font-size: 16px; line-height: 1; transition: color .15s, border-color .15s, transform .15s;
+    }
+    .ctrl-btn:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-1px); }
+    .ctrl-btn svg { width: 17px; height: 17px; }
     .card {
       position: relative; width: 100%; max-width: 380px; padding: 34px 32px 28px;
-      background: linear-gradient(180deg, rgba(28,28,34,.86), rgba(16,16,20,.92));
+      background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 82%, #fff 4%), var(--bg-2));
       border: 1px solid var(--line-2); border-radius: 20px; backdrop-filter: blur(18px);
-      box-shadow: 0 30px 80px rgba(0,0,0,.55);
+      box-shadow: 0 30px 80px rgba(0,0,0,.35);
     }
+    [data-theme="dark"] .card { box-shadow: 0 30px 80px rgba(0,0,0,.55); }
     .card::before { content: ""; position: absolute; top: 0; left: 22px; right: 22px; height: 2px; border-radius: 999px;
       background: linear-gradient(90deg, transparent, var(--red), var(--gold), transparent); }
     .back-home { position: absolute; top: -34px; left: 2px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); transition: color .15s; }
@@ -91,11 +120,12 @@
 
     .card-logo { display: none; align-items: center; gap: 11px; margin-bottom: 20px; }
     .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold); }
-    .card h2 { margin-top: 8px; font-size: 26px; font-weight: 800; letter-spacing: -.5px; color: #fff; }
+    .card h2 { margin-top: 8px; font-size: 26px; font-weight: 800; letter-spacing: -.5px; color: var(--heading); }
     .card .sub { margin-top: 5px; font-size: 14px; color: var(--muted); margin-bottom: 22px; }
 
     .error-box { display: flex; align-items: center; gap: 9px; background: rgba(225,29,42,.1); border: 1px solid rgba(225,29,42,.4);
       color: #fca5a5; border-radius: 10px; padding: 11px 13px; font-size: 13px; font-weight: 500; margin-bottom: 18px; }
+    [data-theme="light"] .error-box { color: #b91c1c; }
     .error-box svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .group { margin-bottom: 16px; }
@@ -103,11 +133,11 @@
     .iwrap { position: relative; }
     .iwrap > .ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 17px; height: 17px; color: var(--soft); pointer-events: none; }
     .inp {
-      width: 100%; padding: 13px 14px 13px 40px; font-size: 16px; font-family: inherit; color: #fff;
-      background: rgba(255,255,255,.04); border: 1.5px solid var(--line-2); border-radius: 11px; transition: border-color .15s, box-shadow .15s, background .15s;
+      width: 100%; padding: 13px 14px 13px 40px; font-size: 16px; font-family: inherit; color: var(--text);
+      background: var(--panel-2); border: 1.5px solid var(--line-2); border-radius: 11px; transition: border-color .15s, box-shadow .15s, background .15s;
     }
     .inp::placeholder { color: var(--soft); }
-    .inp:focus { outline: none; border-color: var(--gold); background: rgba(255,255,255,.06); box-shadow: 0 0 0 3px rgba(245,179,1,.18); }
+    .inp:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,179,1,.18); }
     .inp.has-toggle { padding-right: 44px; }
     .toggle-pw { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: grid; place-items: center;
       background: transparent; border: 0; cursor: pointer; color: var(--soft); border-radius: 8px; }
@@ -196,6 +226,12 @@
 
     <!-- Form side -->
     <section class="form-side">
+      <div class="controls-overlay">
+        <button type="button" class="ctrl-btn" id="themeToggle" aria-label="Toggle theme">
+          <svg id="toggleIconDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg id="toggleIconLight" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.02 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+      </div>
       <div class="card">
         <a class="back-home" href="/welcome">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
@@ -255,6 +291,25 @@
   </main>
 
   <script>
+    (function () {
+      var root = document.documentElement;
+      var themeToggle = document.getElementById('themeToggle');
+      var iconDark = document.getElementById('toggleIconDark');
+      var iconLight = document.getElementById('toggleIconLight');
+      function reflectTheme(theme) {
+        var isLight = theme === 'light';
+        iconDark.style.display = isLight ? 'none' : '';
+        iconLight.style.display = isLight ? '' : 'none';
+      }
+      reflectTheme(root.getAttribute('data-theme'));
+      themeToggle.addEventListener('click', function () {
+        var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        localStorage.setItem('public-theme', next);
+        document.cookie = 'publicTheme=' + next + '; Path=/; Max-Age=31536000; SameSite=Lax';
+        reflectTheme(next);
+      });
+    }());
     (function () {
       var form = document.getElementById('loginForm');
       var btn = document.getElementById('submitBtn');
