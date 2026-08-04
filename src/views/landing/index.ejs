@@ -39,6 +39,11 @@
       var cookie = document.cookie.match(/(?:^|; )publicTheme=([^;]+)/);
       var preferred = stored || (cookie && cookie[1]) || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+
+      var storedLang = localStorage.getItem('public-lang');
+      var langCookie = document.cookie.match(/(?:^|; )publicLang=([^;]+)/);
+      var lang = storedLang || (langCookie && langCookie[1]);
+      if (lang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
     }());
   </script>
   <style>
@@ -437,6 +442,12 @@
       *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
       .reveal { opacity: 1; transform: none; }
     }
+
+    /* RTL (Arabic): grid/flex ordering mirrors automatically via the
+       browser's writing-direction handling; only hand-positioned (left/
+       right absolute) elements need explicit flipping. */
+    [dir="rtl"] .lang-menu { right: auto; left: 0; }
+    [dir="rtl"] .ribbon { right: auto; left: -5%; }
   </style>
 </head>
 <body class="loading">
@@ -472,7 +483,9 @@
             <button type="button" role="menuitem" data-lang-option="en" title="English">🇬🇧</button>
             <button type="button" role="menuitem" data-lang-option="fr" title="Français">🇫🇷</button>
             <button type="button" role="menuitem" data-lang-option="es" title="Español">🇪🇸</button>
-            <button type="button" role="menuitem" data-lang-option="pt" title="Português">🇵🇹</button>
+            <button type="button" role="menuitem" data-lang-option="zh" title="中文">🇨🇳</button>
+            <button type="button" role="menuitem" data-lang-option="ar" title="العربية">🇸🇦</button>
+            <button type="button" role="menuitem" data-lang-option="ro" title="Română">🇷🇴</button>
           </div>
         </div>
         <button class="ctrl-btn" type="button" id="themeToggle" data-i18n="aria.toggleTheme" data-i18n-attr="aria-label" aria-label="Toggle theme">
