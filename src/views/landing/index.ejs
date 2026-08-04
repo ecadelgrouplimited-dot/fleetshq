@@ -3,15 +3,11 @@
   const selectedType = typeof enquiryType !== 'undefined' ? enquiryType : 'general';
   const form = typeof formData !== 'undefined' ? formData : {};
   const nav = [
-    ['Services', '/services', 'services', 'nav.services'],
-    ['About', '/about', 'about', 'nav.about'],
     ['Track', '/track', 'track', 'nav.track'],
     ['Contact', '/contact', 'contact', 'nav.contact'],
   ];
   const pageTitles = {
     home: ['One Platform. Total Control.', 'The operating system for transport companies. Drivers, vehicles, compliance, tachographs and maintenance — one connected platform that keeps every mile accountable.'],
-    services: ['Transport services with compliance built in.', 'From same-day couriers to palletised freight, the same operating spine keeps work visible from first enquiry to signed-off delivery.'],
-    about: ['A logistics platform built for proof.', '256 Logistics connects daily transport work to the evidence that protects your operator licence, your sponsorship, and your business.'],
     contact: ['Talk to the transport team.', 'Send a quote request, partnership enquiry, or service question — it lands straight in the operations hub.'],
     track: ['Track a shipment.', 'Check a reference for live status, ETA and milestone history — no account needed.'],
   };
@@ -335,7 +331,7 @@
 
     /* Footer */
     .footer { padding: 54px 0 36px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--bg-2) 60%, transparent); margin-top: 30px; }
-    .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 28px; }
+    .footer-grid { display: grid; grid-template-columns: 1.4fr repeat(2, 1fr); gap: 28px; }
     .footer a, .footer p { color: var(--muted); }
     .footer a:hover { color: var(--heading); }
     .footer h4 { margin: 0 0 12px; color: var(--heading); font-size: 14px; }
@@ -621,57 +617,8 @@
       <section>
         <div class="wrap">
           <div class="grid two">
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div><h3 data-i18n="card.shippers.title">For shippers</h3><p data-i18n="card.shippers.desc">Request a quote, book a collection, track a parcel and download proof of delivery — without needing an account to get started.</p><a class="more" href="/services" data-i18n="card.shippers.link">See services →</a></article>
+            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg></div><h3 data-i18n="card.shippers.title">For shippers</h3><p data-i18n="card.shippers.desc">Request a quote, book a collection, track a parcel and download proof of delivery — without needing an account to get started.</p><a class="more" href="/contact?type=quote" data-i18n="card.shippers.link">Get a quote →</a></article>
             <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m4-4h2m6 0h2M9 9h2m4 0h2M9 13h2m4 0h2"/></svg></div><h3 data-i18n="card.operators.title">For operators</h3><p data-i18n="card.operators.desc">Run dispatch, fleet, people, finance and compliance from one tenant-aware platform — with role-based panels for every team.</p><a class="more" href="/login" data-i18n="card.operators.link">Enter the platform →</a></article>
-          </div>
-        </div>
-      </section>
-    <% } %>
-
-    <% if (currentPage === 'services') { %>
-      <section class="band">
-        <div class="wrap">
-          <div class="section-head reveal"><span class="kicker" data-i18n="services.kicker">Service catalogue</span><h2 data-i18n="services.title">Pick the lane that fits the load.</h2><p data-i18n="services.sub">Clear service lanes today, with deeper booking and fulfilment as the platform expands.</p></div>
-          <div class="grid three">
-            <% [
-              ['Same-day delivery','Urgent','Time-sensitive collections and deliveries with direct operational oversight and live tracking.','service.sameDay'],
-              ['Next-day delivery','Planned','Reliable business-to-business movement across regular lanes with confirmed windows.','service.nextDay'],
-              ['Economy freight','Value','Cost-conscious consignments planned around efficient capacity and shared routes.','service.economy'],
-              ['Pallet & freight','Freight','Commercial loads, palletised freight and larger consignment handling.','service.pallet'],
-              ['Courier work','Light','Smaller urgent movements with clear contact and delivery expectations.','service.courier'],
-              ['Returns & contracts','Recurring','Reverse logistics, recurring routes and contract transport patterns.','service.returns'],
-            ].forEach(([name, tag, body, key]) => { %>
-              <article class="card lift service-card reveal">
-                <div class="service-top"><h3 data-i18n-html="<%= key %>.name"><%= name %></h3><span class="tag" data-i18n="<%= key %>.tag"><%= tag %></span></div>
-                <p data-i18n="<%= key %>.desc"><%= body %></p>
-                <a class="more" href="/contact?type=quote" data-i18n="service.requestCta">Request this service →</a>
-              </article>
-            <% }) %>
-          </div>
-        </div>
-      </section>
-      <section>
-        <div class="wrap"><div class="cta-band reveal"><h2 data-i18n="cta.notSure.title">Not sure which service you need?</h2><p data-i18n="cta.notSure.sub">Tell us what you're moving and where — we'll recommend the right lane and price it up.</p><div class="hero-actions"><a class="cta" href="/contact?type=quote" data-i18n="cta.getQuote">Get a quote</a><a class="cta secondary" href="/track" data-i18n="cta.trackShipment">Track a shipment</a></div></div></div>
-      </section>
-    <% } %>
-
-    <% if (currentPage === 'about') { %>
-      <section class="band">
-        <div class="wrap split">
-          <div class="section-head reveal" style="margin:0"><span class="kicker" data-i18n-html="about.mission.kicker">Mission &amp; vision</span><h2 data-i18n="about.mission.title">Logistics you can prove.</h2><p data-i18n="about.mission.sub">Our mission is to make transport operations reliable, auditable and easier to run — by connecting daily logistics work to the evidence that protects the business.</p></div>
-          <div class="grid two" style="grid-template-columns:1fr">
-            <article class="card reveal"><h3 data-i18n="about.mission.cardTitle">Mission</h3><p data-i18n="about.mission.cardDesc">Give UK operators one system to run the whole operation, where every shipment, driver, vehicle and document is connected — never scattered across tools.</p></article>
-            <article class="card reveal"><h3 data-i18n="about.vision.cardTitle">Vision</h3><p data-i18n="about.vision.cardDesc">A logistics platform where compliance isn't paperwork chased after the fact, but evidence produced automatically by the work itself.</p></article>
-          </div>
-        </div>
-      </section>
-      <section>
-        <div class="wrap">
-          <div class="section-head center reveal"><span class="kicker" data-i18n="about.standFor.kicker">What we stand for</span><h2 data-i18n="about.standFor.title">Built for accountability.</h2></div>
-          <div class="grid three">
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div><h3 data-i18n="about.value.accountable.title">Accountable</h3><p data-i18n="about.value.accountable.desc">Every enquiry, shipment and record belongs to a tenant and can be followed end to end.</p></article>
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div><h3 data-i18n="about.value.compliant.title">Compliant</h3><p data-i18n="about.value.compliant.desc">Designed around operator-licence obligations, document trails and reviewable records.</p></article>
-            <article class="card lift reveal"><div class="card-ic"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div><h3 data-i18n="about.value.responsive.title">Responsive</h3><p data-i18n="about.value.responsive.desc">Clients get a clear, fast route to request work and reach the team — without friction.</p></article>
           </div>
         </div>
       </section>
@@ -791,9 +738,8 @@
           <a href="/welcome" class="brand" data-i18n="aria.brandHome" data-i18n-attr="aria-label" aria-label="FLEETS.HQ home"><span class="brand-mark"><img src="/img/logo-fleetshq-icon.png" alt=""></span><span>FLEETS<b>.HQ</b><small data-i18n="brand.tagline">The operating system for transport companies</small></span></a>
           <p style="margin-top:16px" data-i18n="footer.tagline">The operating system for transport companies — drivers, vehicles, compliance, tachographs and maintenance in one connected platform.</p>
         </div>
-        <div><h4 data-i18n="footer.platformHeading">Platform</h4><div class="footer-links"><a href="/services" data-i18n="footer.services">Services</a><a href="/track" data-i18n="footer.track">Track a shipment</a><a href="/contact?type=quote" data-i18n="nav.getQuote">Get a quote</a><a href="/register" data-i18n="form.registerLink">Register your company</a><a href="/login" data-i18n="nav.signIn">Sign in</a></div></div>
-        <div><h4 data-i18n="footer.companyHeading">Company</h4><div class="footer-links"><a href="/about" data-i18n="footer.aboutUs">About us</a><a href="/about" data-i18n-html="footer.missionVision">Mission &amp; vision</a><a href="/contact" data-i18n="footer.contact">Contact</a></div></div>
-        <div><h4 data-i18n="footer.legalHeading">Legal</h4><div class="footer-links"><a href="/privacy" data-i18n="footer.privacy">Privacy</a><a href="/contact?type=partnership" data-i18n="footer.partnerships">Partnerships</a><a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL Group</a></div></div>
+        <div><h4 data-i18n="footer.platformHeading">Platform</h4><div class="footer-links"><a href="/track" data-i18n="footer.track">Track a shipment</a><a href="/contact?type=quote" data-i18n="nav.getQuote">Get a quote</a><a href="/register" data-i18n="form.registerLink">Register your company</a><a href="/login" data-i18n="nav.signIn">Sign in</a></div></div>
+        <div><h4 data-i18n="footer.legalHeading">Legal</h4><div class="footer-links"><a href="/contact" data-i18n="footer.contact">Contact</a><a href="/privacy" data-i18n="footer.privacy">Privacy</a><a href="/contact?type=partnership" data-i18n="footer.partnerships">Partnerships</a><a href="https://ecadelgroup.com" target="_blank" rel="noopener">ECADEL Group</a></div></div>
       </div>
       <div class="foot-bottom">
         <span>© <%= new Date().getFullYear() %> 256 Logistics Ltd · <span data-i18n="footer.ukOps">UK logistics operations</span></span>

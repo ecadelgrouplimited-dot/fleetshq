@@ -861,15 +861,16 @@ const renderPublicPage = (page, title, extra = {}) => (req, res) => {
 
 // Homepage: a single-screen brand + sign-in splash (not the multi-section
 // marketing template the other public pages share) — matches the client's
-// approved design. /about, /services, /contact, /track keep the full
-// marketing layout and stay reachable via this page's footer.
+// approved design. /contact and /track keep the full marketing layout and
+// stay reachable via this page's footer.
 router.get('/welcome', (req, res) => {
   const token = req.cookies?.token;
   if (token && verify(token)) return res.redirect('/');
   res.render('landing/welcome', { title: 'FLEETS.HQ — One Platform. Total Control.', error: null });
 });
-router.get('/about', renderPublicPage('about', 'About — FLEETS.HQ by 256 Logistics'));
-router.get('/services', renderPublicPage('services', 'Services — FLEETS.HQ by 256 Logistics'));
+// Retired pages — redirect stale bookmarks/links to the homepage.
+router.get('/about', (req, res) => res.redirect(301, '/welcome'));
+router.get('/services', (req, res) => res.redirect(301, '/welcome'));
 router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
 
 router.get('/contact', (req, res) => {

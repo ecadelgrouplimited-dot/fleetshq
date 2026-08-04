@@ -19,13 +19,16 @@ describe('public site', () => {
 
   it.each([
     ['/welcome', 'operating system for transport companies'],
-    ['/about', 'built for proof'],
-    ['/services', 'Service catalogue'],
     ['/contact', 'Send an enquiry'],
     ['/track', 'Track a shipment'],
   ])('renders %s', async (path, expectedText) => {
     const res = await request(app).get(path).expect(200);
     expect(res.text).toContain(expectedText);
+  });
+
+  it.each(['/about', '/services'])('redirects retired page %s to /welcome', async (path) => {
+    const res = await request(app).get(path).expect(301);
+    expect(res.headers.location).toBe('/welcome');
   });
 
   it('renders public tracking for a supplied reference', async () => {
