@@ -10,14 +10,20 @@
   <link rel="icon" type="image/png" sizes="64x64" href="/img/favicon-64.png">
   <link rel="apple-touch-icon" href="/img/favicon-180.png">
   <script>
-    // Pre-paint theme bootstrap — shares the public-site preference
-    // (publicTheme/public-theme) with /welcome, /contact and /track,
-    // so returning visitors don't see a flash of the wrong theme.
+    // Pre-paint theme + direction bootstrap — shares the public-site
+    // preference (publicTheme/public-theme, publicLang/public-lang) with
+    // /welcome, /contact and /track, avoiding a flash of the wrong theme
+    // or text direction for returning visitors.
     (function () {
       var stored = localStorage.getItem('public-theme');
       var cookie = document.cookie.match(/(?:^|; )publicTheme=([^;]+)/);
       var preferred = stored || (cookie && cookie[1]) || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
       document.documentElement.setAttribute('data-theme', preferred);
+
+      var storedLang = localStorage.getItem('public-lang');
+      var langCookie = document.cookie.match(/(?:^|; )publicLang=([^;]+)/);
+      var lang = storedLang || (langCookie && langCookie[1]);
+      if (lang === 'ar') document.documentElement.setAttribute('dir', 'rtl');
     }());
   </script>
   <style>
@@ -69,6 +75,20 @@
     }
     .ctrl-btn:hover { color: var(--gold); border-color: var(--gold); transform: translateY(-1px); }
     .ctrl-btn svg { width: 16px; height: 16px; }
+    .lang-switch { position: relative; }
+    .lang-menu {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 10; display: none; flex-direction: column; gap: 2px;
+      padding: 6px; min-width: 46px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--bg-2);
+      box-shadow: 0 16px 34px rgba(0,0,0,.35);
+    }
+    .lang-menu.is-open { display: flex; }
+    .lang-menu button {
+      display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; border: 0;
+      background: transparent; cursor: pointer; font-size: 19px; line-height: 1; transition: background .15s;
+    }
+    .lang-menu button:hover { background: var(--panel-2); }
+    .lang-menu button.is-active { box-shadow: inset 0 0 0 1.5px var(--gold); }
+    [dir="rtl"] .lang-menu { right: auto; left: 0; }
 
     /* Stepper */
     .steps { display: flex; align-items: center; gap: 8px; margin-bottom: 26px; }
@@ -164,22 +184,35 @@
         <span class="wordmark">FLEETS<b>.</b>HQ<small>One platform. Total control.</small></span>
       </a>
       <div class="top-right">
-        <button type="button" class="ctrl-btn" id="themeToggle" aria-label="Toggle theme">
+        <div class="lang-switch">
+          <button type="button" class="ctrl-btn" id="langToggle" aria-haspopup="true" aria-expanded="false" data-i18n="aria.toggleLanguage" data-i18n-attr="aria-label" aria-label="Change language">
+            <span data-lang-current>🇬🇧</span>
+          </button>
+          <div class="lang-menu" id="langMenu" role="menu">
+            <button type="button" role="menuitem" data-lang-option="en" title="English">🇬🇧</button>
+            <button type="button" role="menuitem" data-lang-option="fr" title="Français">🇫🇷</button>
+            <button type="button" role="menuitem" data-lang-option="es" title="Español">🇪🇸</button>
+            <button type="button" role="menuitem" data-lang-option="zh" title="中文">🇨🇳</button>
+            <button type="button" role="menuitem" data-lang-option="ar" title="العربية">🇸🇦</button>
+            <button type="button" role="menuitem" data-lang-option="ro" title="Română">🇷🇴</button>
+          </div>
+        </div>
+        <button type="button" class="ctrl-btn" id="themeToggle" data-i18n="aria.toggleTheme" data-i18n-attr="aria-label" aria-label="Toggle theme">
           <svg id="toggleIconDark" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
           <svg id="toggleIconLight" style="display:none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.36 6.36l-.7-.7M6.34 6.34l-.7-.7m12.02 0l-.7.7M6.34 17.66l-.7.7M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         </button>
-        <a class="signin-link" href="/login">Already registered? <b>Sign in</b></a>
+        <a class="signin-link" href="/login"><span data-i18n="register.alreadyRegistered">Already registered?</span> <b data-i18n="nav.signIn">Sign in</b></a>
       </div>
     </div>
 
     <%
       const stepIndex = { details: 1, verify: 2, plan: 3, done: 4 }[step] || 1;
-      const stepDefs = [[1, 'Company'], [2, 'Verify'], [3, 'Tier'], [4, 'Done']];
+      const stepDefs = [[1, 'register.step.company', 'Company'], [2, 'register.step.verify', 'Verify'], [3, 'register.step.tier', 'Tier'], [4, 'register.step.done', 'Done']];
     %>
     <div class="steps" aria-label="Registration progress">
-      <% stepDefs.forEach(([n, label], i) => { %>
+      <% stepDefs.forEach(([n, key, label], i) => { %>
         <span class="stepdot <%= n === stepIndex ? 'on' : '' %> <%= n < stepIndex ? 'done' : '' %>">
-          <span class="n"><%= n < stepIndex ? '✓' : n %></span><span class="label"><%= label %></span>
+          <span class="n"><%= n < stepIndex ? '✓' : n %></span><span class="label" data-i18n="<%= key %>"><%= label %></span>
         </span>
         <% if (i < stepDefs.length - 1) { %><span class="bar"></span><% } %>
       <% }) %>
@@ -200,127 +233,132 @@
       <% } %>
 
       <% if (step === 'details') { %>
-        <span class="eyebrow">Get started</span>
-        <h1>Register your company</h1>
-        <p class="sub">Tell us about your operation. We'll verify your email, you pick a tier, and our team activates your private FLEETS.HQ environment.</p>
+        <span class="eyebrow" data-i18n="register.eyebrow">Get started</span>
+        <h1 data-i18n="register.title">Register your company</h1>
+        <p class="sub" data-i18n="register.subtitle">Tell us about your operation. We'll verify your email, you pick a tier, and our team activates your private FLEETS.HQ environment.</p>
         <form method="POST" action="/register" novalidate>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="grid2">
             <div class="group">
-              <label for="companyName">Company name</label>
+              <label for="companyName" data-i18n="register.field.companyName">Company name</label>
               <input class="inp" id="companyName" name="companyName" required maxlength="120" placeholder="Acme Haulage Ltd" value="<%= form.companyName || '' %>" autofocus>
             </div>
             <div class="group">
-              <label for="companyRegNo">Company registration number <span class="opt">(optional)</span></label>
+              <label for="companyRegNo"><span data-i18n="register.field.companyRegNo">Company registration number</span> <span class="opt" data-i18n="register.field.optional">(optional)</span></label>
               <input class="inp" id="companyRegNo" name="companyRegNo" maxlength="12" placeholder="e.g. 01234567" value="<%= form.companyRegNo || '' %>">
-              <p class="hint">Your Companies House number — helps us verify your business faster.</p>
+              <p class="hint" data-i18n="register.field.companyRegNoHint">Your Companies House number — helps us verify your business faster.</p>
             </div>
             <div class="group">
-              <label for="contactName">Your full name</label>
+              <label for="contactName" data-i18n="register.field.contactName">Your full name</label>
               <input class="inp" id="contactName" name="contactName" required maxlength="80" placeholder="Sam Taylor" value="<%= form.contactName || '' %>">
             </div>
             <div class="group">
-              <label for="contactEmail">Work email</label>
+              <label for="contactEmail" data-i18n="register.field.contactEmail">Work email</label>
               <input class="inp" id="contactEmail" name="contactEmail" type="email" required maxlength="120" placeholder="you@company.com" value="<%= form.contactEmail || '' %>">
-              <p class="hint">We'll send a 6-digit verification code here. This becomes your admin sign-in.</p>
+              <p class="hint" data-i18n="register.field.contactEmailHint">We'll send a 6-digit verification code here. This becomes your admin sign-in.</p>
             </div>
             <div class="group">
-              <label for="contactPhone">Phone <span class="opt">(optional)</span></label>
+              <label for="contactPhone"><span data-i18n="register.field.contactPhone">Phone</span> <span class="opt" data-i18n="register.field.optional">(optional)</span></label>
               <input class="inp" id="contactPhone" name="contactPhone" maxlength="20" placeholder="07700 900123" value="<%= form.contactPhone || '' %>">
             </div>
             <div class="group">
-              <label for="fleetSize">Fleet size</label>
+              <label for="fleetSize" data-i18n="register.field.fleetSize">Fleet size</label>
               <select class="inp" id="fleetSize" name="fleetSize" required>
-                <option value="" <%= !form.fleetSize ? 'selected' : '' %> disabled>Select…</option>
+                <option value="" <%= !form.fleetSize ? 'selected' : '' %> disabled data-i18n="register.field.fleetSizeSelect">Select…</option>
                 <% fleetBands.forEach((band) => { %>
                   <option value="<%= band %>" <%= form.fleetSize === band ? 'selected' : '' %>><%= band %> vehicles</option>
                 <% }) %>
               </select>
             </div>
             <div class="group">
-              <label for="region">Operational region <span class="opt">(optional)</span></label>
+              <label for="region"><span data-i18n="register.field.region">Operational region</span> <span class="opt" data-i18n="register.field.optional">(optional)</span></label>
               <input class="inp" id="region" name="region" maxlength="80" placeholder="e.g. West Midlands / UK-wide" value="<%= form.region || '' %>">
             </div>
           </div>
-          <button class="btn" type="submit">Continue — verify email</button>
+          <button class="btn" type="submit" data-i18n="register.step1.submit">Continue — verify email</button>
         </form>
         <div class="trust">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-          No card required to register. Annual licensing is confirmed before activation.
+          <span data-i18n="register.step1.trust">No card required to register. Annual licensing is confirmed before activation.</span>
         </div>
 
       <% } else if (step === 'verify') { %>
-        <span class="eyebrow">Step 2 of 4</span>
-        <h1>Check your inbox</h1>
-        <p class="sub">We've emailed a 6-digit code to <strong style="color:var(--text);"><%= maskedEmail %></strong> from <strong style="color:var(--gold);">alerts@fleetshq.com</strong>. It's valid for 15 minutes.</p>
+        <span class="eyebrow" data-i18n="register.step2.eyebrow">Step 2 of 4</span>
+        <h1 data-i18n="register.step2.title">Check your inbox</h1>
+        <p class="sub" id="verifySub" data-email="<%= maskedEmail %>">We've emailed a 6-digit code to <strong style="color:var(--text);"><%= maskedEmail %></strong> from <strong style="color:var(--gold);">alerts@fleetshq.com</strong>. It's valid for 15 minutes.</p>
         <form method="POST" action="/register/verify" novalidate>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="rid" value="<%= request.id %>">
           <div class="group">
-            <label for="code">Verification code</label>
+            <label for="code" data-i18n="register.field.code">Verification code</label>
             <input class="inp code-inp" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="••••••" required autofocus>
           </div>
-          <button class="btn" type="submit">Verify email</button>
+          <button class="btn" type="submit" data-i18n="register.step2.submit">Verify email</button>
         </form>
         <form method="POST" action="/register/resend" style="text-align:center;">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="rid" value="<%= request.id %>">
-          <button class="btn-ghost" type="submit">Didn't get it? Check spam, or resend the code</button>
+          <button class="btn-ghost" type="submit" data-i18n="register.step2.resend">Didn't get it? Check spam, or resend the code</button>
         </form>
 
       <% } else if (step === 'plan') { %>
-        <span class="eyebrow">Step 3 of 4 — email verified ✓</span>
-        <h1>Choose your tier</h1>
-        <p class="sub">Tiers are based on fleet scale, on an annual licence. Based on your fleet size (<strong style="color:var(--text);"><%= request.fleetSize %> vehicles</strong>) we've suggested a tier — you can pick any.</p>
+        <span class="eyebrow" id="planEyebrow">Step 3 of 4 — email verified ✓</span>
+        <h1 data-i18n="register.step3.title">Choose your tier</h1>
+        <p class="sub" id="planSub" data-fleet-size="<%= request.fleetSize %>">Tiers are based on fleet scale, on an annual licence. Based on your fleet size (<strong style="color:var(--text);"><%= request.fleetSize %> vehicles</strong>) we've suggested a tier — you can pick any.</p>
         <form method="POST" action="/register/plan" novalidate>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="rid" value="<%= request.id %>">
           <div class="plans">
             <% plans.forEach((p) => { %>
               <label class="plan">
-                <% if (p.key === suggestedPlan) { %><span class="suggested">Suggested</span><% } %>
+                <% if (p.key === suggestedPlan) { %><span class="suggested" data-i18n="register.plan.suggested">Suggested</span><% } %>
                 <input type="radio" name="plan" value="<%= p.key %>" <%= p.key === suggestedPlan ? 'checked' : '' %>>
                 <span class="tick" aria-hidden="true"></span>
                 <div class="pname"><%= p.label %></div>
                 <div class="pfleet"><%= p.fleetLabel %></div>
                 <div class="pblurb"><%= p.blurb %></div>
                 <ul><% p.features.forEach((f) => { %><li><%= f %></li><% }) %></ul>
-                <div class="pprice"><%= formatPrice(p.priceAnnualPence) ? formatPrice(p.priceAnnualPence) + ' / year' : 'Custom pricing — agreed before activation' %></div>
+                <% if (formatPrice(p.priceAnnualPence)) { %>
+                  <div class="pprice"><%= formatPrice(p.priceAnnualPence) %> <span data-i18n="register.plan.priceSuffix">/ year</span></div>
+                <% } else { %>
+                  <div class="pprice" data-i18n="register.plan.priceCustom">Custom pricing — agreed before activation</div>
+                <% } %>
               </label>
             <% }) %>
           </div>
-          <button class="btn" type="submit">Complete registration</button>
+          <button class="btn" type="submit" data-i18n="register.step3.submit">Complete registration</button>
         </form>
 
       <% } else { %>
         <div class="done-icon" aria-hidden="true">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
-        <span class="eyebrow"><%= paid ? 'Payment received' : 'Registration complete' %></span>
-        <h1><%= paid ? 'Welcome aboard' : "You're in the queue" %>, <%= (request.contactName || '').split(' ')[0] %></h1>
+        <span class="eyebrow" data-i18n="<%= paid ? 'register.step4.paidEyebrow' : 'register.step4.pendingEyebrow' %>"><%= paid ? 'Payment received' : 'Registration complete' %></span>
+        <h1 id="doneTitle" data-first-name="<%= (request.contactName || '').split(' ')[0] %>" data-paid="<%= paid ? '1' : '0' %>"><%= paid ? 'Welcome aboard' : "You're in the queue" %>, <%= (request.contactName || '').split(' ')[0] %></h1>
         <% if (paid) { %>
-        <p class="sub">Payment for <strong style="color:var(--text);"><%= request.companyName %></strong> is confirmed. Your private FLEETS.HQ environment is being provisioned <strong style="color:var(--text);">right now</strong>.</p>
+        <p class="sub" id="doneSub" data-company="<%= request.companyName %>" data-paid="1">Payment for <strong style="color:var(--text);"><%= request.companyName %></strong> is confirmed. Your private FLEETS.HQ environment is being provisioned <strong style="color:var(--text);">right now</strong>.</p>
         <div class="next-steps">
-          <div><b class="num">1.</b><span><strong>Check your inbox</strong> — your sign-in credentials arrive within a few minutes.</span></div>
-          <div><b class="num">2.</b><span>Sign in and you'll be asked to <strong>set your own password</strong>.</span></div>
-          <div><b class="num">3.</b><span>Add your drivers, vehicles and team — you're licensed for <strong>12 months</strong>.</span></div>
+          <div><b class="num">1.</b><span data-i18n-html="register.step4.paid.step1"><strong>Check your inbox</strong> — your sign-in credentials arrive within a few minutes.</span></div>
+          <div><b class="num">2.</b><span data-i18n-html="register.step4.paid.step2">Sign in and you'll be asked to <strong>set your own password</strong>.</span></div>
+          <div><b class="num">3.</b><span data-i18n-html="register.step4.paid.step3">Add your drivers, vehicles and team — you're licensed for <strong>12 months</strong>.</span></div>
         </div>
         <% } else { %>
-        <p class="sub"><strong style="color:var(--text);"><%= request.companyName %></strong> is registered and your email is verified. We've sent a confirmation to your inbox.</p>
+        <p class="sub" id="doneSub" data-company="<%= request.companyName %>" data-paid="0"><strong style="color:var(--text);"><%= request.companyName %></strong> is registered and your email is verified. We've sent a confirmation to your inbox.</p>
         <div class="next-steps">
-          <div><b class="num">1.</b><span>Our team confirms your details and the <strong>annual licence payment</strong> for your tier.</span></div>
-          <div><b class="num">2.</b><span>Your <strong>private FLEETS.HQ environment</strong> is provisioned.</span></div>
-          <div><b class="num">3.</b><span>You receive <strong>sign-in credentials by email</strong> — usually within one business day.</span></div>
+          <div><b class="num">1.</b><span data-i18n-html="register.step4.pending.step1">Our team confirms your details and the <strong>annual licence payment</strong> for your tier.</span></div>
+          <div><b class="num">2.</b><span data-i18n-html="register.step4.pending.step2">Your <strong>private FLEETS.HQ environment</strong> is provisioned.</span></div>
+          <div><b class="num">3.</b><span data-i18n-html="register.step4.pending.step3">You receive <strong>sign-in credentials by email</strong> — usually within one business day.</span></div>
         </div>
         <% } %>
         <div class="trust">
           <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Questions in the meantime? Email <a href="mailto:alerts@fleetshq.com" style="color:var(--gold);font-weight:700;">alerts@fleetshq.com</a> or reply to your confirmation email.
+          <span data-i18n="register.step4.helpPrefix">Questions in the meantime? Email</span> <a href="mailto:alerts@fleetshq.com" style="color:var(--gold);font-weight:700;">alerts@fleetshq.com</a> <span data-i18n="register.step4.helpSuffix">or reply to your confirmation email.</span>
         </div>
       <% } %>
     </div>
   </div>
 
+  <script src="/js/i18n.js?v=<%= assetVersion %>"></script>
   <script>
     (function () {
       var root = document.documentElement;
@@ -340,6 +378,78 @@
         document.cookie = 'publicTheme=' + next + '; Path=/; Max-Age=31536000; SameSite=Lax';
         reflectTheme(next);
       });
+
+      // Language switcher popover
+      var langToggle = document.getElementById('langToggle');
+      var langMenu = document.getElementById('langMenu');
+      function closeLangMenu() {
+        langMenu.classList.remove('is-open');
+        langToggle.setAttribute('aria-expanded', 'false');
+      }
+      langToggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var open = langMenu.classList.toggle('is-open');
+        langToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      document.addEventListener('click', function (e) {
+        if (!langMenu.contains(e.target) && e.target !== langToggle) closeLangMenu();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLangMenu(); });
+      langMenu.querySelectorAll('[data-lang-option]').forEach(function (btn) {
+        btn.addEventListener('click', closeLangMenu);
+      });
+
+      // Dynamic sentences containing server-rendered values (email, fleet
+      // size, name, company) use {{token}} placeholders in the dictionary
+      // and are re-interpolated on load and on every language change.
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+      }
+      function tpl(key, lang, vars) {
+        var str = (window.FleetI18n ? FleetI18n.t(key, lang) : '') || '';
+        Object.keys(vars).forEach(function (k) {
+          str = str.split('{{' + k + '}}').join(vars[k]);
+        });
+        return str;
+      }
+      function renderDynamic() {
+        var lang = (window.FleetI18n && FleetI18n.detectLang()) || 'en';
+
+        var verifySub = document.getElementById('verifySub');
+        if (verifySub) {
+          verifySub.innerHTML = tpl('register.step2.sub', lang, {
+            email: '<strong style="color:var(--text);">' + escapeHtml(verifySub.dataset.email) + '</strong>',
+          });
+        }
+
+        var planEyebrow = document.getElementById('planEyebrow');
+        if (planEyebrow && window.FleetI18n) {
+          planEyebrow.textContent = FleetI18n.t('register.step3.eyebrowPrefix', lang) + ' ✓';
+        }
+        var planSub = document.getElementById('planSub');
+        if (planSub) {
+          planSub.innerHTML = tpl('register.step3.sub', lang, {
+            fleetSize: '<strong style="color:var(--text);">' + escapeHtml(planSub.dataset.fleetSize) + '</strong>',
+          });
+        }
+
+        var doneTitle = document.getElementById('doneTitle');
+        if (doneTitle && window.FleetI18n) {
+          var key = doneTitle.dataset.paid === '1' ? 'register.step4.paidTitle' : 'register.step4.pendingTitle';
+          doneTitle.textContent = tpl(key, lang, { name: doneTitle.dataset.firstName || '' });
+        }
+        var doneSub = document.getElementById('doneSub');
+        if (doneSub) {
+          var subKey = doneSub.dataset.paid === '1' ? 'register.step4.paidSub' : 'register.step4.pendingSub';
+          doneSub.innerHTML = tpl(subKey, lang, {
+            company: '<strong style="color:var(--text);">' + escapeHtml(doneSub.dataset.company) + '</strong>',
+          });
+        }
+      }
+      renderDynamic();
+      document.addEventListener('fleetlang:change', renderDynamic);
     }());
   </script>
 </body>
