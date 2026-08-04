@@ -37,10 +37,10 @@ async function main() {
 
   const tenant = await prisma.tenant.upsert({
     where: { slug: 'default' },
-    update: { name: '256 Logistics', status: 'active' },
+    update: { name: 'FLEETS.HQ', status: 'active' },
     create: {
       id: DEFAULT_TENANT_ID,
-      name: '256 Logistics',
+      name: 'FLEETS.HQ',
       slug: 'default',
       plan: 'starter',
       status: 'active',
@@ -55,12 +55,12 @@ async function main() {
 
   const company = await prisma.company.upsert({
     where: { id: '00000000-0000-4000-8000-000000000101' },
-    update: { tenantId: tenant.id, name: '256 Logistics', legalName: '256 Logistics Ltd', timezone: 'Europe/London' },
+    update: { tenantId: tenant.id, name: 'FLEETS.HQ', legalName: 'FLEETS.HQ Ltd', timezone: 'Europe/London' },
     create: {
       id: '00000000-0000-4000-8000-000000000101',
       tenantId: tenant.id,
-      name: '256 Logistics',
-      legalName: '256 Logistics Ltd',
+      name: 'FLEETS.HQ',
+      legalName: 'FLEETS.HQ Ltd',
       timezone: 'Europe/London',
     },
   });

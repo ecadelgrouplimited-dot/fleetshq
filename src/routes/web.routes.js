@@ -876,7 +876,7 @@ router.get('/quote', (req, res) => res.redirect('/contact?type=quote'));
 router.get('/contact', (req, res) => {
   res.render('landing/index', {
     page: 'contact',
-    title: 'Contact — FLEETS.HQ by 256 Logistics',
+    title: 'Contact — FLEETS.HQ',
     leadSent: req.query.sent === '1',
     leadError: null,
     enquiryType: req.query.type || 'general',
@@ -894,7 +894,7 @@ router.post('/contact', loginLimiter, async (req, res) => {
   const message = (req.body.message || '').trim();
   const renderError = (leadError) => res.status(400).render('landing/index', {
     page: 'contact',
-    title: 'Contact — FLEETS.HQ by 256 Logistics',
+    title: 'Contact — FLEETS.HQ',
     leadSent: false,
     leadError,
     enquiryType,
@@ -2670,12 +2670,12 @@ const ensureCompanyProfile = async () => {
 
   return prisma.company.create({
     data: {
-      name: '256 Logistics',
-      legalName: '256 Logistics Ltd',
+      name: 'FLEETS.HQ',
+      legalName: 'FLEETS.HQ Ltd',
       timezone: 'Europe/London',
       branding: {
         accentColor: '#2f80ed',
-        publicName: '256 Logistics',
+        publicName: 'FLEETS.HQ',
       },
     },
   });
@@ -3084,14 +3084,14 @@ router.post('/super-admin/company', webAuth, adminWriteOnly, async (req, res) =>
   try {
     const existing = await prisma.company.findFirst({ orderBy: { createdAt: 'asc' } });
     const data = {
-      name: (req.body.name || '').trim() || '256 Logistics',
+      name: (req.body.name || '').trim() || 'FLEETS.HQ',
       legalName: (req.body.legalName || '').trim() || null,
       operatorLicenceNumber: (req.body.operatorLicenceNumber || '').trim() || null,
       registeredAddress: (req.body.registeredAddress || '').trim() || null,
       timezone: req.body.timezone || 'Europe/London',
       branding: {
         accentColor: req.body.accentColor || '#2f80ed',
-        publicName: req.body.publicName || req.body.name || '256 Logistics',
+        publicName: req.body.publicName || req.body.name || 'FLEETS.HQ',
       },
     };
     if (existing) await prisma.company.update({ where: { id: existing.id }, data });

@@ -57,7 +57,7 @@ const layout = ({ preheader = '', heading, bodyHtml, cta = null, footerNote = ''
         <tr><td style="background:${BRAND.panel};border:1px solid ${BRAND.line};border-top:1px solid ${BRAND.line};border-radius:0 0 14px 14px;padding:18px 32px;">
           ${footerNote ? `<p style="margin:0 0 8px;font-size:12px;line-height:1.6;color:${BRAND.muted};">${footerNote}</p>` : ''}
           <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:${BRAND.muted};">
-            FLEETS<span style="color:${BRAND.red};">.</span>HQ &mdash; formerly 256 Logistics
+            FLEETS<span style="color:${BRAND.red};">.</span>HQ
           </p>
         </td></tr>
       </table>

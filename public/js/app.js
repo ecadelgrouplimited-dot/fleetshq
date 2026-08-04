@@ -1,4 +1,4 @@
-/* ── 256 Logistics Compliance Hub — Client JS ────────────────────── */
+/* ── FLEETS.HQ — Client JS ────────────────────── */
 
 // ── CSRF: auto-attach the double-submit token to same-origin mutations ──
 function getCsrfToken() {
