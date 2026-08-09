@@ -1,0 +1,85 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Fleet manager</div>
+    <h1>AdBlue management</h1>
+    <p class="page-sub">Track AdBlue usage, cost, and top-consuming vehicles from live logs.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/fleet/fuel">Fuel overview</a></div>
+</div>
+
+<div class="stat-grid mb-6">
+  <div class="stat-card blue"><div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3s6 6.2 6 11a6 6 0 11-12 0c0-4.8 6-11 6-11z"/></svg></div><div><div class="stat-value">${totals.litres.toFixed(0)} L</div><div class="stat-label">AdBlue this month</div></div></div>
+  <div class="stat-card green"><div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-3.31 0-6 1.34-6 3s2.69 3 6 3 6-1.34 6-3-2.69-3-6-3zm-6 3v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4"/></svg></div><div><div class="stat-value">£${totals.spend.toFixed(2)}</div><div class="stat-label">Spend this month</div></div></div>
+  <div class="stat-card amber"><div class="stat-icon amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m-6 4h6m-4 4h4"/></svg></div><div><div class="stat-value">£${totals.ppl.toFixed(2)}</div><div class="stat-label">Avg per litre</div><div class="stat-sub">${totals.count} log${totals.count === 1 ? '' : 's'}</div></div></div>
+  <div class="stat-card slate"><div class="stat-icon slate"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/></svg></div><div><div class="stat-value">${topConsumers.length}</div><div class="stat-label">Vehicles consuming</div></div></div>
+</div>
+
+<div class="grid-2 mb-6">
+  <div class="card">
+    <div class="card-header"><h3>Monthly AdBlue usage</h3></div>
+    <div class="card-body" style="position:relative;height:220px"><canvas id="adBlueChart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Top consumers</h3></div>
+    ${topConsumers.length === 0 ? `<div class="empty-state"><p>No AdBlue logged this month</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th scope="col">Vehicle</th><th scope="col">Total</th></tr></thead>
+      <tbody>${topConsumers.map(c => `<tr><td style="font-weight:800">${esc(c.vehicle?.registration || 'Vehicle')}</td><td>${Number(c.total).toFixed(1)} L</td></tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>
+</div>
+
+<div class="grid-2">
+  ${canLog ? `
+  <div class="card">
+    <div class="card-header"><h3>Log AdBlue</h3></div>
+    <div class="card-body">
+      <form method="post" action="/fleet/adblue">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <div class="form-group"><label class="form-label">Vehicle <span class="required">*</span></label>
+          <select class="form-control" name="vehicleId" required><option value="">Choose vehicle...</option>${vehicles.map(v => `<option value="${esc(v.id)}">${esc(v.registration)} - ${esc(v.make)} ${esc(v.model)}</option>`).join('')}</select>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Date</label><input class="form-control" type="date" name="loggedDate"></div>
+          <div class="form-group"><label class="form-label">Odometer</label><input class="form-control" type="number" min="0" name="odometer"></div>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">Litres <span class="required">*</span></label><input class="form-control" type="number" min="0" step="0.01" name="litres" required></div>
+          <div class="form-group"><label class="form-label">Cost (£)</label><input class="form-control" type="number" min="0" step="0.01" name="cost"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-control" name="notes"></textarea></div>
+        <button class="btn btn-primary">Save AdBlue log</button>
+      </form>
+    </div>
+  </div>` : ''}
+
+  <div class="card" ${canLog ? '' : 'style="grid-column:1/-1"'}>
+    <div class="card-header"><h3>Recent AdBlue logs</h3></div>
+    ${logs.length === 0 ? `<div class="empty-state"><p>No AdBlue logs yet</p></div>` : `
+    <div class="table-wrap"><table>
+      <thead><tr><th scope="col">Date</th><th scope="col">Vehicle</th><th scope="col">Litres</th><th scope="col">Cost</th><th scope="col">Odometer</th></tr></thead>
+      <tbody>${logs.map(l => `<tr>
+        <td>${formatDate(l.loggedDate)}</td>
+        <td style="font-weight:700">${esc(vehMap[l.vehicleId]?.registration || 'Vehicle')}</td>
+        <td>${Number(l.litres).toFixed(1)} L</td>
+        <td>£${Number(l.cost).toFixed(2)}</td>
+        <td class="cell-muted">${l.odometer ? l.odometer.toLocaleString() : '-'}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`}
+  </div>
+</div>
+
+<script>
+(function() {
+  var data = ${JSON.stringify(chart)};
+  var el = document.getElementById('adBlueChart');
+  if (!el || !window.Chart) return;
+  new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: { labels: data.map(d => d.label), datasets: [{ label: 'Litres', data: data.map(d => d.total), backgroundColor: '#3b82f6', borderRadius: 5, maxBarThickness: 24 }] },
+    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } }, y: { beginAtZero: true } } }
+  });
+})();
+</script>
+` }) %>

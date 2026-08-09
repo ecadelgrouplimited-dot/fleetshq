@@ -8,8 +8,8 @@ describe('web session API access', () => {
   });
 
   it('allows a logged-in director cookie session to create a user', async () => {
-    const email = `session-test-${Date.now()}@256logisticsltd.com`;
-    const agent = await loginAgent(app, 'director@256logisticsltd.com');
+    const email = `session-test-${Date.now()}@fleetshq.local`;
+    const agent = await loginAgent(app, 'director@fleetshq.local');
 
     await agent
       .post('/api/v1/users')
@@ -33,9 +33,9 @@ describe('web session API access', () => {
   });
 
   it('allows a logged-in director cookie session to create and delete clean employee and vehicle records', async () => {
-    const employeeEmail = `employee-delete-${Date.now()}@256logisticsltd.com`;
+    const employeeEmail = `employee-delete-${Date.now()}@fleetshq.local`;
     const registration = `DL${String(Date.now()).slice(-4)}`;
-    const agent = await loginAgent(app, 'director@256logisticsltd.com');
+    const agent = await loginAgent(app, 'director@fleetshq.local');
 
     const employeeRes = await agent
       .post('/api/v1/employees')

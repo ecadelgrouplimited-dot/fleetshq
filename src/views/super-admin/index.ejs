@@ -19,6 +19,7 @@ ${!canWrite ? `<div class="alert alert-info mb-4">Director access is read-only. 
   <div class="admin-hero-meta">
     <span class="badge ${tenant?.status === 'active' ? 'badge-green' : tenant?.status === 'trial' ? 'badge-blue' : 'badge-red'}">${esc(tenant?.status || 'active')}</span>
     <span>${esc(tenant?.plan || 'starter')} plan</span>
+    ${isPlatformAdmin && canWrite ? '<a class="btn btn-outline btn-sm" href="/platform">Platform Tenants</a>' : ''}
   </div>
 </div>
 

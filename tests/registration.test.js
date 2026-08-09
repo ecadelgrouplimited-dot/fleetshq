@@ -12,7 +12,7 @@ describe('self-serve registration', () => {
   const stamp = Date.now();
   const companyName = `Reg Test Haulage ${stamp}`;
   const contactEmail = `reg-test-${stamp}@example-fleet.co`;
-  const adminEmail = `platform-admin-${stamp}@256logisticsltd.com`;
+  const adminEmail = `platform-admin-${stamp}@fleetshq.local`;
   let agent;
   let rid;
   let provisionedTenantId;

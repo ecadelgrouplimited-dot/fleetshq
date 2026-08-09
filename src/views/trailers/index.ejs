@@ -1,0 +1,76 @@
+<%- include('../layouts/main', { body: `
+<div class="page-head">
+  <div class="page-head-main">
+    <div class="page-eyebrow">Fleet manager</div>
+    <h1>Trailers</h1>
+    <p class="page-sub">Live trailer register with MOT, insurance and PMI compliance dates.</p>
+  </div>
+  <div class="page-head-actions"><a class="btn btn-outline" href="/fleet">Vehicles</a></div>
+</div>
+
+<div class="stat-grid mb-6">
+  ${[
+    ['Total trailers', kpis.total, 'slate'],
+    ['Active', kpis.active, 'green'],
+    ['VOR', kpis.vor, 'red'],
+    ['MOT due', kpis.motDue, kpis.motDue ? 'amber' : 'green'],
+    ['Insurance due', kpis.insuranceDue, kpis.insuranceDue ? 'amber' : 'green'],
+    ['PMI due', kpis.pmiDue, kpis.pmiDue ? 'amber' : 'green'],
+  ].map(([label, value, tone]) => `<div class="stat-card ${tone}"><div><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div></div>`).join('')}
+</div>
+
+<div class="card mb-6">
+  <div class="toolbar">
+    <form method="get" class="filter-form" style="width:100%">
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-control" name="status">
+          <option value="">All statuses</option>
+          ${statuses.map(s => `<option value="${s}" ${filters.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Due</label>
+        <select class="form-control" name="due">
+          <option value="">All dates</option>
+          ${[['mot','MOT due'],['insurance','Insurance due'],['pmi','PMI due']].map(([v,l]) => `<option value="${v}" ${filters.due === v ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </div>
+      <button class="btn btn-outline">Filter</button>
+    </form>
+  </div>
+</div>
+
+${canEdit ? `
+<div class="card mb-6">
+  <div class="card-header"><h3>Add / update trailer</h3></div>
+  <div class="card-body">
+    <form method="post" action="/trailers" class="form-grid-3">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <div class="form-group"><label class="form-label">Registration <span class="required">*</span></label><input class="form-control" name="registration" required></div>
+      <div class="form-group"><label class="form-label">Make</label><input class="form-control" name="make"></div>
+      <div class="form-group"><label class="form-label">Model</label><input class="form-control" name="model"></div>
+      <div class="form-group"><label class="form-label">Year</label><input class="form-control" type="number" name="year"></div>
+      <div class="form-group"><label class="form-label">MOT expiry</label><input class="form-control" type="date" name="motExpiryDate"></div>
+      <div class="form-group"><label class="form-label">Insurance expiry</label><input class="form-control" type="date" name="insuranceExpiryDate"></div>
+      <div class="form-group"><label class="form-label">Next PMI</label><input class="form-control" type="date" name="nextPmiDate"></div>
+      <div class="form-group"><label class="form-label">Status</label><select class="form-control" name="status">${statuses.map(s => `<option value="${s}">${s.replace(/_/g, ' ')}</option>`).join('')}</select></div>
+      <div class="form-group" style="align-self:end"><button class="btn btn-primary">Save trailer</button></div>
+    </form>
+  </div>
+</div>` : ''}
+
+<div class="card">
+  <div class="card-header"><h3>Trailer register</h3></div>
+  ${trailers.length === 0 ? `<div class="empty-state"><p>No trailers found</p></div>` : `
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">Registration</th><th scope="col">Make / Model</th><th scope="col">MOT</th><th scope="col">Insurance</th><th scope="col">PMI</th><th scope="col">Status</th></tr></thead>
+    <tbody>${trailers.map(t => `<tr>
+      <td style="font-weight:900">${esc(t.registration)}</td>
+      <td>${esc([t.make, t.model].filter(Boolean).join(' ') || '-')}</td>
+      <td>${expiryDate(t.motExpiryDate, { fmt: formatDate })}</td>
+      <td>${expiryDate(t.insuranceExpiryDate, { fmt: formatDate })}</td>
+      <td>${expiryDate(t.nextPmiDate, { fmt: formatDate, soonDays: 14 })}</td>
+      <td><span class="badge ${t.status === 'active' ? 'badge-green' : t.status === 'vor' ? 'badge-red' : 'badge-slate'}">${esc(t.status.replace(/_/g, ' '))}</span></td>
+    </tr>`).join('')}</tbody>
+  </table></div>`}
+</div>
+` }) %>

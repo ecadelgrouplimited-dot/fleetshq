@@ -6,7 +6,7 @@ const { getCsrf } = require('./helpers');
 const MAX = parseInt(process.env.MAX_LOGIN_ATTEMPTS, 10) || 5;
 
 describe('per-account login lockout', () => {
-  const email = `lockout-test-${Date.now()}@256logisticsltd.com`;
+  const email = `lockout-test-${Date.now()}@fleetshq.local`;
   let userId;
 
   beforeAll(async () => {

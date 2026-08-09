@@ -12,7 +12,7 @@ const prisma = new PrismaClient();
  *
  * Credentials are read from the environment so the password is never
  * committed to source control:
- *   ADMIN_EMAIL     (default: director@256logisticsltd.com)
+ *   ADMIN_EMAIL     (default: director@fleetshq.local)
  *   ADMIN_PASSWORD  (required — no default)
  *   ADMIN_FIRST     (default: System)
  *   ADMIN_LAST      (default: Administrator)
@@ -22,7 +22,7 @@ const prisma = new PrismaClient();
  * Re-running is safe (upsert) — it never wipes business data.
  */
 async function main() {
-  const email = (process.env.ADMIN_EMAIL || 'director@256logisticsltd.com').trim().toLowerCase();
+  const email = (process.env.ADMIN_EMAIL || 'director@fleetshq.local').trim().toLowerCase();
   const password = process.env.ADMIN_PASSWORD;
   const firstName = process.env.ADMIN_FIRST || 'System';
   const lastName = process.env.ADMIN_LAST || 'Administrator';

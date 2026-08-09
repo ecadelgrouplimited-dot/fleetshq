@@ -10,7 +10,7 @@ describe('web RBAC', () => {
 
   it('restricts driver web access to own workspace', async () => {
     const driverUser = await prisma.user.findUnique({
-      where: { email: 'driver1@256logisticsltd.com' },
+      where: { email: 'driver1@fleetshq.local' },
       include: { employee: true },
     });
     const anotherEmployee = await prisma.employee.findFirst({
@@ -18,7 +18,7 @@ describe('web RBAC', () => {
       select: { id: true },
     });
 
-    const agent = await loginAgent(app, 'driver1@256logisticsltd.com');
+    const agent = await loginAgent(app, 'driver1@fleetshq.local');
 
     const dashboard = await agent.get('/').expect(200);
     expect(dashboard.text).toContain('My Dashboard');
@@ -83,31 +83,31 @@ describe('web RBAC', () => {
   });
 
   it('keeps director access to admin web screens', async () => {
-    const agent = await loginAgent(app, 'director@256logisticsltd.com');
+    const agent = await loginAgent(app, 'director@fleetshq.local');
     await agent.get('/users').expect(200);
     await agent.get('/settings').expect(200);
     await agent.get('/migration').expect(200);
   });
 
   it('serves report detail pages with the same permissions as exports', async () => {
-    const directorAgent = await loginAgent(app, 'director@256logisticsltd.com');
+    const directorAgent = await loginAgent(app, 'director@fleetshq.local');
     await directorAgent.get('/reports/staff').expect(200);
     await directorAgent.get('/reports/fleet').expect(200);
 
-    const driverAgent = await loginAgent(app, 'driver1@256logisticsltd.com');
+    const driverAgent = await loginAgent(app, 'driver1@fleetshq.local');
     await driverAgent.get('/reports/staff').expect(403);
   });
 
   it('serves audit evidence folder workspaces with role limits', async () => {
-    const directorAgent = await loginAgent(app, 'director@256logisticsltd.com');
+    const directorAgent = await loginAgent(app, 'director@fleetshq.local');
     await directorAgent.get('/audit-evidence/home-office-sponsor-licence-audit').expect(200);
 
-    const driverAgent = await loginAgent(app, 'driver1@256logisticsltd.com');
+    const driverAgent = await loginAgent(app, 'driver1@fleetshq.local');
     await driverAgent.get('/audit-evidence/home-office-sponsor-licence-audit').expect(403);
   });
 
   it('serves shared document viewer routes for permitted users', async () => {
-    const agent = await loginAgent(app, 'director@256logisticsltd.com');
+    const agent = await loginAgent(app, 'director@fleetshq.local');
 
     const employeeDoc = await prisma.employeeDocument.findFirst({ select: { id: true } });
     if (employeeDoc) {
@@ -130,7 +130,7 @@ describe('web RBAC', () => {
 
   it('serves daily check detail pages with role limits', async () => {
     const driverUser = await prisma.user.findUnique({
-      where: { email: 'driver1@256logisticsltd.com' },
+      where: { email: 'driver1@fleetshq.local' },
       include: { employee: true },
     });
     const ownCheck = await prisma.walkAroundCheck.findFirst({
@@ -144,11 +144,11 @@ describe('web RBAC', () => {
       orderBy: { submittedAt: 'desc' },
     });
 
-    const driverAgent = await loginAgent(app, 'driver1@256logisticsltd.com');
+    const driverAgent = await loginAgent(app, 'driver1@fleetshq.local');
     if (ownCheck) await driverAgent.get(`/checks/${ownCheck.id}`).expect(200);
     if (otherCheck) await driverAgent.get(`/checks/${otherCheck.id}`).expect(403);
 
-    const directorAgent = await loginAgent(app, 'director@256logisticsltd.com');
+    const directorAgent = await loginAgent(app, 'director@fleetshq.local');
     if (otherCheck) await directorAgent.get(`/checks/${otherCheck.id}`).expect(200);
   });
 });

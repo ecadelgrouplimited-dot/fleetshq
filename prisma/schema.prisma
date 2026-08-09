@@ -1062,6 +1062,45 @@ model FuelLog {
   @@index([loggedDate])
 }
 
+model AdBlueLog {
+  id          String   @id @default(uuid())
+  tenantId    String   @default("00000000-0000-4000-8000-000000000001")
+  vehicleId   String
+  driverId    String?
+  loggedDate  DateTime @default(now())
+  litres      Decimal  @default(0) @db.Decimal(10, 2)
+  cost        Decimal  @default(0) @db.Decimal(10, 2)
+  odometer    Int?
+  notes       String?
+  createdById String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([vehicleId])
+  @@index([loggedDate])
+}
+
+model Trailer {
+  id                  String        @id @default(uuid())
+  tenantId            String        @default("00000000-0000-4000-8000-000000000001")
+  registration        String        @unique
+  make                String?
+  model               String?
+  year                Int?
+  motExpiryDate       DateTime?
+  insuranceExpiryDate DateTime?
+  nextPmiDate         DateTime?
+  status              VehicleStatus @default(active)
+  imageStorageKey     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([status])
+}
+
 // ─────────────────────────────────────────
 // PEOPLE & LEARNING (Phase 3) — scalar tenantId/employeeId, registered in database.js
 // ─────────────────────────────────────────
@@ -1088,6 +1127,19 @@ enum EnrolmentStatus {
   expired
 }
 
+enum RotaShiftStatus {
+  assigned
+  rest_day
+  relief_cover
+  on_site
+  office
+  work_from_home
+  standby
+  leave
+  sick
+  training
+}
+
 model LeaveRequest {
   id         String      @id @default(uuid())
   tenantId   String      @default("00000000-0000-4000-8000-000000000001")
@@ -1107,6 +1159,29 @@ model LeaveRequest {
 
   @@index([tenantId])
   @@index([employeeId])
+  @@index([status])
+}
+
+model EmployeeShift {
+  id          String          @id @default(uuid())
+  tenantId    String          @default("00000000-0000-4000-8000-000000000001")
+  employeeId  String
+  vehicleId   String?
+  status      RotaShiftStatus @default(assigned)
+  shiftDate   DateTime        @db.Date
+  startTime   String?
+  endTime     String?
+  routeLabel  String?
+  location    String?
+  notes       String?
+  createdById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([employeeId])
+  @@index([shiftDate])
   @@index([status])
 }
 

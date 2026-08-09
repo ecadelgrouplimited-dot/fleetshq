@@ -14,7 +14,7 @@ describe('CSRF protection', () => {
     await agent
       .post('/login')
       .type('form')
-      .send({ email: 'director@256logisticsltd.com', password: 'Demo2024!', _csrf: token })
+      .send({ email: 'director@fleetshq.local', password: 'Demo2024!', _csrf: token })
       .expect(302);
 
     // Same cookie session, but no CSRF header -> rejected

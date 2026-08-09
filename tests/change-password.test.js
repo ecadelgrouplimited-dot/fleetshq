@@ -4,7 +4,7 @@ const prisma = require('../src/config/database');
 const { getCsrf, loginAgent } = require('./helpers');
 
 describe('self-service password management', () => {
-  const email = `pw-test-${Date.now()}@256logisticsltd.com`;
+  const email = `pw-test-${Date.now()}@fleetshq.local`;
   let userId;
 
   beforeAll(async () => {
@@ -100,7 +100,7 @@ describe('self-service password management', () => {
       const res = await agent
         .post('/forgot-password')
         .type('form')
-        .send({ email: 'nobody@256logisticsltd.com', _csrf: token });
+        .send({ email: 'nobody@fleetshq.local', _csrf: token });
       const location = res.headers.location || '';
       expect(
         res.status === 302 ? location.includes('sent') : res.text.includes('Check your email')

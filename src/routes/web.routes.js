@@ -87,6 +87,7 @@ const peopleRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager
 const fleetRoles = ['super_admin', 'director', 'transport_manager', 'operations_manager', 'fleet_manager', 'garage'];
 const transportRoles = ['super_admin', 'director', 'transport_manager', 'fleet_manager'];
 const hrRoles = ['super_admin', 'director', 'hr_manager'];
+const rotaRoles = ['super_admin', 'director', 'transport_manager', 'operations_manager', 'hr_manager'];
 const evidenceRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'trainer'];
 const reportsRoles = ['super_admin', 'director', 'transport_manager', 'hr_manager', 'operations_manager', 'fleet_manager', 'finance_officer', 'trainer'];
 
@@ -1005,6 +1006,62 @@ const landingGate = (req, res, next) => {
 };
 
 // ── Dashboard ──────────────────────────────────────────
+const ROTA_STATUSES = ['assigned', 'rest_day', 'relief_cover', 'on_site', 'office', 'work_from_home', 'standby', 'leave', 'sick', 'training'];
+
+router.post('/rota', webAuth, requireRoles(...rotaRoles), async (req, res) => {
+  try {
+    const { employeeId, vehicleId, shiftDate, status, startTime, endTime, routeLabel, location, notes } = req.body;
+    if (!employeeId || !shiftDate) return res.redirect('/');
+    await prisma.employeeShift.create({
+      data: {
+        employeeId,
+        vehicleId: vehicleId || null,
+        shiftDate: new Date(shiftDate),
+        status: ROTA_STATUSES.includes(status) ? status : 'assigned',
+        startTime: startTime || null,
+        endTime: endTime || null,
+        routeLabel: routeLabel || null,
+        location: location || null,
+        notes: notes || null,
+        createdById: req.user.id,
+      },
+    });
+    return res.redirect('/?week=' + encodeURIComponent(shiftDate));
+  } catch (e) {
+    return res.render('error', { title: 'Rota update failed', message: e.message, code: 500 });
+  }
+});
+
+router.post('/rota/:id', webAuth, requireRoles(...rotaRoles), async (req, res) => {
+  try {
+    const { vehicleId, shiftDate, status, startTime, endTime, routeLabel, location, notes } = req.body;
+    const data = {
+      vehicleId: vehicleId || null,
+      status: ROTA_STATUSES.includes(status) ? status : 'assigned',
+      startTime: startTime || null,
+      endTime: endTime || null,
+      routeLabel: routeLabel || null,
+      location: location || null,
+      notes: notes || null,
+    };
+    if (shiftDate) data.shiftDate = new Date(shiftDate);
+    await prisma.employeeShift.update({ where: { id: req.params.id }, data });
+    return res.redirect('/?week=' + encodeURIComponent(shiftDate || new Date().toISOString().slice(0, 10)));
+  } catch (e) {
+    return res.render('error', { title: 'Rota update failed', message: e.message, code: 500 });
+  }
+});
+
+router.post('/rota/:id/delete', webAuth, requireRoles(...rotaRoles), async (req, res) => {
+  try {
+    const { week } = req.body;
+    await prisma.employeeShift.delete({ where: { id: req.params.id } });
+    return res.redirect('/?week=' + encodeURIComponent(week || new Date().toISOString().slice(0, 10)));
+  } catch (e) {
+    return res.render('error', { title: 'Rota delete failed', message: e.message, code: 500 });
+  }
+});
+
 router.get('/', landingGate, webAuth, async (req, res) => {
   try {
     if (req.user.role === 'driver') {
@@ -1198,7 +1255,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
     const pmiSoon = shiftDays(14);
     const dueTrainingWhere = { OR: [{ status: 'expired' }, { AND: [{ status: { not: 'completed' } }, { expiryDate: { lte: in30 } }] }] };
     const [motDue, insuranceDue, roadTaxDue, tachoDue, pmiDue, cpcDue, trainingDue, rtwDue,
-      driverCount, vehicleActions, driverActions, priorScore, trendScores] = await Promise.all([
+      driverCount, vehicleActions, driverActions, totalTrailers, trailerActions, priorScore, trendScores] = await Promise.all([
       prisma.vehicle.count({ where: { status: { not: 'sold' }, motExpiryDate: { lte: in30 } } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, insuranceExpiryDate: { lte: in30 } } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, roadTaxExpiryDate: { lte: in30 } } }),
@@ -1214,6 +1271,8 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true, OR: [
         { trainingRecords: { some: dueTrainingWhere } },
         { sponsoredWorker: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] } } ] } }),
+      prisma.trailer.count({ where: { status: { not: 'sold' } } }),
+      prisma.trailer.count({ where: { status: { not: 'sold' }, OR: [{ status: 'vor' }, { motExpiryDate: { lte: in30 } }, { insuranceExpiryDate: { lte: in30 } }, { nextPmiDate: { lte: pmiSoon } }] } }),
       prisma.complianceScore.findFirst({ where: { scoreDate: { lte: shiftDays(-25) } }, orderBy: { scoreDate: 'desc' } }),
       prisma.complianceScore.findMany({ where: { scoreDate: { gte: shiftDays(-185) } }, orderBy: { scoreDate: 'asc' }, select: { scoreDate: true, overallScore: true } }),
     ]);
@@ -1317,6 +1376,221 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       isOverdue: t.dueDate && new Date(t.dueDate) < new Date(),
     }));
 
+    const weekAnchor = req.query.week ? new Date(req.query.week) : new Date();
+    if (isNaN(weekAnchor.getTime())) weekAnchor.setTime(Date.now());
+    weekAnchor.setHours(0, 0, 0, 0);
+    const weekStart = new Date(weekAnchor);
+    weekStart.setDate(weekAnchor.getDate() - ((weekAnchor.getDay() + 6) % 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    const prevWeek = new Date(weekStart); prevWeek.setDate(prevWeek.getDate() - 7);
+    const nextWeek = new Date(weekStart); nextWeek.setDate(nextWeek.getDate() + 7);
+    const dateKey = (d) => new Date(d).toISOString().slice(0, 10);
+    const rotaFilters = {
+      employeeId: (req.query.employeeId || '').trim(),
+      role: (req.query.role || '').trim(),
+      location: (req.query.location || '').trim(),
+      shiftType: (req.query.shiftType || '').trim(),
+    };
+    const filterParams = new URLSearchParams();
+    Object.entries(rotaFilters).forEach(([key, value]) => { if (value) filterParams.set(key, value); });
+    const filterSuffix = filterParams.toString() ? `&${filterParams.toString()}` : '';
+    const weekDays = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + index);
+      return {
+        key: dateKey(date),
+        label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
+        shortDate: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+        isToday: date.toDateString() === today.toDateString(),
+      };
+    });
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    const [allRotaEmployees, rotaVehicles, shifts, approvedLeave, rotaJobs,
+      monthFuelLogs, prevMonthFuelLogs, monthAdBlueLogs, prevMonthAdBlueLogs, incomeMonth, expenseMonth, incomePrevMonth, expensePrevMonth, expenseByCat] = await Promise.all([
+      prisma.employee.findMany({
+        where: { employmentStatus: 'active', isDriver: true },
+        select: { id: true, fullName: true, jobTitle: true, workLocation: true, photoStorageKey: true },
+        orderBy: { fullName: 'asc' },
+        take: 100,
+      }),
+      prisma.vehicle.findMany({
+        where: { status: { not: 'sold' } },
+        select: { id: true, registration: true, imageStorageKey: true },
+        orderBy: { registration: 'asc' },
+      }),
+      prisma.employeeShift.findMany({
+        where: { shiftDate: { gte: weekStart, lt: weekEnd } },
+        orderBy: [{ shiftDate: 'asc' }, { startTime: 'asc' }],
+      }),
+      prisma.leaveRequest.findMany({
+        where: { status: 'approved', startDate: { lt: weekEnd }, endDate: { gte: weekStart } },
+      }),
+      prisma.job.findMany({
+        where: {
+          driverId: { not: null },
+          shipment: { collectionDate: { gte: weekStart, lt: weekEnd } },
+        },
+        include: { shipment: { select: { serviceName: true, collectionDate: true, pickupPostcode: true, deliveryPostcode: true } } },
+      }),
+      prisma.fuelLog.findMany({ where: { loggedDate: { gte: monthStart, lt: monthEnd } }, orderBy: { loggedDate: 'asc' } }),
+      prisma.fuelLog.findMany({ where: { loggedDate: { gte: prevMonthStart, lt: monthStart } }, select: { litres: true, cost: true, vehicleId: true, loggedDate: true } }),
+      prisma.adBlueLog.findMany({ where: { loggedDate: { gte: monthStart, lt: monthEnd } }, orderBy: { loggedDate: 'asc' } }),
+      prisma.adBlueLog.findMany({ where: { loggedDate: { gte: prevMonthStart, lt: monthStart } }, select: { litres: true, vehicleId: true, loggedDate: true } }),
+      prisma.invoice.aggregate({ where: { createdAt: { gte: monthStart, lt: monthEnd } }, _sum: { total: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: monthStart, lt: monthEnd } }, _sum: { amount: true } }),
+      prisma.invoice.aggregate({ where: { createdAt: { gte: prevMonthStart, lt: monthStart } }, _sum: { total: true } }),
+      prisma.expense.aggregate({ where: { expenseDate: { gte: prevMonthStart, lt: monthStart } }, _sum: { amount: true } }),
+      prisma.expense.groupBy({ by: ['category'], where: { expenseDate: { gte: monthStart, lt: monthEnd } }, _sum: { amount: true } }),
+    ]);
+
+    const rotaRolesAvailable = [...new Set(allRotaEmployees.map((e) => e.jobTitle).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const rotaLocationsAvailable = [...new Set(allRotaEmployees.map((e) => e.workLocation).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    const rotaEmployees = allRotaEmployees
+      .filter((employee) => !rotaFilters.employeeId || employee.id === rotaFilters.employeeId)
+      .filter((employee) => !rotaFilters.role || employee.jobTitle === rotaFilters.role)
+      .filter((employee) => !rotaFilters.location || employee.workLocation === rotaFilters.location)
+      .slice(0, 8);
+    const vehicleMap = Object.fromEntries(rotaVehicles.map((v) => [v.id, v]));
+    const shiftByEmployeeDay = {};
+    shifts.forEach((shift) => {
+      const key = `${shift.employeeId}:${dateKey(shift.shiftDate)}`;
+      if (!shiftByEmployeeDay[key]) shiftByEmployeeDay[key] = shift;
+    });
+    const jobsByEmployeeDay = {};
+    rotaJobs.forEach((job) => {
+      if (!job.driverId || !job.shipment?.collectionDate) return;
+      const key = `${job.driverId}:${dateKey(job.shipment.collectionDate)}`;
+      if (!jobsByEmployeeDay[key]) jobsByEmployeeDay[key] = job;
+    });
+    const leaveFor = (employeeId, day) => approvedLeave.find((leave) => leave.employeeId === employeeId
+      && new Date(leave.startDate) <= new Date(day)
+      && new Date(leave.endDate) >= new Date(day));
+    const rotaRows = rotaEmployees.map((employee) => ({
+      employee,
+      cells: weekDays.map((day) => {
+        const shift = shiftByEmployeeDay[`${employee.id}:${day.key}`];
+        if (shift) {
+          const vehicle = vehicleMap[shift.vehicleId];
+          return {
+            id: shift.id,
+            source: 'shift',
+            tone: shift.status,
+            title: shift.status.replace(/_/g, ' '),
+            time: shift.startTime && shift.endTime ? `${shift.startTime} - ${shift.endTime}` : '',
+            detail: shift.routeLabel || shift.location || vehicle?.registration || shift.notes || '',
+            shiftDate: dateKey(shift.shiftDate),
+            startTime: shift.startTime || '',
+            endTime: shift.endTime || '',
+            status: shift.status,
+            vehicleId: shift.vehicleId || '',
+            routeLabel: shift.routeLabel || '',
+            location: shift.location || '',
+            notes: shift.notes || '',
+          };
+        }
+        const leave = leaveFor(employee.id, day.key);
+        if (leave) return { source: 'leave', tone: leave.type === 'sick' ? 'sick' : 'leave', title: leave.type.replace(/_/g, ' '), time: '', detail: 'Approved leave' };
+        const job = jobsByEmployeeDay[`${employee.id}:${day.key}`];
+        if (job) {
+          return {
+            source: 'job',
+            tone: 'assigned',
+            title: job.shipment.serviceName || 'Assigned',
+            time: 'Job allocated',
+            detail: [job.shipment.pickupPostcode, job.shipment.deliveryPostcode].filter(Boolean).join(' -> '),
+          };
+        }
+        const dayDate = new Date(day.key);
+        return dayDate.getDay() === 0 || dayDate.getDay() === 6
+          ? { source: 'system', tone: 'rest_day', title: 'Rest Day', time: '', detail: '' }
+          : { source: 'system', tone: 'standby', title: 'Standby', time: '', detail: '' };
+      }),
+    })).filter((row) => !rotaFilters.shiftType || row.cells.some((cell) => cell.source === 'shift' && cell.tone === rotaFilters.shiftType));
+
+    const fuelLitres = monthFuelLogs.reduce((sum, log) => sum + Number(log.litres), 0);
+    const prevFuelLitres = prevMonthFuelLogs.reduce((sum, log) => sum + Number(log.litres), 0);
+    const fuelDaily = {};
+    monthFuelLogs.forEach((log) => {
+      const day = new Date(log.loggedDate).getDate();
+      fuelDaily[day] = (fuelDaily[day] || 0) + Number(log.litres);
+    });
+    const fuelBars = Array.from({ length: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() }, (_, index) => fuelDaily[index + 1] || 0);
+    const topFuelConsumers = Object.entries(monthFuelLogs.reduce((acc, log) => {
+      acc[log.vehicleId] = (acc[log.vehicleId] || 0) + Number(log.litres);
+      return acc;
+    }, {})).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([vehicleId, litres]) => ({
+      label: vehicleMap[vehicleId]?.registration || 'Vehicle',
+      value: litres,
+    }));
+    const adBlueLitres = monthAdBlueLogs.reduce((sum, log) => sum + Number(log.litres), 0);
+    const prevAdBlueLitres = prevMonthAdBlueLogs.reduce((sum, log) => sum + Number(log.litres), 0);
+    const adBlueDaily = {};
+    monthAdBlueLogs.forEach((log) => {
+      const day = new Date(log.loggedDate).getDate();
+      adBlueDaily[day] = (adBlueDaily[day] || 0) + Number(log.litres);
+    });
+    const adBlueBars = Array.from({ length: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() }, (_, index) => adBlueDaily[index + 1] || 0);
+    const topAdBlueConsumers = Object.entries(monthAdBlueLogs.reduce((acc, log) => {
+      acc[log.vehicleId] = (acc[log.vehicleId] || 0) + Number(log.litres);
+      return acc;
+    }, {})).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([vehicleId, litres]) => ({
+      label: vehicleMap[vehicleId]?.registration || 'Vehicle',
+      value: litres,
+    }));
+    const income = Number(incomeMonth._sum.total || 0);
+    const expenses = Number(expenseMonth._sum.amount || 0);
+    const prevIncome = Number(incomePrevMonth._sum.total || 0);
+    const prevExpenses = Number(expensePrevMonth._sum.amount || 0);
+    const financeSlices = expenseByCat.map((item) => ({ label: item.category, value: Number(item._sum.amount || 0) }));
+    const fleetAvailable = activeVehicles;
+    const fleetAvailabilityPct = totalVehicles > 0 ? Math.round((fleetAvailable / totalVehicles) * 100) : 0;
+    const dashboardOps = {
+      week: {
+        label: `${weekDays[0].shortDate} - ${weekDays[6].shortDate}`,
+        prevHref: `/?week=${dateKey(prevWeek)}${filterSuffix}`,
+        nextHref: `/?week=${dateKey(nextWeek)}${filterSuffix}`,
+        todayHref: `/?week=${dateKey(today)}${filterSuffix}`,
+        days: weekDays,
+        key: dateKey(weekStart),
+      },
+      rotaRows,
+      rotaOptions: { employees: allRotaEmployees, vehicles: rotaVehicles, statuses: ROTA_STATUSES, roles: rotaRolesAvailable, locations: rotaLocationsAvailable },
+      rotaFilters,
+      canManageRota: hasRole(req.user, rotaRoles),
+      fuel: {
+        litres: fuelLitres,
+        deltaPct: prevFuelLitres > 0 ? Math.round(((fuelLitres - prevFuelLitres) / prevFuelLitres) * 100) : null,
+        bars: fuelBars,
+        topConsumers: topFuelConsumers,
+      },
+      adBlue: {
+        litres: adBlueLitres,
+        deltaPct: prevAdBlueLitres > 0 ? Math.round(((adBlueLitres - prevAdBlueLitres) / prevAdBlueLitres) * 100) : null,
+        bars: adBlueBars,
+        topConsumers: topAdBlueConsumers,
+        available: true,
+      },
+      finance: {
+        income,
+        expenses,
+        profit: income - expenses,
+        deltaPct: (prevIncome - prevExpenses) !== 0 ? Math.round((((income - expenses) - (prevIncome - prevExpenses)) / Math.abs(prevIncome - prevExpenses)) * 100) : null,
+        slices: financeSlices,
+      },
+      fleet: {
+        total: totalVehicles,
+        available: fleetAvailable,
+        inUse: Math.max(activeVehicles - vorVehicles, 0),
+        inWorkshop: vorVehicles,
+        outOfService: Math.max(totalVehicles - activeVehicles - vorVehicles, 0),
+        pct: fleetAvailabilityPct,
+      },
+    };
+
     // First-run experience: a "getting started" checklist until the tenant
     // has the basics in place (new environments land on an empty dashboard).
     let setup = null;
@@ -1346,12 +1620,12 @@ router.get('/', landingGate, webAuth, async (req, res) => {
     res.render('dashboard/index', {
       title: 'Dashboard',
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
-        driverCount, driverActions, vehicleActions },
+        driverCount, driverActions, vehicleActions, totalTrailers, trailerActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
       complianceTiles, complianceTrend, scoreDelta, upcomingTasks,
       alerts, alertGroups, recentDefects, chartData, healthCards,
-      platformQueue, setup,
+      dashboardOps, platformQueue, setup,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
@@ -1725,6 +1999,115 @@ router.post('/fleet/fuel', webAuth, requireRoles(...fleetMgrRoles), async (req, 
 });
 
 // ── Add Vehicle (must be before /fleet/:id) ───────────────
+router.get('/fleet/adblue', webAuth, requireRoles(...fleetRoles), async (req, res) => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const [logs, monthLogs, vehicles] = await Promise.all([
+      prisma.adBlueLog.findMany({ orderBy: { loggedDate: 'desc' }, take: 100 }),
+      prisma.adBlueLog.findMany({ where: { loggedDate: { gte: monthStart, lt: monthEnd } }, orderBy: { loggedDate: 'asc' } }),
+      prisma.vehicle.findMany({ where: { status: { not: 'sold' } }, select: { id: true, registration: true, make: true, model: true }, orderBy: { registration: 'asc' } }),
+    ]);
+    const vehMap = Object.fromEntries(vehicles.map((v) => [v.id, v]));
+    const litres = monthLogs.reduce((sum, log) => sum + Number(log.litres), 0);
+    const spend = monthLogs.reduce((sum, log) => sum + Number(log.cost), 0);
+    const daily = {};
+    monthLogs.forEach((log) => {
+      const day = new Date(log.loggedDate).getDate();
+      daily[day] = (daily[day] || 0) + Number(log.litres);
+    });
+    const chart = Array.from({ length: new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() }, (_, index) => {
+      const d = new Date(now.getFullYear(), now.getMonth(), index + 1);
+      return { label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), total: daily[index + 1] || 0 };
+    });
+    const topConsumers = Object.entries(monthLogs.reduce((acc, log) => {
+      acc[log.vehicleId] = (acc[log.vehicleId] || 0) + Number(log.litres);
+      return acc;
+    }, {})).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([vehicleId, total]) => ({ vehicle: vehMap[vehicleId], total }));
+    res.render('fleet/adblue', {
+      title: 'AdBlue Management', logs, vehicles, vehMap, chart, topConsumers,
+      totals: { litres, spend, ppl: litres ? spend / litres : 0, count: monthLogs.length },
+      canLog: hasRole(req.user, fleetMgrRoles), formatDate, path: '/fleet/adblue',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/fleet/adblue', webAuth, requireRoles(...fleetMgrRoles), async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.vehicleId) return res.redirect('/fleet/adblue');
+    await prisma.adBlueLog.create({
+      data: {
+        vehicleId: b.vehicleId,
+        driverId: b.driverId || null,
+        loggedDate: b.loggedDate ? new Date(b.loggedDate) : new Date(),
+        litres: parseFloat(b.litres) || 0,
+        cost: parseFloat(b.cost) || 0,
+        odometer: b.odometer ? parseInt(b.odometer, 10) : null,
+        notes: b.notes || null,
+        createdById: req.user.id,
+      },
+    });
+    res.redirect('/fleet/adblue');
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.get('/trailers', webAuth, requireRoles(...fleetRoles), async (req, res) => {
+  try {
+    const { status = '', due = '' } = req.query;
+    const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+    const pmiSoon = new Date(); pmiSoon.setDate(pmiSoon.getDate() + 14);
+    const where = {};
+    if (status) where.status = status;
+    if (due === 'mot') where.motExpiryDate = { lte: in30 };
+    if (due === 'insurance') where.insuranceExpiryDate = { lte: in30 };
+    if (due === 'pmi') where.nextPmiDate = { lte: pmiSoon };
+    const [trailers, total, active, vor, motDue, insuranceDue, pmiDue] = await Promise.all([
+      prisma.trailer.findMany({ where, orderBy: { registration: 'asc' }, take: 200 }),
+      prisma.trailer.count(),
+      prisma.trailer.count({ where: { status: 'active' } }),
+      prisma.trailer.count({ where: { status: 'vor' } }),
+      prisma.trailer.count({ where: { motExpiryDate: { lte: in30 } } }),
+      prisma.trailer.count({ where: { insuranceExpiryDate: { lte: in30 } } }),
+      prisma.trailer.count({ where: { nextPmiDate: { lte: pmiSoon } } }),
+    ]);
+    res.render('trailers/index', {
+      title: 'Trailers', trailers, filters: { status, due },
+      kpis: { total, active, vor, motDue, insuranceDue, pmiDue },
+      statuses: ['active', 'vor', 'hired', 'awaiting_repair', 'sold'],
+      canEdit: hasRole(req.user, transportRoles),
+      formatDate, path: '/trailers',
+    });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+router.post('/trailers', webAuth, requireRoles(...transportRoles), async (req, res) => {
+  try {
+    const b = req.body;
+    if (!b.registration) return res.redirect('/trailers');
+    await prisma.trailer.upsert({
+      where: { registration: b.registration.trim().toUpperCase() },
+      update: {
+        make: b.make || null, model: b.model || null, year: b.year ? parseInt(b.year, 10) : null,
+        motExpiryDate: b.motExpiryDate ? new Date(b.motExpiryDate) : null,
+        insuranceExpiryDate: b.insuranceExpiryDate ? new Date(b.insuranceExpiryDate) : null,
+        nextPmiDate: b.nextPmiDate ? new Date(b.nextPmiDate) : null,
+        status: b.status || 'active',
+      },
+      create: {
+        registration: b.registration.trim().toUpperCase(),
+        make: b.make || null, model: b.model || null, year: b.year ? parseInt(b.year, 10) : null,
+        motExpiryDate: b.motExpiryDate ? new Date(b.motExpiryDate) : null,
+        insuranceExpiryDate: b.insuranceExpiryDate ? new Date(b.insuranceExpiryDate) : null,
+        nextPmiDate: b.nextPmiDate ? new Date(b.nextPmiDate) : null,
+        status: b.status || 'active',
+      },
+    });
+    res.redirect('/trailers');
+  } catch (e) { res.render('error', { title: 'Trailer save failed', message: e.message, code: 500 }); }
+});
+
 router.get('/fleet/new', webAuth, requireRoles(...transportRoles), async (req, res) => {
   try {
     const drivers = await prisma.employee.findMany({

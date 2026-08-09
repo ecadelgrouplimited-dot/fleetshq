@@ -1,343 +1,378 @@
-<%
-  // Compliance Overview tile icons (Phase B)
-  const tileIcons = {
-    mot: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
-    pmi: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
-    insurance: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-    roadtax: 'M9 12h6m-6 4h6M7 4h10a2 2 0 012 2v14l-4-2-3 2-3-2-4 2V6a2 2 0 012-2z',
-    tacho: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-    cpc: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
-    rtw: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-    training: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
-  };
-%>
 <%- include('../layouts/main', { body: `
-<div class="dash">
-
+<div class="fhq-dashboard">
   ${typeof platformQueue !== 'undefined' && platformQueue ? `
-  <!-- ── Platform: self-serve registrations awaiting action ── -->
-  <a href="/platform" class="card mb-4" style="display:flex;align-items:center;gap:14px;padding:14px 18px;text-decoration:none;border-left:4px solid var(--warning)">
-    <span style="width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb, var(--warning) 14%, transparent);flex-shrink:0">
-      <svg fill="none" viewBox="0 0 24 24" stroke="var(--warning)" style="width:19px;height:19px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-    </span>
-    <span style="flex:1;min-width:0">
-      <span style="display:block;font-weight:800;font-size:14px">${platformQueue.pendingActivation > 0 ? `${platformQueue.pendingActivation} business${platformQueue.pendingActivation === 1 ? '' : 'es'} awaiting activation` : 'New registrations in progress'}</span>
-      <span style="display:block;font-size:12px;color:var(--text-muted);margin-top:2px">${platformQueue.pendingActivation > 0 ? 'Verified and waiting for the FLEETS.HQ team — confirm payment, then activate.' : ''}${platformQueue.inFlight > 0 ? ` ${platformQueue.inFlight} more still completing registration.` : ''}</span>
-    </span>
-    <span class="btn btn-primary btn-sm" style="flex-shrink:0">Review queue →</span>
+  <a href="/platform" class="fhq-banner">
+    <span class="fhq-banner-icon">!</span>
+    <span><strong>${platformQueue.pendingActivation} awaiting activation</strong>${platformQueue.inFlight > 0 ? ` · ${platformQueue.inFlight} registrations in progress` : ''}</span>
+    <span>Review queue -></span>
   </a>` : ''}
 
   ${typeof setup !== 'undefined' && setup ? `
-  <!-- ── First-run setup checklist ── -->
-  <div class="card mb-4" style="overflow:hidden">
-    <div style="padding:18px 22px 14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="flex:1;min-width:220px">
-        <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--primary)">Welcome to FLEETS.HQ</div>
-        <div style="font-size:17px;font-weight:800;margin-top:3px">Let's get your fleet set up</div>
-        <div class="text-sm text-muted" style="margin-top:2px">Your compliance score becomes meaningful once your people and vehicles are in.</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:22px;font-weight:900;line-height:1">${setup.doneCount}<span style="color:var(--text-muted);font-size:14px;font-weight:700">/${setup.steps.length}</span></div>
-        <div class="text-sm text-muted">steps done</div>
-      </div>
+  <div class="fhq-setup">
+    <div>
+      <strong>Let's get your fleet set up</strong>
+      <span>${setup.doneCount}/${setup.steps.length} essentials ready</span>
     </div>
-    <div style="height:4px;background:var(--border);margin:0 22px;border-radius:99px;overflow:hidden">
-      <div style="height:100%;width:${Math.round((setup.doneCount / setup.steps.length) * 100)}%;background:linear-gradient(90deg,var(--primary),var(--success));border-radius:99px"></div>
-    </div>
-    <div style="padding:14px 12px 12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
-      ${setup.steps.map(s => `
-      <a href="${s.href}" style="display:flex;gap:11px;align-items:flex-start;padding:12px 12px;border-radius:12px;text-decoration:none;border:1px solid ${s.done ? 'transparent' : 'var(--border)'};background:${s.done ? 'color-mix(in srgb, var(--success) 7%, transparent)' : 'transparent'};transition:border-color .15s" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='${s.done ? 'transparent' : 'var(--border)'}'">
-        <span style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;margin-top:1px;${s.done ? 'background:var(--success);color:#fff' : 'border:1.5px solid var(--border-md);color:var(--text-muted)'}">
-          ${s.done ? '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" style="width:12px;height:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' : ''}
-        </span>
-        <span style="min-width:0">
-          <span style="display:block;font-size:13.5px;font-weight:700;${s.done ? 'color:var(--text-muted);text-decoration:line-through' : ''}">${s.label}</span>
-          <span class="text-sm text-muted" style="display:block;margin-top:1px">${s.hint}</span>
-        </span>
-      </a>`).join('')}
+    <div class="fhq-setup-steps">
+      ${setup.steps.map(s => `<a href="${s.href}" class="${s.done ? 'done' : ''}">${s.done ? 'Done' : 'Open'} · ${s.label}</a>`).join('')}
     </div>
   </div>` : ''}
 
-  <!-- ── KPI row ─────────────────────────────────────── -->
-  <div class="dash-kpi-row mb-4">
-    <div class="card dash-gauge-card">
-      <div class="dash-gauge">
-        <canvas id="gaugeOverall" width="150" height="150"></canvas>
-        <div class="dash-gauge-value">${score.overall.toFixed(0)}<sup>%</sup></div>
+  <div class="fhq-kpis">
+    <a href="/compliance" class="fhq-card fhq-score-card">
+      <div class="fhq-card-title">Overall Compliance Score</div>
+      <div class="fhq-score-wrap">
+        <canvas id="fhqScoreGauge" width="132" height="132"></canvas>
+        <div class="fhq-score-value">${score.overall.toFixed(0)}<span>%</span><small>${score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At Risk'}</small></div>
       </div>
-      <div class="dash-gauge-meta">
-        <div class="dash-gauge-label">Overall compliance</div>
-        <div class="dash-gauge-band ${score.overall >= 85 ? 'good' : score.overall >= 70 ? 'ok' : 'risk'}">${score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At risk'}</div>
-        ${scoreDelta === null ? '' : `<div class="ui-delta ${scoreDelta >= 0 ? 'good' : 'bad'}" style="margin-top:6px"><span class="ui-delta-arrow">${scoreDelta >= 0 ? '▲' : '▼'}</span>${Math.abs(scoreDelta).toFixed(0)}% <span class="ui-delta-label">from last month</span></div>`}
+      <div class="fhq-card-foot">
+        ${scoreDelta === null ? '<span class="muted">No prior score</span>' : `<span class="${scoreDelta >= 0 ? 'good' : 'bad'}">${scoreDelta >= 0 ? 'up' : 'down'} ${Math.abs(scoreDelta).toFixed(0)}%</span> <span class="muted">from last month</span>`}
+        <strong>View Score Breakdown -></strong>
       </div>
-    </div>
-
-    <a href="/employees" class="card dash-kpi">
-      <div class="dash-kpi-top">
-        <div class="stat-icon blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-        <span class="dash-kpi-link">View drivers →</span>
-      </div>
-      <div class="dash-kpi-value">${stats.driverCount}</div>
-      <div class="dash-kpi-label">Drivers</div>
-      <div class="dash-kpi-sub">${stats.driverActions > 0 ? `<span class="dot amber"></span>${stats.driverActions} need attention` : `<span class="dot green"></span>All up to date`}</div>
     </a>
 
-    <a href="/fleet" class="card dash-kpi">
-      <div class="dash-kpi-top">
-        <div class="stat-icon green"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17H5a2 2 0 01-2-2V7a2 2 0 012-2h3m8 10h3a2 2 0 002-2V7a2 2 0 00-2-2h-3M8 17V7m8 10V7m-8 0l4-4m0 0l4 4m-4-4v14"/></svg></div>
-        <span class="dash-kpi-link">View vehicles →</span>
+    ${[
+      { label: 'Drivers', value: stats.driverCount, sub: 'Total Drivers', actions: stats.driverActions, href: '/employees?type=drivers', tone: 'blue', icon: 'M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2a5 5 0 00-10 0v2m8-13a3 3 0 11-6 0 3 3 0 016 0z' },
+      { label: 'Vehicles', value: stats.totalVehicles, sub: 'Total Vehicles', actions: stats.vehicleActions, href: '/fleet', tone: 'purple', icon: 'M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 19a2 2 0 100-4 2 2 0 000 4zM18 19a2 2 0 100-4 2 2 0 000 4z' },
+      { label: 'Trailers', value: stats.totalTrailers, sub: 'Total Trailers', actions: stats.trailerActions, href: '/trailers', tone: 'teal', icon: 'M4 8h12v7H4zM16 11h3l2 2v2h-5zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z' },
+      { label: 'Compliance Alerts', value: alerts.length, sub: 'Open Alerts', actions: alertGroups.critical.length, href: '#fhqAlerts', tone: 'red', icon: 'M12 9v4m0 4h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z' },
+    ].map(k => `
+    <a href="${k.href}" class="fhq-card fhq-kpi ${k.tone}">
+      <div class="fhq-kpi-head">
+        <span class="fhq-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${k.icon}"/></svg></span>
+        <span>${k.label}</span>
       </div>
-      <div class="dash-kpi-value">${stats.totalVehicles}</div>
-      <div class="dash-kpi-label">Vehicles</div>
-      <div class="dash-kpi-sub">${stats.vehicleActions > 0 ? `<span class="dot amber"></span>${stats.vehicleActions} need attention` : `<span class="dot green"></span>Fleet compliant`}</div>
-    </a>
-
-    <a href="#dashAlerts" class="card dash-kpi ${alertGroups.critical.length > 0 ? 'dash-kpi-alert' : ''}">
-      <div class="dash-kpi-top">
-        <div class="stat-icon ${alerts.length > 0 ? 'red' : 'green'}"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></div>
-        <span class="dash-kpi-link">View all →</span>
-      </div>
-      <div class="dash-kpi-value">${alerts.length}</div>
-      <div class="dash-kpi-label">Compliance Alerts</div>
-      <div class="dash-kpi-sub">${alertGroups.critical.length > 0 ? `<span class="dot red"></span>${alertGroups.critical.length} critical` : `<span class="dot green"></span>Nothing critical`}</div>
-    </a>
+      <div class="fhq-kpi-value">${k.value}</div>
+      <div class="fhq-kpi-sub">${k.sub}</div>
+      <div class="fhq-kpi-actions"><strong>${k.actions}</strong> Actions Required</div>
+      <div class="fhq-card-foot"><strong>View ${k.label} -></strong></div>
+    </a>`).join('')}
   </div>
 
-  <!-- ── Compliance Overview tiles ───────────────────── -->
-  <div class="card mb-4">
-    <div class="card-header"><h3>Compliance Overview</h3><span class="text-sm text-muted">Items due within 30 days (RTW within 60)</span></div>
-    <div class="card-body">
-      <div class="dash-tiles">
-        ${complianceTiles.map(t => `
-          <a href="${t.href}" class="dash-tile ${t.tone}">
-            <div class="dash-tile-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${tileIcons[t.key]}"/></svg></div>
-            <div class="dash-tile-count">${t.count}</div>
-            <div class="dash-tile-label">${t.label}</div>
-            <div class="dash-tile-bar"></div>
-          </a>
-        `).join('')}
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Trend + Alerts ──────────────────────────────── -->
-  <div class="dash-2col mb-4">
-    <div class="card">
-      <div class="card-header"><h3>Compliance Trend</h3><span class="text-sm text-muted">Overall score over time</span></div>
-      <div class="card-body">
-        ${complianceTrend.length < 2
-          ? `<div class="empty-state" style="padding:40px 14px"><p>Not enough history yet</p><div class="empty-hint">The score trend appears once a few days of data accumulate.</div></div>`
-          : `<div style="position:relative;height:240px"><canvas id="complianceTrendChart"></canvas></div>`}
-      </div>
-    </div>
-
-    <div class="card" id="dashAlerts">
-      <div class="card-header">
-        <h3>Alerts &amp; Notifications</h3>
-        ${alertGroups.critical.length > 0 ? `<span class="badge badge-red">${alertGroups.critical.length} critical</span>` : ''}
-      </div>
-      <div class="dash-alert-scroll">
-        ${alerts.length === 0 ? `
-          <div class="empty-state" style="padding:40px 14px">
-            <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-            <p>All compliance checks passed</p>
-            <div class="empty-hint">No active alerts — great work</div>
-          </div>
-        ` : alerts.map(a => `
-          <a href="${a.href}" class="dash-alert ${a.severity}">
-            <span class="dash-alert-dot ${a.severity}"></span>
-            <span class="dash-alert-body">
-              <span class="dash-alert-msg">${esc(a.message)}</span>
-              <span class="dash-alert-meta">${a.typeLabel}</span>
-            </span>
-            <span class="dash-alert-cta">${a.actionLabel || 'View'} →</span>
-          </a>
-        `).join('')}
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Upcoming compliance tasks ───────────────────── -->
-  ${upcomingTasks.length > 0 ? `
-  <div class="card mb-4">
-    <div class="card-header"><h3>Upcoming Compliance Tasks</h3><a href="/compliance-tasks" class="btn btn-outline btn-sm">View all</a></div>
-    <div class="card-body">
-      <div class="dash-tasks">
-        ${upcomingTasks.map(t => `
-          <a href="/compliance-tasks?task=${t.id}" class="dash-task">
-            <span class="dash-task-dot ${t.priority === 'critical' ? 'red' : t.priority === 'high' ? 'amber' : t.priority === 'medium' ? 'blue' : 'slate'}"></span>
-            <span class="dash-task-title">${esc(t.title)}</span>
-            <span class="dash-task-due ${t.isOverdue ? 'overdue' : ''}">${t.dueDate ? (t.isOverdue ? 'Overdue · ' : 'Due ') + new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No due date'}</span>
-          </a>
-        `).join('')}
-      </div>
-    </div>
-  </div>` : ''}
-
-  <!-- ── Operations pulse + open defects ─────────────── -->
-  <div class="dash-2col">
-    <div class="card">
-      <div class="card-header"><h3>Operations Pulse</h3><span class="text-sm text-muted">Last 7 days</span></div>
-      <div class="card-body"><div style="position:relative;height:240px"><canvas id="operationsTrendChart"></canvas></div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><h3>Open Defect Cases</h3><a href="/defects" class="btn btn-outline btn-sm">View all</a></div>
-      ${recentDefects.length === 0 ? `
-        <div class="empty-state" style="padding:40px 14px">
-          <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
-          <p>No open defects</p>
+  <div class="fhq-main-grid">
+    <section class="fhq-card fhq-rota">
+      <div class="fhq-section-head">
+        <div>
+          <h3>Employee Rota</h3>
+          <span>${dashboardOps.week.label}</span>
         </div>
-      ` : `
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th scope="col">Reference</th><th scope="col">Vehicle</th><th scope="col">Severity</th><th scope="col">Status</th><th scope="col">Open</th></tr></thead>
+        <div class="fhq-rota-tools">
+          <a href="${dashboardOps.week.prevHref}" class="btn btn-outline btn-sm" aria-label="Previous week">&lt;</a>
+          <a href="${dashboardOps.week.todayHref}" class="btn btn-outline btn-sm">Today</a>
+          <a href="${dashboardOps.week.nextHref}" class="btn btn-outline btn-sm" aria-label="Next week">&gt;</a>
+          <span class="segmented"><a class="active" href="/">Week</a><a href="/">2 Weeks</a><a href="/">Month</a></span>
+          ${dashboardOps.canManageRota ? `<button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('fhqRotaForm').classList.toggle('open')">Add Rota</button>` : ''}
+        </div>
+      </div>
+
+      <form class="fhq-rota-filters" method="get" action="/">
+        <input type="hidden" name="week" value="${dashboardOps.week.key}">
+        <select name="employeeId" aria-label="Filter employee">
+          <option value="">All employees</option>
+          ${dashboardOps.rotaOptions.employees.map(e => `<option value="${esc(e.id)}" ${dashboardOps.rotaFilters.employeeId === e.id ? 'selected' : ''}>${esc(e.fullName)}</option>`).join('')}
+        </select>
+        <select name="role" aria-label="Filter role">
+          <option value="">All roles</option>
+          ${dashboardOps.rotaOptions.roles.map(role => `<option value="${esc(role)}" ${dashboardOps.rotaFilters.role === role ? 'selected' : ''}>${esc(role)}</option>`).join('')}
+        </select>
+        <select name="location" aria-label="Filter location">
+          <option value="">All locations</option>
+          ${dashboardOps.rotaOptions.locations.map(location => `<option value="${esc(location)}" ${dashboardOps.rotaFilters.location === location ? 'selected' : ''}>${esc(location)}</option>`).join('')}
+        </select>
+        <select name="shiftType" aria-label="Filter shift type">
+          <option value="">All shifts</option>
+          ${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}" ${dashboardOps.rotaFilters.shiftType === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}
+        </select>
+        <button class="btn btn-outline btn-sm">Filters</button>
+        <a href="/?week=${dashboardOps.week.key}" class="btn btn-ghost btn-sm">Clear</a>
+      </form>
+
+      ${dashboardOps.canManageRota ? `
+      <form id="fhqRotaForm" class="fhq-rota-form" method="post" action="/rota">
+        <input type="hidden" name="_csrf" value="${csrfToken}">
+        <select name="employeeId" required><option value="">Employee</option>${dashboardOps.rotaOptions.employees.map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}</select>
+        <input type="date" name="shiftDate" required value="${dashboardOps.week.days.find(d => d.isToday)?.key || dashboardOps.week.days[0].key}">
+        <select name="status">${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}">${s.replace(/_/g, ' ')}</option>`).join('')}</select>
+        <input type="time" name="startTime" aria-label="Start time">
+        <input type="time" name="endTime" aria-label="End time">
+        <select name="vehicleId"><option value="">Vehicle</option>${dashboardOps.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}">${esc(v.registration)}</option>`).join('')}</select>
+        <input name="routeLabel" placeholder="Route / duty">
+        <input name="location" placeholder="Location">
+        <button class="btn btn-primary btn-sm">Save</button>
+      </form>` : ''}
+
+      <div class="fhq-rota-scroll">
+        <table class="fhq-rota-table">
+          <thead>
+            <tr>
+              <th>Employee / Role</th>
+              ${dashboardOps.week.days.map(d => `<th class="${d.isToday ? 'today' : ''}">${d.label}<span>${d.shortDate}</span></th>`).join('')}
+            </tr>
+          </thead>
           <tbody>
-            ${recentDefects.map(d => {
-              const days = Math.floor((Date.now() - new Date(d.reportedAt)) / 86400000);
-              return `<tr>
-                <td><a href="/defects/${d.id}" style="font-family:monospace;font-size:12px;font-weight:700">${esc(d.referenceNumber)}</a></td>
-                <td><span class="badge badge-slate">${esc(d.vehicle?.registration || '-')}</span></td>
-                <td><span class="badge ${d.severity === 'dangerous' ? 'badge-red' : d.severity === 'serious' ? 'badge-amber' : 'badge-slate'}">${d.severity}</span></td>
-                <td><span class="badge badge-blue">${d.status.replace(/_/g,' ')}</span></td>
-                <td style="font-weight:700;color:${days > 5 ? 'var(--danger)' : days > 2 ? 'var(--warning)' : 'var(--text)'}">${days}d</td>
-              </tr>`;
-            }).join('')}
+            ${dashboardOps.rotaRows.length === 0 ? `<tr><td colspan="8"><div class="empty-state"><p>No active drivers to schedule</p></div></td></tr>` : dashboardOps.rotaRows.map(row => `
+            <tr>
+              <td>${avatar(row.employee, { size: 34, withName: true, sub: row.employee.jobTitle || 'Driver' })}</td>
+              ${row.cells.map(cell => `<td><div class="fhq-shift ${cell.tone}">
+                <strong>${esc(cell.time || cell.title)}</strong>
+                <span>${esc(cell.detail || cell.title)}</span>
+                ${dashboardOps.canManageRota && cell.id ? `
+                <details class="fhq-shift-edit">
+                  <summary>Edit</summary>
+                  <form method="post" action="/rota/${cell.id}">
+                    <input type="hidden" name="_csrf" value="${csrfToken}">
+                    <input type="date" name="shiftDate" value="${cell.shiftDate}">
+                    <select name="status">${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}" ${cell.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}</select>
+                    <input type="time" name="startTime" value="${esc(cell.startTime)}">
+                    <input type="time" name="endTime" value="${esc(cell.endTime)}">
+                    <select name="vehicleId"><option value="">Vehicle</option>${dashboardOps.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}" ${cell.vehicleId === v.id ? 'selected' : ''}>${esc(v.registration)}</option>`).join('')}</select>
+                    <input name="routeLabel" value="${esc(cell.routeLabel)}" placeholder="Route / duty">
+                    <input name="location" value="${esc(cell.location)}" placeholder="Location">
+                    <input name="notes" value="${esc(cell.notes)}" placeholder="Notes">
+                    <button class="btn btn-primary btn-sm">Save</button>
+                  </form>
+                  <form method="post" action="/rota/${cell.id}/delete" data-confirm="Delete this rota shift?">
+                    <input type="hidden" name="_csrf" value="${csrfToken}">
+                    <input type="hidden" name="week" value="${dashboardOps.week.key}">
+                    <button class="btn btn-outline btn-sm">Delete</button>
+                  </form>
+                </details>` : ''}
+              </div></td>`).join('')}
+            </tr>`).join('')}
           </tbody>
         </table>
-      </div>`}
-    </div>
+      </div>
+      <div class="fhq-legend">
+        ${[
+          ['assigned', 'Assigned'], ['rest_day', 'Rest Day / Off'], ['relief_cover', 'Relief / Cover'],
+          ['on_site', 'On Site / Office'], ['standby', 'Standby'], ['leave', 'Leave'],
+        ].map(([tone, label]) => `<span><i class="${tone}"></i>${label}</span>`).join('')}
+        <em>All times are local to operating centre</em>
+      </div>
+    </section>
+
+    <aside class="fhq-rail">
+      <section class="fhq-card" id="fhqAlerts">
+        <div class="fhq-section-head compact"><h3>Recent Alerts</h3><a href="/reports">View All</a></div>
+        <div class="fhq-rail-list">
+          ${alerts.length === 0 ? `<div class="empty-state"><p>No open alerts</p></div>` : alerts.slice(0, 5).map(a => `
+          <a href="${a.href}" class="fhq-rail-item ${a.severity}">
+            <span class="fhq-alert-icon">!</span>
+            <span><strong>${esc(a.message)}</strong><small>${esc(a.preview?.filter(Boolean).slice(0, 2).join(' · ') || a.typeLabel)}</small></span>
+            <em>${a.daysUntil !== null && a.daysUntil !== undefined ? (a.daysUntil < 0 ? 'Overdue' : a.daysUntil + 'd') : ''}</em>
+          </a>`).join('')}
+        </div>
+      </section>
+
+      <section class="fhq-card">
+        <div class="fhq-section-head compact"><h3>Upcoming Tasks</h3><a href="/compliance-tasks">View All</a></div>
+        <div class="fhq-rail-list">
+          ${upcomingTasks.length === 0 ? `<div class="empty-state"><p>No upcoming tasks</p></div>` : upcomingTasks.slice(0, 5).map(t => `
+          <a href="/compliance-tasks?task=${t.id}" class="fhq-rail-item task ${t.priority}">
+            <span class="fhq-task-icon"></span>
+            <span><strong>${esc(t.title)}</strong><small>${esc(t.priority)} priority</small></span>
+            <em>${t.dueDate ? (t.isOverdue ? 'Overdue' : new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })) : ''}</em>
+          </a>`).join('')}
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="fhq-bottom-grid">
+    <section class="fhq-card fhq-mini-card">
+      <div class="fhq-section-head compact"><h3>Fuel Overview <small>(This Month)</small></h3><a href="/fleet/fuel">View Details</a></div>
+      <div class="fhq-mini-main"><span class="fhq-mini-icon green">F</span><div><strong>${dashboardOps.fuel.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong><small>Total Fuel</small>${dashboardOps.fuel.deltaPct === null ? '' : `<em class="${dashboardOps.fuel.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.fuel.deltaPct >= 0 ? '+' : ''}${dashboardOps.fuel.deltaPct}% vs last month</em>`}</div></div>
+      <div class="fhq-bars">${dashboardOps.fuel.bars.slice(-18).map(v => `<i style="height:${Math.max(8, Math.min(48, v / Math.max(...dashboardOps.fuel.bars, 1) * 48))}px"></i>`).join('')}</div>
+      <ol>${dashboardOps.fuel.topConsumers.map(c => `<li><span>${esc(c.label)}</span><strong>${c.value.toFixed(0)} L</strong></li>`).join('')}</ol>
+    </section>
+
+    <section class="fhq-card fhq-mini-card">
+      <div class="fhq-section-head compact"><h3>AdBlue Overview <small>(This Month)</small></h3><a href="/fleet/adblue">View Details</a></div>
+      <div class="fhq-mini-main"><span class="fhq-mini-icon blue">A</span><div><strong>${dashboardOps.adBlue.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong><small>Total AdBlue</small>${dashboardOps.adBlue.deltaPct === null ? '' : `<em class="${dashboardOps.adBlue.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.adBlue.deltaPct >= 0 ? '+' : ''}${dashboardOps.adBlue.deltaPct}% vs last month</em>`}</div></div>
+      <div class="fhq-placeholder-bars">${dashboardOps.adBlue.bars.slice(-18).map(v => `<i style="height:${Math.max(8, Math.min(48, v / Math.max(...dashboardOps.adBlue.bars, 1) * 48))}px"></i>`).join('')}</div>
+      <ol>${dashboardOps.adBlue.topConsumers.length ? dashboardOps.adBlue.topConsumers.map(c => `<li><span>${esc(c.label)}</span><strong>${c.value.toFixed(0)} L</strong></li>`).join('') : '<li><span>No AdBlue logged</span><strong>0 L</strong></li>'}</ol>
+    </section>
+
+    <section class="fhq-card fhq-mini-card finance">
+      <div class="fhq-section-head compact"><h3>Finance Overview <small>(This Month)</small></h3><a href="/finance">View Details</a></div>
+      <div class="fhq-finance-values">
+        <div><small>Total Income</small><strong>£${dashboardOps.finance.income.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+        <div><small>Total Expenses</small><strong>£${dashboardOps.finance.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+        <div><small>Net Profit</small><strong>£${dashboardOps.finance.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+      </div>
+      <div class="fhq-finance-chart"><canvas id="fhqFinanceChart"></canvas></div>
+    </section>
+
+    <section class="fhq-card fhq-mini-card availability">
+      <div class="fhq-section-head compact"><h3>Fleet Availability</h3><a href="/fleet/overview">View Details</a></div>
+      <div class="fhq-availability-body">
+        <div class="fhq-fleet-gauge"><canvas id="fhqFleetGauge" width="118" height="118"></canvas><span>${dashboardOps.fleet.pct}%<small>Available</small></span></div>
+        <dl>
+          <dt>Total Fleet</dt><dd>${dashboardOps.fleet.total}</dd>
+          <dt>Available</dt><dd class="good">${dashboardOps.fleet.available}</dd>
+          <dt>In Use</dt><dd>${dashboardOps.fleet.inUse}</dd>
+          <dt>In Workshop</dt><dd class="bad">${dashboardOps.fleet.inWorkshop}</dd>
+          <dt>Out of Service</dt><dd>${dashboardOps.fleet.outOfService}</dd>
+        </dl>
+      </div>
+    </section>
   </div>
 </div>
 
 <style>
-  .dash { display:flex; flex-direction:column; }
-  .dash-kpi-row { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:16px; }
-  .dash-gauge-card { display:flex; align-items:center; gap:18px; padding:20px 22px; }
-  .dash-gauge { position:relative; width:118px; height:118px; flex-shrink:0; }
-  .dash-gauge canvas { width:118px !important; height:118px !important; }
-  .dash-gauge-value { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:900; letter-spacing:-1px; color:var(--text); }
-  .dash-gauge-value sup { font-size:14px; opacity:.6; margin-left:1px; }
-  .dash-gauge-label { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--text-muted); }
-  .dash-gauge-band { display:inline-block; margin-top:6px; font-size:18px; font-weight:800; }
-  .dash-gauge-band.good { color:var(--success); }
-  .dash-gauge-band.ok { color:var(--warning); }
-  .dash-gauge-band.risk { color:var(--danger); }
-  .dash-kpi { display:flex; flex-direction:column; padding:18px 20px; text-decoration:none; color:var(--text); transition:transform .15s, box-shadow .15s; }
-  .dash-kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow-md); }
-  .dash-kpi-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-  .dash-kpi-top .stat-icon { width:38px; height:38px; }
-  .dash-kpi-link { font-size:11px; font-weight:700; color:var(--primary); }
-  .dash-kpi-value { font-size:34px; font-weight:900; letter-spacing:-1.5px; line-height:1; }
-  .dash-kpi-label { font-size:13px; font-weight:700; color:var(--text-muted); margin-top:4px; }
-  .dash-kpi-sub { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-2); margin-top:10px; }
-  .dash-kpi-sub .dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-  .dash-kpi-sub .dot.green { background:var(--success); }
-  .dash-kpi-sub .dot.amber { background:var(--warning); }
-  .dash-kpi-sub .dot.red { background:var(--danger); }
-  .dash-kpi-alert { border-color:rgba(239,68,68,.35); }
-
-  .dash-tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-  .dash-tile { position:relative; display:flex; flex-direction:column; gap:4px; padding:16px; border:1px solid var(--border); border-radius:12px; background:var(--card); text-decoration:none; color:var(--text); overflow:hidden; transition:transform .15s, box-shadow .15s; }
-  .dash-tile:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
-  .dash-tile-icon { width:32px; height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; background:var(--surface-2); color:var(--text-muted); margin-bottom:4px; }
-  .dash-tile-icon svg { width:18px; height:18px; }
-  .dash-tile-count { font-size:26px; font-weight:900; letter-spacing:-1px; line-height:1; }
-  .dash-tile-label { font-size:12px; font-weight:700; color:var(--text-muted); }
-  .dash-tile-bar { position:absolute; left:0; bottom:0; height:3px; width:100%; background:var(--border-md); }
-  .dash-tile.amber .dash-tile-bar { background:var(--warning); }
-  .dash-tile.amber .dash-tile-icon { background:var(--warning-bg); color:var(--warning); }
-  .dash-tile.red .dash-tile-bar { background:var(--danger); }
-  .dash-tile.red .dash-tile-icon { background:var(--danger-bg); color:var(--danger); }
-  .dash-tile.green .dash-tile-bar { background:var(--success); }
-  .dash-tile.green .dash-tile-icon { background:var(--success-bg); color:var(--success); }
-
-  .dash-2col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .dash-alert-scroll { max-height:300px; overflow-y:auto; padding:6px; }
-  .dash-alert { display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:10px; text-decoration:none; color:var(--text); border-bottom:1px solid var(--border); }
-  .dash-alert:last-child { border-bottom:none; }
-  .dash-alert:hover { background:var(--surface-2); }
-  .dash-alert-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .dash-alert-dot.critical { background:var(--danger); box-shadow:0 0 0 4px rgba(239,68,68,.14); }
-  .dash-alert-dot.warning { background:var(--warning); box-shadow:0 0 0 4px rgba(245,158,11,.14); }
-  .dash-alert-dot.notice { background:var(--notice); box-shadow:0 0 0 4px rgba(139,92,246,.14); }
-  .dash-alert-body { flex:1; min-width:0; display:flex; flex-direction:column; }
-  .dash-alert-msg { font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dash-alert-meta { font-size:11.5px; color:var(--text-muted); }
-  .dash-alert-cta { font-size:12px; font-weight:700; color:var(--primary); white-space:nowrap; flex-shrink:0; }
-  .dash-tasks { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; }
-  .dash-task { display:flex; align-items:center; gap:10px; padding:11px 14px; border:1px solid var(--border); border-radius:10px; text-decoration:none; color:var(--text); background:var(--card); }
-  .dash-task:hover { background:var(--surface-2); border-color:var(--primary); }
-  .dash-task-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-  .dash-task-dot.red { background:var(--danger); } .dash-task-dot.amber { background:var(--warning); }
-  .dash-task-dot.blue { background:var(--primary); } .dash-task-dot.slate { background:var(--text-light); }
-  .dash-task-title { flex:1; min-width:0; font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dash-task-due { font-size:11px; color:var(--text-muted); white-space:nowrap; flex-shrink:0; }
-  .dash-task-due.overdue { color:var(--danger); font-weight:700; }
-
-  @media (max-width:1100px) {
-    .dash-kpi-row { grid-template-columns:1fr 1fr; }
-    .dash-tiles { grid-template-columns:repeat(2,1fr); }
-    .dash-2col { grid-template-columns:1fr; }
+  .fhq-dashboard { display:flex; flex-direction:column; gap:16px; color:#0f172a; }
+  .fhq-banner, .fhq-setup { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:8px; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; text-decoration:none; }
+  .fhq-banner-icon { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#f97316; color:#fff; font-weight:900; }
+  .fhq-setup { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; align-items:flex-start; }
+  .fhq-setup > div:first-child { display:flex; flex-direction:column; gap:2px; }
+  .fhq-setup-steps { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .fhq-setup-steps a { color:inherit; text-decoration:none; font-size:12px; font-weight:700; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,.65); }
+  .fhq-setup-steps a.done { color:#047857; }
+  .fhq-kpis { display:grid; grid-template-columns:1.25fr repeat(4, 1fr); gap:14px; }
+  .fhq-card { background:#fff; border:1px solid #edf1f7; border-radius:8px; box-shadow:0 3px 12px rgba(15,23,42,.035); }
+  .fhq-card a { color:#2563eb; }
+  .fhq-score-card, .fhq-kpi { text-decoration:none; color:#0f172a; padding:18px; min-height:158px; }
+  .fhq-card-title { text-align:center; font-size:12px; font-weight:800; margin-bottom:8px; }
+  .fhq-score-wrap { position:relative; width:132px; height:132px; margin:0 auto; }
+  .fhq-score-value { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:31px; font-weight:900; }
+  .fhq-score-value span { font-size:15px; }
+  .fhq-score-value small { display:block; font-size:11px; font-weight:800; color:#334155; }
+  .fhq-card-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; margin-top:8px; }
+  .fhq-card-foot strong { color:#2563eb; font-size:12px; }
+  .good { color:#16a34a; } .bad { color:#dc2626; } .muted { color:#64748b; }
+  .fhq-kpi { display:flex; flex-direction:column; }
+  .fhq-kpi-head { display:flex; align-items:center; gap:12px; font-size:12px; font-weight:800; color:#334155; }
+  .fhq-icon { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; }
+  .fhq-icon svg { width:23px; height:23px; }
+  .fhq-kpi.blue .fhq-icon { color:#2563eb; background:#eff6ff; }
+  .fhq-kpi.purple .fhq-icon { color:#7c3aed; background:#f5f3ff; }
+  .fhq-kpi.teal .fhq-icon { color:#0d9488; background:#ccfbf1; }
+  .fhq-kpi.red .fhq-icon { color:#dc2626; background:#fee2e2; }
+  .fhq-kpi-value { font-size:31px; line-height:1; font-weight:900; margin-top:10px; }
+  .fhq-kpi-sub { color:#64748b; font-size:12px; font-weight:700; margin-top:5px; }
+  .fhq-kpi-actions { margin-top:18px; padding-top:14px; border-top:1px solid #edf1f7; color:#475569; font-size:12px; }
+  .fhq-kpi-actions strong { color:#dc2626; font-size:20px; margin-right:18px; }
+  .fhq-main-grid { display:grid; grid-template-columns:minmax(0, 1fr) 310px; gap:14px; align-items:start; }
+  .fhq-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid #edf1f7; }
+  .fhq-section-head h3 { font-size:16px; margin:0; }
+  .fhq-section-head span, .fhq-section-head small { color:#64748b; font-size:12px; font-weight:700; }
+  .fhq-section-head.compact { padding:13px 14px; }
+  .fhq-section-head.compact h3 { font-size:14px; }
+  .fhq-section-head.compact a { font-size:11px; font-weight:800; text-decoration:none; }
+  .fhq-rota-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .fhq-rota-filters { display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)) auto auto; gap:8px; padding:0 14px 12px; border-bottom:1px solid #edf1f7; }
+  .fhq-rota-form { display:none; grid-template-columns:1.2fr 150px 140px 95px 95px 130px 1fr 1fr auto; gap:8px; padding:12px 14px; border-bottom:1px solid #edf1f7; background:#f8fafc; }
+  .fhq-rota-form.open { display:grid; }
+  .fhq-rota-form input, .fhq-rota-form select, .fhq-rota-filters select, .fhq-shift-edit input, .fhq-shift-edit select { min-width:0; border:1px solid #cbd5e1; border-radius:7px; padding:7px 8px; font:inherit; font-size:12px; background:#fff; }
+  .fhq-rota-scroll { overflow-x:auto; }
+  .fhq-rota-table { width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
+  .fhq-rota-table th, .fhq-rota-table td { border-right:1px solid #edf1f7; border-bottom:1px solid #edf1f7; padding:10px; vertical-align:middle; }
+  .fhq-rota-table th { text-align:left; font-size:11px; font-weight:900; background:#fbfdff; white-space:nowrap; }
+  .fhq-rota-table th:first-child { width:190px; }
+  .fhq-rota-table th span { display:block; margin-top:2px; color:#64748b; font-weight:700; }
+  .fhq-rota-table th.today { color:#2563eb; }
+  .fhq-shift { min-height:48px; border-radius:6px; padding:7px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; text-align:center; border:1px solid transparent; }
+  .fhq-shift strong { font-size:11px; font-weight:900; }
+  .fhq-shift span { font-size:10.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fhq-shift-edit { margin-top:4px; text-align:left; }
+  .fhq-shift-edit summary { cursor:pointer; list-style:none; font-size:10px; font-weight:900; text-align:center; opacity:.85; }
+  .fhq-shift-edit form { display:grid; grid-template-columns:1fr; gap:5px; margin-top:6px; }
+  .fhq-shift-edit .btn { width:100%; justify-content:center; min-height:28px; padding:4px 6px; font-size:10.5px; }
+  .fhq-shift.assigned { background:#ecfdf5; color:#047857; border-color:#bbf7d0; }
+  .fhq-shift.rest_day { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+  .fhq-shift.relief_cover { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+  .fhq-shift.on_site, .fhq-shift.office, .fhq-shift.work_from_home { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .fhq-shift.standby { background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
+  .fhq-shift.leave, .fhq-shift.sick, .fhq-shift.training { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+  .fhq-legend { display:flex; align-items:center; gap:16px; padding:12px 16px; flex-wrap:wrap; font-size:11px; color:#64748b; font-weight:700; }
+  .fhq-legend span { display:inline-flex; align-items:center; gap:6px; }
+  .fhq-legend i { width:9px; height:9px; border-radius:50%; background:#94a3b8; }
+  .fhq-legend i.assigned { background:#34d399; } .fhq-legend i.rest_day { background:#fbbf24; } .fhq-legend i.relief_cover { background:#fda4af; } .fhq-legend i.on_site { background:#93c5fd; } .fhq-legend i.standby { background:#cbd5e1; } .fhq-legend i.leave { background:#c4b5fd; }
+  .fhq-legend em { margin-left:auto; font-style:normal; color:#94a3b8; }
+  .fhq-rail { display:flex; flex-direction:column; gap:14px; }
+  .fhq-rail-list { display:flex; flex-direction:column; padding:4px 8px 10px; }
+  .fhq-rail-item { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; align-items:center; gap:10px; padding:9px 6px; text-decoration:none; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+  .fhq-rail-item:last-child { border-bottom:0; }
+  .fhq-rail-item strong { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fhq-rail-item small { display:block; color:#64748b; font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fhq-rail-item em { font-style:normal; font-size:10.5px; font-weight:900; color:#dc2626; }
+  .fhq-alert-icon, .fhq-task-icon { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-weight:900; font-size:12px; background:#fee2e2; color:#dc2626; }
+  .fhq-rail-item.warning .fhq-alert-icon { background:#fffbeb; color:#d97706; }
+  .fhq-rail-item.notice .fhq-alert-icon, .fhq-task-icon { background:#eff6ff; color:#2563eb; }
+  .fhq-bottom-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
+  .fhq-mini-card { min-height:184px; padding-bottom:12px; overflow:hidden; }
+  .fhq-mini-main { display:flex; align-items:center; gap:12px; padding:12px 16px 4px; }
+  .fhq-mini-main strong { display:block; font-size:22px; line-height:1; }
+  .fhq-mini-main small, .fhq-mini-main em { display:block; margin-top:4px; font-size:11px; color:#64748b; font-style:normal; font-weight:800; }
+  .fhq-mini-icon { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#fff; font-weight:900; }
+  .fhq-mini-icon.green { background:#22c55e; } .fhq-mini-icon.blue { background:#3b82f6; }
+  .fhq-bars, .fhq-placeholder-bars { height:55px; display:flex; align-items:end; gap:4px; padding:0 16px; margin-top:6px; }
+  .fhq-bars i, .fhq-placeholder-bars i { flex:1; border-radius:3px 3px 0 0; background:#22c55e; min-height:8px; }
+  .fhq-placeholder-bars i { background:#bfdbfe; opacity:.75; }
+  .fhq-mini-card ol { list-style:none; margin:7px 16px 0; display:flex; flex-direction:column; gap:3px; }
+  .fhq-mini-card li { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:#64748b; }
+  .fhq-mini-card li strong { color:#0f172a; }
+  .fhq-finance-values { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px 14px 4px; }
+  .fhq-finance-values small { display:block; font-size:10px; color:#64748b; font-weight:800; }
+  .fhq-finance-values strong { display:block; font-size:15px; margin-top:4px; }
+  .fhq-finance-chart { height:80px; padding:0 16px; }
+  .fhq-availability-body { display:grid; grid-template-columns:122px 1fr; gap:12px; padding:14px; align-items:center; }
+  .fhq-fleet-gauge { position:relative; width:118px; height:118px; }
+  .fhq-fleet-gauge span { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:25px; font-weight:900; }
+  .fhq-fleet-gauge small { display:block; font-size:10px; color:#64748b; }
+  .fhq-availability-body dl { display:grid; grid-template-columns:1fr auto; gap:8px 10px; font-size:12px; }
+  .fhq-availability-body dt { color:#64748b; font-weight:800; }
+  .fhq-availability-body dd { margin:0; font-weight:900; }
+  [data-theme="dark"] .fhq-dashboard { color:var(--text); }
+  [data-theme="dark"] .fhq-card { background:var(--card); border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-table th { background:var(--surface-2); }
+  [data-theme="dark"] .fhq-rota-table th, [data-theme="dark"] .fhq-rota-table td, [data-theme="dark"] .fhq-section-head, [data-theme="dark"] .fhq-rota-filters { border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-form { background:var(--surface-2); border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-form input, [data-theme="dark"] .fhq-rota-form select, [data-theme="dark"] .fhq-rota-filters select, [data-theme="dark"] .fhq-shift-edit input, [data-theme="dark"] .fhq-shift-edit select { background:var(--input-bg); color:var(--text); border-color:var(--border-md); }
+  [data-theme="dark"] .fhq-rail-item { color:var(--text); border-color:var(--border); }
+  @media (max-width:1280px) {
+    .fhq-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .fhq-main-grid { grid-template-columns:1fr; }
+    .fhq-rail { display:grid; grid-template-columns:1fr 1fr; }
+    .fhq-bottom-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   }
-  @media (max-width:560px) {
-    .dash-kpi-row { grid-template-columns:1fr; }
-    .dash-gauge-card { justify-content:center; }
+  @media (max-width:760px) {
+    .fhq-kpis, .fhq-rail, .fhq-bottom-grid { grid-template-columns:1fr; }
+    .fhq-section-head { align-items:flex-start; flex-direction:column; }
+    .fhq-rota-form { grid-template-columns:1fr 1fr; }
+    .fhq-rota-filters { grid-template-columns:1fr 1fr; }
+    .fhq-rota-form button { grid-column:1 / -1; }
+    .fhq-availability-body { grid-template-columns:1fr; justify-items:center; }
   }
 </style>
 
 <script>
-function drawGauge(id, value) {
-  const canvas = document.getElementById(id);
+function fhqGauge(id, value, color) {
+  var canvas = document.getElementById(id);
   if (!canvas || !window.Chart) return;
-  const fill = value >= 85 ? '#10b981' : value >= 70 ? '#f59e0b' : '#ef4444';
-  const track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.08)' : '#eef2f7';
+  var track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.1)' : '#edf2f7';
   new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
-    data: { datasets: [{ data: [value, 100 - value], backgroundColor: [fill, track], borderWidth: 0, borderRadius: 6 }] },
-    options: { cutout: '80%', rotation: -110, circumference: 220, responsive: false, events: [],
-      plugins: { legend: { display: false }, tooltip: { enabled: false } },
-      animation: { duration: 900, easing: 'easeInOutCubic' } }
+    data: { datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, track], borderWidth: 0, borderRadius: 6 }] },
+    options: { cutout: '76%', responsive: false, events: [], plugins: { legend: { display: false }, tooltip: { enabled: false } } }
   });
 }
-
-const scores = ${JSON.stringify(score)};
-const chartData = ${JSON.stringify(chartData)};
-const complianceTrend = ${JSON.stringify(complianceTrend)};
+fhqGauge('fhqScoreGauge', ${score.overall.toFixed(0)}, '${score.overall >= 85 ? '#22c55e' : score.overall >= 70 ? '#f59e0b' : '#ef4444'}');
+fhqGauge('fhqFleetGauge', ${dashboardOps.fleet.pct}, '#22c55e');
 
 (function() {
-  var el = document.getElementById('gaugeOverall');
-  if (!el) return;
-  if ('IntersectionObserver' in window) {
-    var obs = new IntersectionObserver(function(e) { if (e[0].isIntersecting) { drawGauge('gaugeOverall', scores.overall); obs.disconnect(); } }, { threshold: .1 });
-    obs.observe(el);
-  } else { drawGauge('gaugeOverall', scores.overall); }
+  var el = document.getElementById('fhqFinanceChart');
+  if (!el || !window.Chart) return;
+  var slices = ${JSON.stringify(dashboardOps.finance.slices)};
+  if (!slices.length) slices = [{ label: 'No expenses', value: 1 }];
+  new Chart(el.getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: slices.map(function(s) { return s.label.replace(/_/g, ' '); }),
+      datasets: [{ data: slices.map(function(s) { return s.value; }), backgroundColor: ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b'], borderWidth: 0 }]
+    },
+    options: { cutout: '62%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  });
 })();
-
-if (document.getElementById('complianceTrendChart') && complianceTrend.length >= 2) {
-  new Chart(document.getElementById('complianceTrendChart'), {
-    type: 'line',
-    data: { labels: complianceTrend.map(d => d.label), datasets: [{
-      label: 'Overall compliance', data: complianceTrend.map(d => d.value),
-      borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.10)', fill: true, tension: .35,
-      pointRadius: 2, pointHoverRadius: 4, borderWidth: 2,
-    }] },
-    options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { x: { grid: { display: false } }, y: { min: 0, max: 100, ticks: { stepSize: 25, callback: v => v + '%' } } } }
-  });
-}
-
-if (document.getElementById('operationsTrendChart')) {
-  new Chart(document.getElementById('operationsTrendChart'), {
-    type: 'bar',
-    data: { labels: chartData.trend.map(i => i.label), datasets: [
-      { type: 'bar', label: 'Checks', data: chartData.trend.map(i => i.checks), backgroundColor: '#2563eb', borderRadius: 6, maxBarThickness: 26 },
-      { type: 'line', label: 'Defects', data: chartData.trend.map(i => i.defects), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,.14)', tension: .35, fill: true, pointRadius: 2 },
-      { type: 'line', label: 'Nil-defect', data: chartData.trend.map(i => i.nilDefects), borderColor: '#10b981', tension: .35, fill: false, pointRadius: 2 },
-    ] },
-    options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 14 } } },
-      scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 } } } }
-  });
-}
 </script>
 ` }) %>

@@ -214,6 +214,13 @@ body {
 .sidebar-brand-inner {
   display: flex; align-items: center; gap: 10px;
 }
+.brand-logo-full {
+  display: block;
+  width: 132px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
 .brand-icon {
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
@@ -1133,4 +1140,3 @@ form.submit-attempted .form-control:invalid:focus {
 
 /* Inline sparkline */
 .ui-spark { display:inline-block; vertical-align:middle; overflow:visible; }
-

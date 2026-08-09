@@ -5,7 +5,7 @@ const { loginAgent } = require('./helpers');
 const { DEFAULT_TENANT_ID } = require('../src/utils/tenantContext');
 
 describe('super admin panel', () => {
-  const email = `super-admin-${Date.now()}@256logisticsltd.com`;
+  const email = `super-admin-${Date.now()}@fleetshq.local`;
   const branchName = `P0.5 Test Branch ${Date.now()}`;
   const serviceCode = `P05${String(Date.now()).slice(-6)}`;
 
@@ -68,7 +68,7 @@ describe('super admin panel', () => {
   });
 
   it('keeps director access read-only', async () => {
-    const agent = await loginAgent(app, 'director@256logisticsltd.com');
+    const agent = await loginAgent(app, 'director@fleetshq.local');
     const page = await agent.get('/super-admin').expect(200);
     expect(page.text).toContain('Director access is read-only');
 
