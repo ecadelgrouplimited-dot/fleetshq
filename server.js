@@ -135,7 +135,7 @@ const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
   app.listen(PORT, () => {
-    logger.info(`256 Logistics Compliance Hub running on http://localhost:${PORT}`);
+    logger.info(`FLEETSHQ running on http://localhost:${PORT}`);
     if (process.env.NODE_ENV !== 'test') scheduleJobs();
   });
 }
