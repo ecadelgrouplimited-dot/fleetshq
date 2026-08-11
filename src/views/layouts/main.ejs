@@ -372,6 +372,10 @@
         <span class="sc-name">ECADEL GROUP</span>
       </span>
     </a>
+    <div class="sidebar-meta">
+      <span class="sidebar-meta-row"><i class="status-dot"></i>System Status <b>Online</b></span>
+      <span class="sidebar-meta-row muted">Version <%= typeof appVersion !== 'undefined' ? appVersion : '1.0.0' %></span>
+    </div>
   </div>
 </aside>
 
@@ -382,7 +386,10 @@
       <button type="button" class="nav-toggle" id="navToggle" aria-label="Open menu" aria-controls="appSidebar" aria-expanded="false">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <h2><%= title %></h2>
+      <div class="topbar-title">
+        <h2><%= title %></h2>
+        <% if (typeof subtitle !== 'undefined' && subtitle) { %><span class="topbar-subtitle"><%= subtitle %></span><% } %>
+      </div>
     </div>
     <div class="topbar-right">
       <% const availablePanels = Array.isArray(panels) ? panels : []; %>
@@ -396,14 +403,38 @@
         </select>
       </label>
       <% } %>
+      <div class="topbar-filter" title="Operating centre">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>All Operating Centres</span>
+        <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <div class="topbar-filter" title="Date">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span id="topbarDate"></span>
+        <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
       <label class="topbar-search">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
         <input id="navSpotlight" type="search" placeholder="Search menu… (/)" autocomplete="off" aria-label="Search navigation">
       </label>
+      <button type="button" class="topbar-icon-btn" aria-label="Notifications" title="Notifications">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        <% if (typeof notificationCount !== 'undefined' && notificationCount > 0) { %><span class="topbar-badge"><%= notificationCount > 99 ? '99+' : notificationCount %></span><% } %>
+      </button>
+      <a href="/account" class="topbar-icon-btn" aria-label="Help" title="Help">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </a>
       <button type="button" class="theme-toggle" id="themeToggle" aria-label="Toggle light or dark theme" title="Toggle theme">
         <svg class="ic-sun" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36l-1.42-1.42M6.34 6.34L4.93 4.93m12.73 0l-1.41 1.41M6.34 17.66l-1.41 1.41M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         <svg class="ic-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
+      <a href="/account" class="topbar-user" title="My account">
+        <span class="topbar-user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+        <span class="topbar-user-info">
+          <span class="topbar-user-name"><%= user.name %></span>
+          <span class="topbar-user-role"><%= userRoles.map(r => roleLabel ? roleLabel(r) : r.replace(/_/g, ' ')).join(' / ') %></span>
+        </span>
+      </a>
       <div class="topbar-time" id="currentTime"></div>
     </div>
   </div>
@@ -426,6 +457,12 @@
         + ' · ' + now.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
     }
     setTimeout(tick, 1000);
+  })();
+
+  (function() {
+    var el = document.getElementById('topbarDate');
+    if (!el) return;
+    el.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   })();
 
   // Theme toggle — persist to cookie (1yr) + localStorage; instant, no reload

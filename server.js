@@ -78,6 +78,7 @@ function computeAssetVersion() {
   }
 }
 app.locals.assetVersion = computeAssetVersion();
+app.locals.appVersion = require('./package.json').version;
 
 // Static assets: long-lived caching. CSS/JS are cache-busted via the ?v= token
 // above, so a 30-day max-age is safe; images/fonts/favicon change rarely.

@@ -1619,6 +1619,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
 
     res.render('dashboard/index', {
       title: 'Dashboard',
+      subtitle: `Welcome back, ${(req.user.name || '').split(' ')[0] || 'there'}`,
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
         driverCount, driverActions, vehicleActions, totalTrailers, trailerActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
