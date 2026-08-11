@@ -428,13 +428,31 @@
         <svg class="ic-sun" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.36 6.36l-1.42-1.42M6.34 6.34L4.93 4.93m12.73 0l-1.41 1.41M6.34 17.66l-1.41 1.41M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
         <svg class="ic-moon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
       </button>
-      <a href="/account" class="topbar-user" title="My account">
-        <span class="topbar-user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
-        <span class="topbar-user-info">
-          <span class="topbar-user-name"><%= user.name %></span>
-          <span class="topbar-user-role"><%= userRoles.map(r => roleLabel ? roleLabel(r) : r.replace(/_/g, ' ')).join(' / ') %></span>
-        </span>
-      </a>
+      <div class="topbar-user-menu">
+        <button type="button" class="topbar-user" id="topbarUserTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="topbarUserDropdown" title="Account menu">
+          <span class="topbar-user-avatar"><%= user.name ? user.name.charAt(0).toUpperCase() : 'U' %></span>
+          <span class="topbar-user-info">
+            <span class="topbar-user-name"><%= user.name %></span>
+            <span class="topbar-user-role"><%= userRoles.map(r => roleLabel ? roleLabel(r) : r.replace(/_/g, ' ')).join(' / ') %></span>
+          </span>
+          <svg class="topbar-user-chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="topbar-user-dropdown" id="topbarUserDropdown" role="menu" hidden>
+          <div class="topbar-user-dropdown-head">
+            <div class="topbar-user-dropdown-name"><%= user.name %></div>
+            <div class="topbar-user-dropdown-email"><%= user.email %></div>
+          </div>
+          <a href="/account" role="menuitem">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A10.969 10.969 0 0112 15c2.236 0 4.315.669 6.034 1.816M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            My Account
+          </a>
+          <div class="topbar-user-dropdown-divider"></div>
+          <a href="/logout" role="menuitem" class="danger">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+            Sign out
+          </a>
+        </div>
+      </div>
       <div class="topbar-time" id="currentTime"></div>
     </div>
   </div>
@@ -511,6 +529,25 @@
       a.classList.add('active');
     }
   });
+
+  // Topbar account dropdown (My Account / Sign out)
+  (function() {
+    const trigger = document.getElementById('topbarUserTrigger');
+    const dropdown = document.getElementById('topbarUserDropdown');
+    if (!trigger || !dropdown) return;
+    const close = () => { dropdown.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
+    const open = () => { dropdown.hidden = false; trigger.setAttribute('aria-expanded', 'true'); };
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (dropdown.hidden) open(); else close();
+    });
+    document.addEventListener('click', (e) => {
+      if (!dropdown.hidden && !dropdown.contains(e.target) && e.target !== trigger) close();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !dropdown.hidden) { close(); trigger.focus(); }
+    });
+  })();
 
   // Spotlight-style nav filter
   (function() {
