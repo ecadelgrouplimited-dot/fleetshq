@@ -27,7 +27,7 @@
         <div>
           <div style="font-weight:800;font-size:17px;line-height:1.1">${esc(emp.fullName)}</div>
           <div class="text-sm text-muted" style="margin:2px 0 10px">${esc(emp.jobTitle)}</div>
-          ${['director','hr_manager'].includes(user.role) ? `
+          ${(['director','hr_manager'].includes(user.role) || user.employeeId === emp.id) ? `
           <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0">
             <span id="empPhotoBtnLabel">${emp.photoStorageKey ? 'Change photo' : 'Add photo'}</span>
             <input type="file" id="empPhotoInput" accept="image/jpeg,image/png,image/webp" hidden>

@@ -828,7 +828,12 @@ router.get('/employees/:id/photo', webAuth, async (req, res) => {
   } catch (e) { return res.status(404).end(); }
 });
 
-router.post('/employees/:id/photo', webAuth, requireRoles(...hrRoles),
+const requireOwnPhotoOrHr = (req, res, next) => {
+  if (hasRole(req.user, hrRoles) || req.user.employeeId === req.params.id) return next();
+  return res.status(403).json({ success: false, error: 'You do not have permission to update this photo.' });
+};
+
+router.post('/employees/:id/photo', webAuth, requireOwnPhotoOrHr,
   (req, res, next) => { req.uploadSubdir = `employees/${req.params.id}`; next(); },
   upload.single('image'),
   async (req, res) => {

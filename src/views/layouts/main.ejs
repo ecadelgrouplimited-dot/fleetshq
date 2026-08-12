@@ -408,10 +408,28 @@
         <span>All Operating Centres</span>
         <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </div>
-      <div class="topbar-filter" title="Date">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        <span id="topbarDate"></span>
-        <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      <div class="topbar-date-menu">
+        <button type="button" class="topbar-filter" id="topbarDateTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="topbarDateDropdown" title="Date">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <span id="topbarDate"></span>
+          <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="topbar-date-dropdown" id="topbarDateDropdown" role="menu" hidden>
+          <div class="cal-head">
+            <button type="button" class="cal-nav" id="calPrevMonth" aria-label="Previous month">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="cal-month-label" id="calMonthLabel"></span>
+            <button type="button" class="cal-nav" id="calNextMonth" aria-label="Next month">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="cal-weekdays">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <button type="button" class="cal-today-btn" id="calToday">Today</button>
+        </div>
       </div>
       <label class="topbar-search">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
@@ -477,10 +495,87 @@
     setTimeout(tick, 1000);
   })();
 
+  // Topbar date chip + calendar dropdown
   (function() {
-    var el = document.getElementById('topbarDate');
-    if (!el) return;
-    el.textContent = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    var label = document.getElementById('topbarDate');
+    var trigger = document.getElementById('topbarDateTrigger');
+    var dropdown = document.getElementById('topbarDateDropdown');
+    var monthLabel = document.getElementById('calMonthLabel');
+    var grid = document.getElementById('calGrid');
+    if (!label || !trigger || !dropdown || !grid) return;
+
+    var todayKey = function(d) { return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); };
+    var today = new Date();
+    var stored = null;
+    try { var raw = localStorage.getItem('fleetshq.topbarDate'); if (raw) stored = new Date(raw); } catch (e) {}
+    var selected = (stored && !isNaN(stored)) ? stored : new Date(today);
+    var viewYear = selected.getFullYear();
+    var viewMonth = selected.getMonth();
+
+    var formatChip = function(d) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); };
+    label.textContent = formatChip(selected);
+
+    var renderGrid = function() {
+      monthLabel.textContent = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+      grid.innerHTML = '';
+      var firstOfMonth = new Date(viewYear, viewMonth, 1);
+      var startOffset = (firstOfMonth.getDay() + 6) % 7; // Monday-first grid
+      var cursor = new Date(viewYear, viewMonth, 1 - startOffset);
+      for (var i = 0; i < 42; i++) {
+        (function(dayDate) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cal-day';
+          if (dayDate.getMonth() !== viewMonth) btn.classList.add('is-outside');
+          if (todayKey(dayDate) === todayKey(today)) btn.classList.add('is-today');
+          if (todayKey(dayDate) === todayKey(selected)) btn.classList.add('is-selected');
+          btn.textContent = dayDate.getDate();
+          btn.addEventListener('click', function() {
+            selected = dayDate;
+            viewYear = selected.getFullYear();
+            viewMonth = selected.getMonth();
+            label.textContent = formatChip(selected);
+            try { localStorage.setItem('fleetshq.topbarDate', selected.toISOString()); } catch (e) {}
+            document.dispatchEvent(new CustomEvent('fleetshq:date-change', { detail: { date: selected } }));
+            renderGrid();
+            close();
+          });
+          grid.appendChild(btn);
+        })(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    };
+
+    var close = function() { dropdown.hidden = true; trigger.setAttribute('aria-expanded', 'false'); };
+    var open = function() { renderGrid(); dropdown.hidden = false; trigger.setAttribute('aria-expanded', 'true'); };
+    trigger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (dropdown.hidden) open(); else close();
+    });
+    document.addEventListener('click', function(e) {
+      if (!dropdown.hidden && !dropdown.contains(e.target) && e.target !== trigger) close();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && !dropdown.hidden) { close(); trigger.focus(); }
+    });
+    document.getElementById('calPrevMonth').addEventListener('click', function() {
+      viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+      renderGrid();
+    });
+    document.getElementById('calNextMonth').addEventListener('click', function() {
+      viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+      renderGrid();
+    });
+    document.getElementById('calToday').addEventListener('click', function() {
+      selected = new Date();
+      viewYear = selected.getFullYear();
+      viewMonth = selected.getMonth();
+      label.textContent = formatChip(selected);
+      try { localStorage.setItem('fleetshq.topbarDate', selected.toISOString()); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('fleetshq:date-change', { detail: { date: selected } }));
+      renderGrid();
+      close();
+    });
   })();
 
   // Theme toggle — persist to cookie (1yr) + localStorage; instant, no reload
