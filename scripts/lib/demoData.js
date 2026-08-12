@@ -11,6 +11,56 @@
 // (recognised by its VIN/id prefix), rather than silently upserting into it.
 
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const { UPLOAD_DIR } = require('../../src/config/storage');
+
+// Deterministic hash -> [0, 360) hue, so the same employee id always gets the
+// same colours across re-seeds without needing to persist anything extra.
+function hueFromId(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return h % 360;
+}
+
+// A generic head-and-shoulders silhouette on a gradient background — an
+// avatar placeholder in the Slack/Trello mould, not a photo of a person, so
+// nothing here is mistakable for anyone's real likeness. Built as inline SVG
+// with no external service or image library involved, so it seeds instantly
+// and identically everywhere (offline, sandboxed, production).
+function buildAvatarSvg(id) {
+  const h1 = hueFromId(id);
+  const h2 = (h1 + 42) % 360;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="hsl(${h1},68%,52%)"/>
+    <stop offset="100%" stop-color="hsl(${h2},68%,40%)"/>
+  </linearGradient></defs>
+  <rect width="256" height="256" fill="url(#g)"/>
+  <circle cx="128" cy="98" r="46" fill="rgba(255,255,255,.92)"/>
+  <path d="M38 258c0-68 40-112 90-112s90 44 90 112" fill="rgba(255,255,255,.92)"/>
+</svg>`;
+}
+
+// Seeds a placeholder avatar through the exact same storage convention the
+// real /employees/:id/photo upload uses, so it renders identically and an
+// admin/the employee can simply replace it later via the normal upload flow.
+// Never overwrites a photo that's already set — re-running the seed must not
+// clobber a real upload someone made after the last run.
+async function seedAvatarPhoto(prisma, employee) {
+  if (employee.photoStorageKey) return;
+  try {
+    const dir = path.join(UPLOAD_DIR, 'employees', employee.id);
+    fs.mkdirSync(dir, { recursive: true });
+    const filePath = path.join(dir, 'seed-avatar.svg');
+    fs.writeFileSync(filePath, buildAvatarSvg(employee.id));
+    const storageKey = path.relative(process.cwd(), filePath).split(path.sep).join('/');
+    await prisma.employee.update({ where: { id: employee.id }, data: { photoStorageKey: storageKey } });
+    employee.photoStorageKey = storageKey;
+  } catch (e) {
+    console.warn(`Could not seed a placeholder avatar for ${employee.fullName}: ${e.message}`);
+  }
+}
 
 const daysFromNow = (n) => {
   const d = new Date();
@@ -134,6 +184,9 @@ async function seedDemoData({ prisma, tenantId, domain, loginPrefix = '', passwo
     if (e.key === 'emp-driver-006') employeeRecords.push(rec); // Caroline also drives — keeps her in the rota
   }
   const allEmployees = [...driverRecords, ...officeRecords];
+  for (const employee of allEmployees) {
+    await seedAvatarPhoto(prisma, employee);
+  }
 
   // ── SPONSORED WORKERS ────────────────────────────────────────────────
   await prisma.sponsoredWorker.upsert({

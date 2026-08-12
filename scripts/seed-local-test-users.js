@@ -6,14 +6,6 @@ const { seedDemoData } = require('./lib/demoData');
 const prisma = new PrismaClient();
 const PASSWORD = process.env.LOCAL_TEST_PASSWORD || 'Demo2024!';
 
-// Avatars: the app renders a real photo when Employee.photoStorageKey is set
-// (served via the authenticated /employees/:id/photo route), otherwise it
-// falls back to a deterministic tinted-initials chip (see avatar() in
-// src/utils/uiHelpers.js). We deliberately leave photoStorageKey null here —
-// hot-linking stock/AI "face" photos would (a) violate the app's CSP, which
-// only allows self/data/blob image sources, and (b) put fabricated headshots
-// into a client demo, which we'd rather not do without real staff photos.
-
 async function main() {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Refusing to run local test seed in production — use `npm run seed:live-test` instead.');
