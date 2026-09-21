@@ -1,10 +1,67 @@
+<%
+// ── Transport Manager dashboard ───────────────────────────────────────────────
+// Layout follows public/new_designs/68703.jpg:
+//   row 1  compliance gauge + 4 KPI cards
+//   row 2  Compliance Overview (12 tiles) | Recent Alerts rail
+//   row 3  Compliance Trend + Top Risk Drivers | Upcoming Tasks rail
+//   row 4  Fuel / AdBlue / Finance / Fleet Availability
+//
+// Icon markup for the compliance tiles. Each entry is the inner SVG of a
+// 24×24 outline icon; the tile paints it with its own tone colour.
+const ICONS = {
+  pmi: '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
+  mot: '<path d="M3 16v-3.2a2 2 0 01.4-1.2l2.2-3A2 2 0 017.2 8h9.6a2 2 0 011.6.8l2.2 3a2 2 0 01.4 1.2V16M5 16h14"/><circle cx="7" cy="16.5" r="1.6"/><circle cx="17" cy="16.5" r="1.6"/>',
+  brake: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/>',
+  defects: '<path d="M12 9.5v4m0 3.5h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z"/>',
+  vor: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>',
+  insurance: '<path d="M12 3l7.5 3v5.2c0 4.6-3.1 8.5-7.5 10.3C7.6 19.7 4.5 15.8 4.5 11.2V6L12 3z"/><path d="M9 12l2.2 2.2L15.2 10"/>',
+  roadtax: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+  licence: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.8-2.3 3-2.3s2.4.7 3 2.3M14.5 10.5h4M14.5 13.5h3"/>',
+  cpc: '<path d="M12 4l9.5 4.6L12 13.2 2.5 8.6 12 4z"/><path d="M6.5 11v4.4c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3V11"/>',
+  infringements: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.4V12l3 2"/>',
+  tachocard: '<path d="M12 3.5v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>',
+  training: '<path d="M12 6.4v13m0-13C10.8 5.6 9.2 5.1 7.5 5.1S4.2 5.6 3 6.4v13c1.2-.8 2.8-1.3 4.5-1.3s3.3.5 4.5 1.3m0-13c1.2-.8 2.8-1.3 4.5-1.3s3.3.5 4.5 1.3v13c-1.2-.8-2.8-1.3-4.5-1.3s-3.3.5-4.5 1.3"/>',
+};
+// Icon per compliance-task category, for the Upcoming Tasks rail.
+const TASK_ICONS = {
+  vehicle_compliance: ICONS.mot, driver_compliance: ICONS.licence, tachograph: ICONS.infringements,
+  insurance: ICONS.insurance, health_safety: ICONS.defects, training: ICONS.training,
+  licensing: ICONS.cpc, other: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.2l2.3 2.3 4.7-4.7"/>',
+};
+const TASK_TONES = {
+  vehicle_compliance: 'green', driver_compliance: 'green', tachograph: 'red', insurance: 'blue',
+  health_safety: 'amber', training: 'blue', licensing: 'orange', other: 'blue',
+};
+const band = score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At Risk';
+const gaugeColor = score.overall >= 85 ? '#16a34a' : score.overall >= 70 ? '#f59e0b' : '#ef4444';
+// Alerts carry `daysUntil`, not a date — turn that back into the due date the
+// design shows on the right of each row.
+const alertDate = (a) => {
+  if (a.daysUntil === null || a.daysUntil === undefined) return '';
+  const d = new Date();
+  d.setDate(d.getDate() + a.daysUntil);
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+const taskDate = (t) => {
+  if (!t.dueDate) return '';
+  const due = new Date(t.dueDate); due.setHours(0, 0, 0, 0);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const diff = Math.round((due - now) / 86400000);
+  if (diff < 0) return 'Overdue';
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  return due.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+const trendPoints = complianceTrend.filter((p) => p.value !== null);
+const svgIcon = (inner, cls) => `<span class="fhq-t-icon ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg></span>`;
+%>
 <%- include('../layouts/main', { body: `
 <div class="fhq-dashboard">
   ${typeof platformQueue !== 'undefined' && platformQueue ? `
   <a href="/platform" class="fhq-banner">
     <span class="fhq-banner-icon">!</span>
     <span><strong>${platformQueue.pendingActivation} awaiting activation</strong>${platformQueue.inFlight > 0 ? ` · ${platformQueue.inFlight} registrations in progress` : ''}</span>
-    <span>Review queue -></span>
+    <span>Review queue →</span>
   </a>` : ''}
 
   ${typeof setup !== 'undefined' && setup ? `
@@ -18,201 +75,231 @@
     </div>
   </div>` : ''}
 
+  <!-- ── Row 1: compliance score + headline KPIs ─────────────────────── -->
   <div class="fhq-kpis">
     <a href="/compliance" class="fhq-card fhq-score-card">
       <div class="fhq-card-title">Overall Compliance Score</div>
       <div class="fhq-score-wrap">
-        <canvas id="fhqScoreGauge" width="132" height="132"></canvas>
-        <div class="fhq-score-value">${score.overall.toFixed(0)}<span>%</span><small>${score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At Risk'}</small></div>
+        <canvas id="fhqScoreGauge" width="128" height="128"></canvas>
+        <div class="fhq-score-value"><b>${score.overall.toFixed(0)}<span>%</span></b><small>${band}</small></div>
       </div>
-      <div class="fhq-card-foot">
-        ${scoreDelta === null ? '<span class="muted">No prior score</span>' : `<span class="${scoreDelta >= 0 ? 'good' : 'bad'}">${scoreDelta >= 0 ? 'up' : 'down'} ${Math.abs(scoreDelta).toFixed(0)}%</span> <span class="muted">from last month</span>`}
-        <strong>View Score Breakdown -></strong>
+      <div class="fhq-score-foot">
+        ${scoreDelta === null
+          ? '<span class="muted">No prior score</span>'
+          : `<span class="fhq-delta ${scoreDelta >= 0 ? 'good' : 'bad'}">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${scoreDelta >= 0 ? 'M12 19V5m0 0l-6 6m6-6l6 6' : 'M12 5v14m0 0l6-6m-6 6l-6-6'}"/></svg>
+               ${Math.abs(scoreDelta).toFixed(0)}%
+             </span><span class="muted">from last month</span>`}
       </div>
+      <span class="fhq-link">View Score Breakdown <i>→</i></span>
     </a>
 
     ${[
-      { label: 'Drivers', value: stats.driverCount, sub: 'Total Drivers', actions: stats.driverActions, href: '/employees?type=drivers', tone: 'blue', icon: 'M17 20h5v-2a3 3 0 00-5.36-1.86M17 20H7m10 0v-2a5 5 0 00-10 0v2m8-13a3 3 0 11-6 0 3 3 0 016 0z' },
-      { label: 'Vehicles', value: stats.totalVehicles, sub: 'Total Vehicles', actions: stats.vehicleActions, href: '/fleet', tone: 'purple', icon: 'M3 7h11v8H3zM14 10h4l3 3v2h-7zM7 19a2 2 0 100-4 2 2 0 000 4zM18 19a2 2 0 100-4 2 2 0 000 4z' },
-      { label: 'Trailers', value: stats.totalTrailers, sub: 'Total Trailers', actions: stats.trailerActions, href: '/trailers', tone: 'teal', icon: 'M4 8h12v7H4zM16 11h3l2 2v2h-5zM7 18a2 2 0 100-4 2 2 0 000 4zM18 18a2 2 0 100-4 2 2 0 000 4z' },
-      { label: 'Compliance Alerts', value: alerts.length, sub: 'Open Alerts', actions: alertGroups.critical.length, href: '#fhqAlerts', tone: 'red', icon: 'M12 9v4m0 4h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z' },
+      { label: 'Drivers', value: stats.driverCount, sub: 'Total Drivers', actions: stats.driverActions, actionTone: 'red',
+        href: '/employees?type=drivers', linkLabel: 'View Drivers', tone: 'blue',
+        icon: '<circle cx="9" cy="8" r="3.3"/><path d="M3.5 19.5c0-3.1 2.5-5.4 5.5-5.4s5.5 2.3 5.5 5.4"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.5 14.4c2.9-.5 5 1.6 5 4.4"/>' },
+      { label: 'Vehicles', value: stats.totalVehicles, sub: 'Total Vehicles', actions: stats.vehicleActions, actionTone: 'red',
+        href: '/fleet', linkLabel: 'View Vehicles', tone: 'purple',
+        icon: '<rect x="2.5" y="6.5" width="11" height="9" rx="1.5"/><path d="M13.5 9.5h3.6l3.4 3.4v2.6h-7z"/><circle cx="7" cy="17.6" r="1.9"/><circle cx="17.5" cy="17.6" r="1.9"/>' },
+      { label: 'Trailers', value: stats.totalTrailers, sub: 'Total Trailers', actions: stats.trailerActions, actionTone: 'amber',
+        href: '/trailers', linkLabel: 'View Trailers', tone: 'teal',
+        icon: '<rect x="2.5" y="7" width="15" height="9" rx="1.6"/><path d="M17.5 13h4v2.4h-4z"/><circle cx="7.5" cy="18" r="1.7"/><circle cx="13.5" cy="18" r="1.7"/>' },
+      { label: 'Compliance Alerts', value: alerts.length, sub: 'Open Alerts', actions: null, actionTone: 'red',
+        href: '#fhqAlerts', linkLabel: 'View All Alerts', tone: 'red',
+        icon: '<path d="M12 9.2v4.3m0 3.4h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z"/>' },
     ].map(k => `
     <a href="${k.href}" class="fhq-card fhq-kpi ${k.tone}">
-      <div class="fhq-kpi-head">
-        <span class="fhq-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${k.icon}"/></svg></span>
-        <span>${k.label}</span>
+      <div class="fhq-kpi-top">
+        <span class="fhq-kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${k.icon}</svg></span>
+        <span class="fhq-kpi-meta">
+          <span class="fhq-kpi-label">${k.label}</span>
+          <span class="fhq-kpi-value">${k.value}</span>
+          <span class="fhq-kpi-sub">${k.sub}</span>
+        </span>
       </div>
-      <div class="fhq-kpi-value">${k.value}</div>
-      <div class="fhq-kpi-sub">${k.sub}</div>
-      <div class="fhq-kpi-actions"><strong>${k.actions}</strong> Actions Required</div>
-      <div class="fhq-card-foot"><strong>View ${k.label} -></strong></div>
+      ${k.actions === null ? '' : `<div class="fhq-kpi-actions"><strong class="${k.actionTone}">${k.actions}</strong><span>Actions Required</span></div>`}
+      <span class="fhq-link">${k.linkLabel} <i>→</i></span>
     </a>`).join('')}
   </div>
 
+  <!-- ── Rows 2–3: compliance detail (left) + alert/task rail (right) ── -->
   <div class="fhq-main-grid">
-    <section class="fhq-card fhq-rota">
-      <div class="fhq-section-head">
-        <div>
-          <h3>Employee Rota</h3>
-          <span>${dashboardOps.week.label}</span>
+    <div class="fhq-main-col">
+
+      <section class="fhq-card fhq-overview">
+        <div class="fhq-section-head"><h3>Compliance Overview</h3></div>
+        <div class="fhq-tiles">
+          ${complianceTiles.map(t => `
+          <a href="${t.href}" class="fhq-tile ${t.tone}">
+            <div class="fhq-tile-head">
+              ${svgIcon(ICONS[t.key] || ICONS.training, t.tone)}
+              <span class="fhq-tile-label">${esc(t.label)}</span>
+            </div>
+            <div class="fhq-tile-count">${t.count}</div>
+            <div class="fhq-tile-unit">${esc(t.unit)}</div>
+            <div class="fhq-tile-bar"><i style="width:${t.denom > 0 ? Math.max(6, Math.min(100, Math.round((t.count / t.denom) * 100))) : 0}%"></i></div>
+          </a>`).join('')}
         </div>
-        <div class="fhq-rota-tools">
-          <a href="${dashboardOps.week.prevHref}" class="btn btn-outline btn-sm" aria-label="Previous week">&lt;</a>
-          <a href="${dashboardOps.week.todayHref}" class="btn btn-outline btn-sm">Today</a>
-          <a href="${dashboardOps.week.nextHref}" class="btn btn-outline btn-sm" aria-label="Next week">&gt;</a>
-          <span class="segmented"><a class="active" href="/">Week</a><a href="/">2 Weeks</a><a href="/">Month</a></span>
-          ${dashboardOps.canManageRota ? `<button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('fhqRotaForm').classList.toggle('open')">Add Rota</button>` : ''}
-        </div>
-      </div>
+      </section>
 
-      <form class="fhq-rota-filters" method="get" action="/">
-        <input type="hidden" name="week" value="${dashboardOps.week.key}">
-        <select name="employeeId" aria-label="Filter employee">
-          <option value="">All employees</option>
-          ${dashboardOps.rotaOptions.employees.map(e => `<option value="${esc(e.id)}" ${dashboardOps.rotaFilters.employeeId === e.id ? 'selected' : ''}>${esc(e.fullName)}</option>`).join('')}
-        </select>
-        <select name="role" aria-label="Filter role">
-          <option value="">All roles</option>
-          ${dashboardOps.rotaOptions.roles.map(role => `<option value="${esc(role)}" ${dashboardOps.rotaFilters.role === role ? 'selected' : ''}>${esc(role)}</option>`).join('')}
-        </select>
-        <select name="location" aria-label="Filter location">
-          <option value="">All locations</option>
-          ${dashboardOps.rotaOptions.locations.map(location => `<option value="${esc(location)}" ${dashboardOps.rotaFilters.location === location ? 'selected' : ''}>${esc(location)}</option>`).join('')}
-        </select>
-        <select name="shiftType" aria-label="Filter shift type">
-          <option value="">All shifts</option>
-          ${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}" ${dashboardOps.rotaFilters.shiftType === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}
-        </select>
-        <button class="btn btn-outline btn-sm">Filters</button>
-        <a href="/?week=${dashboardOps.week.key}" class="btn btn-ghost btn-sm">Clear</a>
-      </form>
+      <div class="fhq-split">
+        <section class="fhq-card fhq-trend">
+          <div class="fhq-section-head"><h3>Compliance Trend <small>(Last 6 Months)</small></h3></div>
+          <div class="fhq-trend-chart">
+            ${trendPoints.length < 2
+              ? '<div class="empty-state"><p>Not enough history yet — the trend appears once a second monthly score is stored.</p></div>'
+              : '<canvas id="fhqTrendChart"></canvas>'}
+          </div>
+          <div class="fhq-trend-chips">
+            ${complianceTrend.map(p => `
+            <span class="fhq-chip ${p.isCurrent ? 'is-current' : ''}">
+              <small>${esc(p.label)}</small>
+              <strong>${p.value === null ? '—' : Math.round(p.value) + '%'}</strong>
+            </span>`).join('')}
+          </div>
+        </section>
 
-      ${dashboardOps.canManageRota ? `
-      <form id="fhqRotaForm" class="fhq-rota-form" method="post" action="/rota">
-        <input type="hidden" name="_csrf" value="${csrfToken}">
-        <select name="employeeId" required><option value="">Employee</option>${dashboardOps.rotaOptions.employees.map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}</select>
-        <input type="date" name="shiftDate" required value="${dashboardOps.week.days.find(d => d.isToday)?.key || dashboardOps.week.days[0].key}">
-        <select name="status">${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}">${s.replace(/_/g, ' ')}</option>`).join('')}</select>
-        <input type="time" name="startTime" aria-label="Start time">
-        <input type="time" name="endTime" aria-label="End time">
-        <select name="vehicleId"><option value="">Vehicle</option>${dashboardOps.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}">${esc(v.registration)}</option>`).join('')}</select>
-        <input name="routeLabel" placeholder="Route / duty">
-        <input name="location" placeholder="Location">
-        <button class="btn btn-primary btn-sm">Save</button>
-      </form>` : ''}
-
-      <div class="fhq-rota-scroll">
-        <table class="fhq-rota-table">
-          <thead>
-            <tr>
-              <th>Employee / Role</th>
-              ${dashboardOps.week.days.map(d => `<th class="${d.isToday ? 'today' : ''}">${d.label}<span>${d.shortDate}</span></th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${dashboardOps.rotaRows.length === 0 ? `<tr><td colspan="8"><div class="empty-state"><p>No active drivers to schedule</p></div></td></tr>` : dashboardOps.rotaRows.map(row => `
-            <tr>
-              <td>${avatar(row.employee, { size: 34, withName: true, sub: row.employee.jobTitle || 'Driver' })}</td>
-              ${row.cells.map(cell => `<td><div class="fhq-shift ${cell.tone}">
-                <strong>${esc(cell.time || cell.title)}</strong>
-                <span>${esc(cell.detail || cell.title)}</span>
-                ${dashboardOps.canManageRota && cell.id ? `
-                <details class="fhq-shift-edit">
-                  <summary>Edit</summary>
-                  <form method="post" action="/rota/${cell.id}">
-                    <input type="hidden" name="_csrf" value="${csrfToken}">
-                    <input type="date" name="shiftDate" value="${cell.shiftDate}">
-                    <select name="status">${dashboardOps.rotaOptions.statuses.map(s => `<option value="${s}" ${cell.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}</select>
-                    <input type="time" name="startTime" value="${esc(cell.startTime)}">
-                    <input type="time" name="endTime" value="${esc(cell.endTime)}">
-                    <select name="vehicleId"><option value="">Vehicle</option>${dashboardOps.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}" ${cell.vehicleId === v.id ? 'selected' : ''}>${esc(v.registration)}</option>`).join('')}</select>
-                    <input name="routeLabel" value="${esc(cell.routeLabel)}" placeholder="Route / duty">
-                    <input name="location" value="${esc(cell.location)}" placeholder="Location">
-                    <input name="notes" value="${esc(cell.notes)}" placeholder="Notes">
-                    <button class="btn btn-primary btn-sm">Save</button>
-                  </form>
-                  <form method="post" action="/rota/${cell.id}/delete" data-confirm="Delete this rota shift?">
-                    <input type="hidden" name="_csrf" value="${csrfToken}">
-                    <input type="hidden" name="week" value="${dashboardOps.week.key}">
-                    <button class="btn btn-outline btn-sm">Delete</button>
-                  </form>
-                </details>` : ''}
-              </div></td>`).join('')}
-            </tr>`).join('')}
-          </tbody>
-        </table>
+        <section class="fhq-card fhq-risk">
+          <div class="fhq-section-head compact"><h3>Top Risk Drivers</h3><a href="/driver-risk">View All</a></div>
+          <div class="fhq-risk-list">
+            ${topRiskDrivers.length === 0
+              ? '<div class="empty-state"><p>No infringements or licence points on record</p></div>'
+              : topRiskDrivers.map(d => `
+            <a href="/driver-risk/${d.id}" class="fhq-risk-row">
+              ${avatar(d, { size: 34 })}
+              <span class="fhq-risk-who">
+                <strong>${esc(d.fullName)}</strong>
+                <small>${d.infringements > 0
+                  ? d.infringements + ' Infringement' + (d.infringements === 1 ? '' : 's')
+                  : d.licencePoints + ' Licence point' + (d.licencePoints === 1 ? '' : 's')}</small>
+              </span>
+              <span class="fhq-risk-bar ${d.band}"><i style="width:${d.riskPct}%"></i></span>
+              <span class="fhq-risk-band ${d.band}">${d.band === 'high' ? 'High Risk' : d.band === 'medium' ? 'Medium Risk' : 'Low Risk'}</span>
+            </a>`).join('')}
+          </div>
+          <a href="/driver-risk" class="fhq-foot-link">Go to Driver Risk <i>→</i></a>
+        </section>
       </div>
-      <div class="fhq-legend">
-        ${[
-          ['assigned', 'Assigned'], ['rest_day', 'Rest Day / Off'], ['relief_cover', 'Relief / Cover'],
-          ['on_site', 'On Site / Office'], ['standby', 'Standby'], ['leave', 'Leave'],
-        ].map(([tone, label]) => `<span><i class="${tone}"></i>${label}</span>`).join('')}
-        <em>All times are local to operating centre</em>
-      </div>
-    </section>
+    </div>
 
     <aside class="fhq-rail">
       <section class="fhq-card" id="fhqAlerts">
         <div class="fhq-section-head compact"><h3>Recent Alerts</h3><a href="/reports">View All</a></div>
         <div class="fhq-rail-list">
-          ${alerts.length === 0 ? `<div class="empty-state"><p>No open alerts</p></div>` : alerts.slice(0, 5).map(a => `
+          ${alerts.length === 0 ? '<div class="empty-state"><p>No open alerts</p></div>' : alerts.slice(0, 5).map(a => `
           <a href="${a.href}" class="fhq-rail-item ${a.severity}">
-            <span class="fhq-alert-icon">!</span>
-            <span><strong>${esc(a.message)}</strong><small>${esc(a.preview?.filter(Boolean).slice(0, 2).join(' · ') || a.typeLabel)}</small></span>
-            <em>${a.daysUntil !== null && a.daysUntil !== undefined ? (a.daysUntil < 0 ? 'Overdue' : a.daysUntil + 'd') : ''}</em>
+            <span class="fhq-rail-icon">
+              ${a.severity === 'critical'
+                ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.9 3.6a1 1 0 00-1.8 0L2.4 19.5a1 1 0 00.9 1.5h17.4a1 1 0 00.9-1.5L12.9 3.6zM11 9.4h2v5.2h-2V9.4zm0 6.6h2v2h-2v-2z"/></svg>'
+                : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM11 7h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg>'}
+            </span>
+            <span class="fhq-rail-body">
+              <strong>${esc(a.message)}</strong>
+              <small>${esc(a.entityType === 'vehicle' ? 'Vehicle ' + (a.entityName || '') : (a.entityName || a.typeLabel))}</small>
+            </span>
+            <em>${esc(alertDate(a))}</em>
           </a>`).join('')}
         </div>
+        <a href="/reports" class="fhq-foot-link">View All Alerts <i>→</i></a>
       </section>
 
       <section class="fhq-card">
         <div class="fhq-section-head compact"><h3>Upcoming Tasks</h3><a href="/compliance-tasks">View All</a></div>
         <div class="fhq-rail-list">
-          ${upcomingTasks.length === 0 ? `<div class="empty-state"><p>No upcoming tasks</p></div>` : upcomingTasks.slice(0, 5).map(t => `
-          <a href="/compliance-tasks?task=${t.id}" class="fhq-rail-item task ${t.priority}">
-            <span class="fhq-task-icon"></span>
-            <span><strong>${esc(t.title)}</strong><small>${esc(t.priority)} priority</small></span>
-            <em>${t.dueDate ? (t.isOverdue ? 'Overdue' : new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })) : ''}</em>
+          ${upcomingTasks.length === 0 ? '<div class="empty-state"><p>No upcoming tasks</p></div>' : upcomingTasks.slice(0, 5).map(t => `
+          <a href="/compliance-tasks?task=${t.id}" class="fhq-rail-item task ${t.isOverdue ? 'critical' : t.priority}">
+            ${svgIcon(TASK_ICONS[t.category] || TASK_ICONS.other, TASK_TONES[t.category] || 'blue')}
+            <span class="fhq-rail-body">
+              <strong>${esc(t.title)}</strong>
+              ${t.relatedTo ? `<small>${esc(t.relatedTo)}</small>` : ''}
+            </span>
+            <em class="${t.isOverdue || taskDate(t) === 'Today' ? 'urgent' : ''}">${esc(taskDate(t))}</em>
           </a>`).join('')}
         </div>
+        <a href="/compliance-tasks" class="fhq-foot-link">View All Tasks <i>→</i></a>
       </section>
     </aside>
   </div>
 
+  <!-- ── Row 4: fuel / adblue / finance / availability ───────────────── -->
   <div class="fhq-bottom-grid">
     <section class="fhq-card fhq-mini-card">
       <div class="fhq-section-head compact"><h3>Fuel Overview <small>(This Month)</small></h3><a href="/fleet/fuel">View Details</a></div>
-      <div class="fhq-mini-main"><span class="fhq-mini-icon green">F</span><div><strong>${dashboardOps.fuel.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong><small>Total Fuel</small>${dashboardOps.fuel.deltaPct === null ? '' : `<em class="${dashboardOps.fuel.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.fuel.deltaPct >= 0 ? '+' : ''}${dashboardOps.fuel.deltaPct}% vs last month</em>`}</div></div>
-      <div class="fhq-bars">${dashboardOps.fuel.bars.slice(-18).map(v => `<i style="height:${Math.max(8, Math.min(48, v / Math.max(...dashboardOps.fuel.bars, 1) * 48))}px"></i>`).join('')}</div>
-      <ol>${dashboardOps.fuel.topConsumers.map(c => `<li><span>${esc(c.label)}</span><strong>${c.value.toFixed(0)} L</strong></li>`).join('')}</ol>
+      <div class="fhq-mini-main">
+        <span class="fhq-mini-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V6a2 2 0 012-2h5a2 2 0 012 2v14M3 20h11M6.5 9h4M15 11h2.5a1.5 1.5 0 011.5 1.5V17a1.5 1.5 0 003 0V9l-3-3"/></svg></span>
+        <div>
+          <small>Total Fuel (L)</small>
+          <strong>${dashboardOps.fuel.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong>
+          ${dashboardOps.fuel.deltaPct === null ? '' : `<em class="${dashboardOps.fuel.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.fuel.deltaPct <= 0 ? '↓' : '↑'} ${Math.abs(dashboardOps.fuel.deltaPct)}% <span>vs last month</span></em>`}
+        </div>
+      </div>
+      <div class="fhq-mini-split">
+        <div class="fhq-bars">${dashboardOps.fuel.bars.slice(-16).map(v => `<i style="height:${Math.max(4, Math.min(46, v / Math.max(...dashboardOps.fuel.bars, 1) * 46))}px"></i>`).join('')}</div>
+        <div class="fhq-top-list">
+          <span class="fhq-top-title">Top Consumers</span>
+          <ol>${dashboardOps.fuel.topConsumers.length
+            ? dashboardOps.fuel.topConsumers.map((c, i) => `<li><span>${i + 1}. ${esc(c.label)}</span><strong>${c.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong></li>`).join('')
+            : '<li><span>No fuel logged</span><strong>0 L</strong></li>'}</ol>
+        </div>
+      </div>
     </section>
 
     <section class="fhq-card fhq-mini-card">
       <div class="fhq-section-head compact"><h3>AdBlue Overview <small>(This Month)</small></h3><a href="/fleet/adblue">View Details</a></div>
-      <div class="fhq-mini-main"><span class="fhq-mini-icon blue">A</span><div><strong>${dashboardOps.adBlue.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong><small>Total AdBlue</small>${dashboardOps.adBlue.deltaPct === null ? '' : `<em class="${dashboardOps.adBlue.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.adBlue.deltaPct >= 0 ? '+' : ''}${dashboardOps.adBlue.deltaPct}% vs last month</em>`}</div></div>
-      <div class="fhq-placeholder-bars">${dashboardOps.adBlue.bars.slice(-18).map(v => `<i style="height:${Math.max(8, Math.min(48, v / Math.max(...dashboardOps.adBlue.bars, 1) * 48))}px"></i>`).join('')}</div>
-      <ol>${dashboardOps.adBlue.topConsumers.length ? dashboardOps.adBlue.topConsumers.map(c => `<li><span>${esc(c.label)}</span><strong>${c.value.toFixed(0)} L</strong></li>`).join('') : '<li><span>No AdBlue logged</span><strong>0 L</strong></li>'}</ol>
+      <div class="fhq-mini-main">
+        <span class="fhq-mini-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2s6 6.3 6 10.6a6 6 0 11-12 0c0-4.3 6-10.6 6-10.6z"/></svg></span>
+        <div>
+          <small>Total AdBlue (L)</small>
+          <strong>${dashboardOps.adBlue.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong>
+          ${dashboardOps.adBlue.deltaPct === null ? '' : `<em class="${dashboardOps.adBlue.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.adBlue.deltaPct <= 0 ? '↓' : '↑'} ${Math.abs(dashboardOps.adBlue.deltaPct)}% <span>vs last month</span></em>`}
+        </div>
+      </div>
+      <div class="fhq-mini-split">
+        <div class="fhq-bars blue">${dashboardOps.adBlue.bars.slice(-16).map(v => `<i style="height:${Math.max(4, Math.min(46, v / Math.max(...dashboardOps.adBlue.bars, 1) * 46))}px"></i>`).join('')}</div>
+        <div class="fhq-top-list">
+          <span class="fhq-top-title">Top Consumers</span>
+          <ol>${dashboardOps.adBlue.topConsumers.length
+            ? dashboardOps.adBlue.topConsumers.map((c, i) => `<li><span>${i + 1}. ${esc(c.label)}</span><strong>${c.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong></li>`).join('')
+            : '<li><span>No AdBlue logged</span><strong>0 L</strong></li>'}</ol>
+        </div>
+      </div>
     </section>
 
     <section class="fhq-card fhq-mini-card finance">
       <div class="fhq-section-head compact"><h3>Finance Overview <small>(This Month)</small></h3><a href="/finance">View Details</a></div>
       <div class="fhq-finance-values">
-        <div><small>Total Income</small><strong>£${dashboardOps.finance.income.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
-        <div><small>Total Expenses</small><strong>£${dashboardOps.finance.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
-        <div><small>Net Profit</small><strong>£${dashboardOps.finance.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></div>
+        <div>
+          <span class="fhq-fin-head"><i class="fhq-mini-icon green sm">£</i><small>Total Income</small></span>
+          <strong>£${dashboardOps.finance.income.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+        </div>
+        <div>
+          <small>Total Expenses</small>
+          <strong>£${dashboardOps.finance.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+        </div>
+        <div>
+          <small>Net Profit</small>
+          <strong>£${dashboardOps.finance.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+        </div>
       </div>
-      <div class="fhq-finance-chart"><canvas id="fhqFinanceChart"></canvas></div>
+      <div class="fhq-finance-body">
+        <div class="fhq-finance-chart"><canvas id="fhqFinanceChart"></canvas></div>
+        <ul class="fhq-finance-legend" id="fhqFinanceLegend"></ul>
+      </div>
     </section>
 
     <section class="fhq-card fhq-mini-card availability">
       <div class="fhq-section-head compact"><h3>Fleet Availability</h3><a href="/fleet/overview">View Details</a></div>
       <div class="fhq-availability-body">
-        <div class="fhq-fleet-gauge"><canvas id="fhqFleetGauge" width="118" height="118"></canvas><span>${dashboardOps.fleet.pct}%<small>Available</small></span></div>
+        <div class="fhq-fleet-gauge">
+          <canvas id="fhqFleetGauge" width="112" height="112"></canvas>
+          <span>${dashboardOps.fleet.pct}%<small>Available</small></span>
+        </div>
         <dl>
           <dt>Total Fleet</dt><dd>${dashboardOps.fleet.total}</dd>
-          <dt>Available</dt><dd class="good">${dashboardOps.fleet.available}</dd>
-          <dt>In Use</dt><dd>${dashboardOps.fleet.inUse}</dd>
-          <dt>In Workshop</dt><dd class="bad">${dashboardOps.fleet.inWorkshop}</dd>
-          <dt>Out of Service</dt><dd>${dashboardOps.fleet.outOfService}</dd>
+          <dt class="good">Available</dt><dd class="good">${dashboardOps.fleet.available}</dd>
+          <dt class="info">In Use</dt><dd class="info">${dashboardOps.fleet.inUse}</dd>
+          <dt class="warn">In Workshop</dt><dd class="warn">${dashboardOps.fleet.inWorkshop}</dd>
+          <dt>Out of Service</dt><dd class="${dashboardOps.fleet.outOfService > 0 ? 'bad' : ''}">${dashboardOps.fleet.outOfService}</dd>
         </dl>
       </div>
     </section>
@@ -220,159 +307,298 @@
 </div>
 
 <style>
-  .fhq-dashboard { display:flex; flex-direction:column; gap:16px; color:#0f172a; }
-  .fhq-banner, .fhq-setup { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:8px; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; text-decoration:none; }
+  /* ── shell ─────────────────────────────────────────────────────────── */
+  .fhq-dashboard { display:flex; flex-direction:column; gap:14px; color:#0f172a; }
+  .fhq-card { background:#fff; border:1px solid #e9eef5; border-radius:10px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  .good { color:#16a34a; } .bad { color:#dc2626; } .muted { color:#64748b; }
+  .fhq-banner, .fhq-setup { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:10px; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; text-decoration:none; }
   .fhq-banner-icon { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#f97316; color:#fff; font-weight:900; }
   .fhq-setup { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; align-items:flex-start; }
   .fhq-setup > div:first-child { display:flex; flex-direction:column; gap:2px; }
   .fhq-setup-steps { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
   .fhq-setup-steps a { color:inherit; text-decoration:none; font-size:12px; font-weight:700; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,.65); }
   .fhq-setup-steps a.done { color:#047857; }
-  .fhq-kpis { display:grid; grid-template-columns:1.25fr repeat(4, 1fr); gap:14px; }
-  .fhq-card { background:#fff; border:1px solid #edf1f7; border-radius:8px; box-shadow:0 3px 12px rgba(15,23,42,.035); }
-  .fhq-card a { color:#2563eb; }
-  .fhq-score-card, .fhq-kpi { text-decoration:none; color:#0f172a; padding:18px; min-height:158px; }
-  .fhq-card-title { text-align:center; font-size:12px; font-weight:800; margin-bottom:8px; }
-  .fhq-score-wrap { position:relative; width:132px; height:132px; margin:0 auto; }
-  .fhq-score-value { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:31px; font-weight:900; }
-  .fhq-score-value span { font-size:15px; }
-  .fhq-score-value small { display:block; font-size:11px; font-weight:800; color:#334155; }
-  .fhq-card-foot { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; margin-top:8px; }
-  .fhq-card-foot strong { color:#2563eb; font-size:12px; }
-  .good { color:#16a34a; } .bad { color:#dc2626; } .muted { color:#64748b; }
-  .fhq-kpi { display:flex; flex-direction:column; }
-  .fhq-kpi-head { display:flex; align-items:center; gap:12px; font-size:12px; font-weight:800; color:#334155; }
-  .fhq-icon { width:42px; height:42px; border-radius:50%; display:grid; place-items:center; }
-  .fhq-icon svg { width:23px; height:23px; }
-  .fhq-kpi.blue .fhq-icon { color:#2563eb; background:#eff6ff; }
-  .fhq-kpi.purple .fhq-icon { color:#7c3aed; background:#f5f3ff; }
-  .fhq-kpi.teal .fhq-icon { color:#0d9488; background:#ccfbf1; }
-  .fhq-kpi.red .fhq-icon { color:#dc2626; background:#fee2e2; }
-  .fhq-kpi-value { font-size:31px; line-height:1; font-weight:900; margin-top:10px; }
-  .fhq-kpi-sub { color:#64748b; font-size:12px; font-weight:700; margin-top:5px; }
-  .fhq-kpi-actions { margin-top:18px; padding-top:14px; border-top:1px solid #edf1f7; color:#475569; font-size:12px; }
-  .fhq-kpi-actions strong { color:#dc2626; font-size:20px; margin-right:18px; }
-  .fhq-main-grid { display:grid; grid-template-columns:minmax(0, 1fr) 310px; gap:14px; align-items:start; }
-  .fhq-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid #edf1f7; }
-  .fhq-section-head h3 { font-size:16px; margin:0; }
-  .fhq-section-head span, .fhq-section-head small { color:#64748b; font-size:12px; font-weight:700; }
-  .fhq-section-head.compact { padding:13px 14px; }
+
+  /* Shared blue "View X →" affordance at the foot of a card. */
+  .fhq-link { margin-top:auto; padding-top:12px; color:#2563eb; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
+  .fhq-link i { font-style:normal; }
+  .fhq-foot-link { display:flex; align-items:center; gap:7px; padding:11px 16px 13px; color:#2563eb; font-size:12px; font-weight:700; text-decoration:none; }
+  .fhq-foot-link i { font-style:normal; }
+
+  /* ── row 1: score + KPIs ───────────────────────────────────────────── */
+  .fhq-kpis { display:grid; grid-template-columns:1.06fr repeat(4, 1fr); gap:13px; }
+  .fhq-score-card, .fhq-kpi { display:flex; flex-direction:column; text-decoration:none; color:#0f172a; padding:15px 17px 14px; }
+  .fhq-card-title { text-align:center; font-size:12.5px; font-weight:700; color:#334155; }
+  .fhq-score-wrap { position:relative; width:128px; height:128px; margin:8px auto 0; }
+  .fhq-score-value { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:29px; font-weight:800; letter-spacing:-.5px; }
+  .fhq-score-value b { font-weight:inherit; line-height:1; }
+  .fhq-score-value span { font-size:17px; }
+  .fhq-score-value small { display:block; font-size:11.5px; font-weight:600; color:#475569; letter-spacing:0; margin-top:1px; }
+  .fhq-score-foot { display:flex; align-items:center; justify-content:center; gap:7px; font-size:11.5px; margin-top:11px; }
+  .fhq-delta { display:inline-flex; align-items:center; gap:3px; font-weight:700; }
+  .fhq-delta svg { width:11px; height:11px; }
+  .fhq-score-card .fhq-link { justify-content:center; padding-top:7px; }
+
+  .fhq-kpi-top { display:flex; align-items:flex-start; gap:13px; }
+  .fhq-kpi-icon { flex:none; width:42px; height:42px; border-radius:50%; display:grid; place-items:center; }
+  .fhq-kpi-icon svg { width:23px; height:23px; }
+  .fhq-kpi.blue   .fhq-kpi-icon { color:#2563eb; background:#eff6ff; }
+  .fhq-kpi.purple .fhq-kpi-icon { color:#7c3aed; background:#f5f3ff; }
+  .fhq-kpi.teal   .fhq-kpi-icon { color:#0d9488; background:#effefb; }
+  .fhq-kpi.red    .fhq-kpi-icon { color:#dc2626; background:#fef2f2; }
+  .fhq-kpi-meta { display:flex; flex-direction:column; min-width:0; }
+  .fhq-kpi-label { font-size:12.5px; font-weight:600; color:#334155; }
+  .fhq-kpi-value { font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.8px; margin-top:3px; }
+  .fhq-kpi-sub { color:#64748b; font-size:11.5px; margin-top:2px; }
+  .fhq-kpi-actions { display:flex; align-items:baseline; gap:14px; margin-top:16px; }
+  .fhq-kpi-actions strong { font-size:21px; font-weight:800; }
+  .fhq-kpi-actions strong.red { color:#dc2626; } .fhq-kpi-actions strong.amber { color:#f59e0b; }
+  .fhq-kpi-actions span { color:#475569; font-size:12px; }
+
+  /* ── main grid ─────────────────────────────────────────────────────── */
+  .fhq-main-grid { display:grid; grid-template-columns:minmax(0, 1fr) 292px; gap:13px; align-items:start; }
+  .fhq-main-col { display:flex; flex-direction:column; gap:13px; min-width:0; }
+  .fhq-split { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:13px; align-items:start; }
+  .fhq-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 17px 10px; }
+  .fhq-section-head h3 { font-size:15px; margin:0; font-weight:700; letter-spacing:-.2px; }
+  .fhq-section-head small { color:#64748b; font-size:12px; font-weight:500; }
+  .fhq-section-head.compact { padding:13px 15px 9px; }
   .fhq-section-head.compact h3 { font-size:14px; }
-  .fhq-section-head.compact a { font-size:11px; font-weight:800; text-decoration:none; }
-  .fhq-rota-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-  .fhq-rota-filters { display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)) auto auto; gap:8px; padding:0 14px 12px; border-bottom:1px solid #edf1f7; }
-  .fhq-rota-form { display:none; grid-template-columns:1.2fr 150px 140px 95px 95px 130px 1fr 1fr auto; gap:8px; padding:12px 14px; border-bottom:1px solid #edf1f7; background:#f8fafc; }
-  .fhq-rota-form.open { display:grid; }
-  .fhq-rota-form input, .fhq-rota-form select, .fhq-rota-filters select, .fhq-shift-edit input, .fhq-shift-edit select { min-width:0; border:1px solid #cbd5e1; border-radius:7px; padding:7px 8px; font:inherit; font-size:12px; background:#fff; }
-  .fhq-rota-scroll { overflow-x:auto; }
-  .fhq-rota-table { width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
-  .fhq-rota-table th, .fhq-rota-table td { border-right:1px solid #edf1f7; border-bottom:1px solid #edf1f7; padding:10px; vertical-align:middle; }
-  .fhq-rota-table th { text-align:left; font-size:11px; font-weight:900; background:#fbfdff; white-space:nowrap; }
-  .fhq-rota-table th:first-child { width:190px; }
-  .fhq-rota-table th span { display:block; margin-top:2px; color:#64748b; font-weight:700; }
-  .fhq-rota-table th.today { color:#2563eb; }
-  .fhq-shift { min-height:48px; border-radius:6px; padding:7px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; text-align:center; border:1px solid transparent; }
-  .fhq-shift strong { font-size:11px; font-weight:900; }
-  .fhq-shift span { font-size:10.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fhq-shift-edit { margin-top:4px; text-align:left; }
-  .fhq-shift-edit summary { cursor:pointer; list-style:none; font-size:10px; font-weight:900; text-align:center; opacity:.85; }
-  .fhq-shift-edit form { display:grid; grid-template-columns:1fr; gap:5px; margin-top:6px; }
-  .fhq-shift-edit .btn { width:100%; justify-content:center; min-height:28px; padding:4px 6px; font-size:10.5px; }
-  .fhq-shift.assigned { background:#ecfdf5; color:#047857; border-color:#bbf7d0; }
-  .fhq-shift.rest_day { background:#fffbeb; color:#92400e; border-color:#fde68a; }
-  .fhq-shift.relief_cover { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
-  .fhq-shift.on_site, .fhq-shift.office, .fhq-shift.work_from_home { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
-  .fhq-shift.standby { background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
-  .fhq-shift.leave, .fhq-shift.sick, .fhq-shift.training { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
-  .fhq-legend { display:flex; align-items:center; gap:16px; padding:12px 16px; flex-wrap:wrap; font-size:11px; color:#64748b; font-weight:700; }
-  .fhq-legend span { display:inline-flex; align-items:center; gap:6px; }
-  .fhq-legend i { width:9px; height:9px; border-radius:50%; background:#94a3b8; }
-  .fhq-legend i.assigned { background:#34d399; } .fhq-legend i.rest_day { background:#fbbf24; } .fhq-legend i.relief_cover { background:#fda4af; } .fhq-legend i.on_site { background:#93c5fd; } .fhq-legend i.standby { background:#cbd5e1; } .fhq-legend i.leave { background:#c4b5fd; }
-  .fhq-legend em { margin-left:auto; font-style:normal; color:#94a3b8; }
-  .fhq-rail { display:flex; flex-direction:column; gap:14px; }
-  .fhq-rail-list { display:flex; flex-direction:column; padding:4px 8px 10px; }
-  .fhq-rail-item { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; align-items:center; gap:10px; padding:9px 6px; text-decoration:none; color:#0f172a; border-bottom:1px solid #f1f5f9; }
+  .fhq-section-head a { font-size:11.5px; font-weight:600; text-decoration:none; color:#2563eb; }
+
+  /* ── compliance overview tiles ─────────────────────────────────────── */
+  .fhq-tiles { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px; padding:4px 15px 16px; }
+  .fhq-tile { display:flex; flex-direction:column; padding:11px 11px 10px; border-radius:9px; border:1px solid #eef2f7; background:#fff; text-decoration:none; color:#0f172a; transition:border-color .15s, box-shadow .15s, transform .15s; }
+  .fhq-tile:hover { border-color:#dbe3ee; box-shadow:0 4px 12px rgba(15,23,42,.06); transform:translateY(-1px); }
+  .fhq-tile-head { display:flex; align-items:center; gap:8px; min-height:30px; }
+  .fhq-t-icon { flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; }
+  .fhq-t-icon svg { width:17px; height:17px; }
+  .fhq-tile-label { font-size:11px; font-weight:600; color:#334155; line-height:1.25; }
+  .fhq-tile-count { font-size:24px; font-weight:800; letter-spacing:-.6px; margin-top:9px; }
+  .fhq-tile-unit { font-size:10.5px; color:#64748b; margin-top:2px; }
+  .fhq-tile-bar { height:3px; border-radius:2px; margin-top:12px; background:#eef2f7; overflow:hidden; }
+  .fhq-tile-bar i { display:block; height:100%; border-radius:2px; }
+  /* Tone palette shared by tile icons and their progress bars. */
+  .fhq-t-icon.amber  { color:#f59e0b; background:#fef6e7; } .fhq-tile.amber  .fhq-tile-bar i { background:#f59e0b; } .fhq-tile.amber  .fhq-tile-bar { background:#fdf0d5; }
+  .fhq-t-icon.green  { color:#16a34a; background:#eafaf0; } .fhq-tile.green  .fhq-tile-bar i { background:#16a34a; } .fhq-tile.green  .fhq-tile-bar { background:#daf4e4; }
+  .fhq-t-icon.red    { color:#dc2626; background:#fdeeee; } .fhq-tile.red    .fhq-tile-bar i { background:#dc2626; } .fhq-tile.red    .fhq-tile-bar { background:#f8dada; }
+  .fhq-t-icon.purple { color:#7c3aed; background:#f3efff; } .fhq-tile.purple .fhq-tile-bar i { background:#7c3aed; } .fhq-tile.purple .fhq-tile-bar { background:#e7dffc; }
+  .fhq-t-icon.blue   { color:#2563eb; background:#eaf1fe; } .fhq-tile.blue   .fhq-tile-bar i { background:#2563eb; } .fhq-tile.blue   .fhq-tile-bar { background:#d8e5fd; }
+  .fhq-t-icon.orange { color:#ea580c; background:#fef0e7; } .fhq-tile.orange .fhq-tile-bar i { background:#ea580c; } .fhq-tile.orange .fhq-tile-bar { background:#fbdfcd; }
+
+  /* ── compliance trend ──────────────────────────────────────────────── */
+  .fhq-trend-chart { height:132px; padding:2px 15px 0; }
+  .fhq-trend-chips { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:7px; padding:12px 15px 15px; }
+  .fhq-chip { display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 3px 8px; border:1px solid #eef2f7; border-radius:8px; }
+  .fhq-chip small { font-size:8.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
+  .fhq-chip strong { font-size:16px; font-weight:800; letter-spacing:-.4px; }
+  .fhq-chip.is-current { background:#2563eb; border-color:#2563eb; }
+  .fhq-chip.is-current small { color:rgba(255,255,255,.8); }
+  .fhq-chip.is-current strong { color:#fff; }
+
+  /* ── top risk drivers ──────────────────────────────────────────────── */
+  .fhq-risk-list { display:flex; flex-direction:column; padding:2px 15px 0; }
+  .fhq-risk-row { display:grid; grid-template-columns:34px minmax(0, 1fr) minmax(52px, .95fr) auto; align-items:center; gap:10px; padding:8px 0; text-decoration:none; color:#0f172a; }
+  .fhq-risk-who strong { display:block; font-size:12.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fhq-risk-who small { display:block; font-size:11px; color:#64748b; margin-top:1px; }
+  .fhq-risk-bar { height:5px; border-radius:3px; background:#eef2f7; overflow:hidden; }
+  .fhq-risk-bar i { display:block; height:100%; border-radius:3px; }
+  .fhq-risk-bar.high i { background:#dc2626; } .fhq-risk-bar.medium i { background:#f59e0b; } .fhq-risk-bar.low i { background:#16a34a; }
+  .fhq-risk-band { font-size:11px; font-weight:700; white-space:nowrap; text-align:right; }
+  .fhq-risk-band.high { color:#dc2626; } .fhq-risk-band.medium { color:#f59e0b; } .fhq-risk-band.low { color:#16a34a; }
+
+  /* ── alert / task rail ─────────────────────────────────────────────── */
+  .fhq-rail { display:flex; flex-direction:column; gap:13px; }
+  .fhq-rail-list { display:flex; flex-direction:column; padding:0 15px; }
+  .fhq-rail-item { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; align-items:center; column-gap:10px; padding:10px 0; text-decoration:none; color:#0f172a; border-bottom:1px solid #f1f5f9; }
   .fhq-rail-item:last-child { border-bottom:0; }
-  .fhq-rail-item strong { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fhq-rail-item small { display:block; color:#64748b; font-size:11px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fhq-rail-item em { font-style:normal; font-size:10.5px; font-weight:900; color:#dc2626; }
-  .fhq-alert-icon, .fhq-task-icon { width:24px; height:24px; border-radius:50%; display:grid; place-items:center; font-weight:900; font-size:12px; background:#fee2e2; color:#dc2626; }
-  .fhq-rail-item.warning .fhq-alert-icon { background:#fffbeb; color:#d97706; }
-  .fhq-rail-item.notice .fhq-alert-icon, .fhq-task-icon { background:#eff6ff; color:#2563eb; }
-  .fhq-bottom-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; }
-  .fhq-mini-card { min-height:184px; padding-bottom:12px; overflow:hidden; }
-  .fhq-mini-main { display:flex; align-items:center; gap:12px; padding:12px 16px 4px; }
-  .fhq-mini-main strong { display:block; font-size:22px; line-height:1; }
-  .fhq-mini-main small, .fhq-mini-main em { display:block; margin-top:4px; font-size:11px; color:#64748b; font-style:normal; font-weight:800; }
-  .fhq-mini-icon { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; color:#fff; font-weight:900; }
-  .fhq-mini-icon.green { background:#22c55e; } .fhq-mini-icon.blue { background:#3b82f6; }
-  .fhq-bars, .fhq-placeholder-bars { height:55px; display:flex; align-items:end; gap:4px; padding:0 16px; margin-top:6px; }
-  .fhq-bars i, .fhq-placeholder-bars i { flex:1; border-radius:3px 3px 0 0; background:#22c55e; min-height:8px; }
-  .fhq-placeholder-bars i { background:#bfdbfe; opacity:.75; }
-  .fhq-mini-card ol { list-style:none; margin:7px 16px 0; display:flex; flex-direction:column; gap:3px; }
-  .fhq-mini-card li { display:flex; justify-content:space-between; gap:8px; font-size:11px; color:#64748b; }
-  .fhq-mini-card li strong { color:#0f172a; }
-  .fhq-finance-values { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; padding:12px 14px 4px; }
-  .fhq-finance-values small { display:block; font-size:10px; color:#64748b; font-weight:800; }
-  .fhq-finance-values strong { display:block; font-size:15px; margin-top:4px; }
-  .fhq-finance-chart { height:80px; padding:0 16px; }
-  .fhq-availability-body { display:grid; grid-template-columns:122px 1fr; gap:12px; padding:14px; align-items:center; }
-  .fhq-fleet-gauge { position:relative; width:118px; height:118px; }
-  .fhq-fleet-gauge span { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:25px; font-weight:900; }
-  .fhq-fleet-gauge small { display:block; font-size:10px; color:#64748b; }
-  .fhq-availability-body dl { display:grid; grid-template-columns:1fr auto; gap:8px 10px; font-size:12px; }
-  .fhq-availability-body dt { color:#64748b; font-weight:800; }
-  .fhq-availability-body dd { margin:0; font-weight:900; }
+  .fhq-rail-icon { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#fef2f2; color:#dc2626; }
+  .fhq-rail-icon svg { width:17px; height:17px; }
+  .fhq-rail-item.warning .fhq-rail-icon { background:#fff8ec; color:#f59e0b; }
+  .fhq-rail-item.notice  .fhq-rail-icon { background:#fffaeb; color:#eab308; }
+  .fhq-rail-item .fhq-t-icon { width:26px; height:26px; }
+  .fhq-rail-item .fhq-t-icon svg { width:16px; height:16px; }
+  .fhq-rail-body strong { display:block; font-size:12.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fhq-rail-body small { display:block; color:#64748b; font-size:11.5px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fhq-rail-item em { font-style:normal; font-size:11px; font-weight:700; color:#f59e0b; white-space:nowrap; }
+  .fhq-rail-item.critical em, .fhq-rail-item em.urgent { color:#dc2626; }
+
+  /* ── bottom row ────────────────────────────────────────────────────── */
+  .fhq-bottom-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:13px; }
+  .fhq-mini-card { display:flex; flex-direction:column; min-height:190px; overflow:hidden; }
+  .fhq-mini-main { display:flex; align-items:flex-start; gap:11px; padding:4px 15px 0; }
+  .fhq-mini-main small { display:block; font-size:10.5px; color:#64748b; }
+  .fhq-mini-main strong { display:block; font-size:21px; font-weight:800; letter-spacing:-.5px; margin-top:2px; }
+  .fhq-mini-main em { display:block; margin-top:3px; font-size:10.5px; font-style:normal; font-weight:700; }
+  .fhq-mini-main em span { color:#64748b; font-weight:500; }
+  .fhq-mini-icon { flex:none; width:32px; height:32px; border-radius:9px; display:grid; place-items:center; }
+  .fhq-mini-icon svg { width:18px; height:18px; }
+  .fhq-mini-icon.green { background:#eafaf0; color:#16a34a; }
+  .fhq-mini-icon.blue  { background:#eaf1fe; color:#2563eb; }
+  .fhq-mini-icon.sm { width:18px; height:18px; border-radius:50%; font-size:10px; font-weight:800; font-style:normal; }
+  .fhq-mini-split { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.05fr); gap:10px; align-items:end; padding:12px 15px 14px; margin-top:auto; }
+  .fhq-bars { height:48px; display:flex; align-items:flex-end; gap:2.5px; }
+  .fhq-bars i { flex:1; border-radius:2px 2px 0 0; background:#22c55e; min-height:4px; }
+  .fhq-bars.blue i { background:#60a5fa; }
+  .fhq-top-title { display:block; font-size:10.5px; font-weight:700; color:#334155; margin-bottom:4px; }
+  .fhq-top-list ol { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
+  .fhq-top-list li { display:flex; justify-content:space-between; gap:8px; font-size:10.5px; color:#64748b; }
+  .fhq-top-list li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fhq-top-list li strong { color:#0f172a; font-weight:600; white-space:nowrap; }
+
+  .fhq-finance-values { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; padding:4px 15px 0; }
+  .fhq-finance-values small { display:block; font-size:9.5px; color:#64748b; }
+  .fhq-finance-values strong { display:block; font-size:16px; font-weight:800; letter-spacing:-.4px; margin-top:3px; }
+  .fhq-fin-head { display:flex; align-items:center; gap:5px; }
+  .fhq-finance-body { display:grid; grid-template-columns:86px minmax(0, 1fr); gap:10px; align-items:center; padding:10px 15px 14px; margin-top:auto; }
+  .fhq-finance-chart { height:86px; }
+  .fhq-finance-legend { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:4px 8px; }
+  .fhq-finance-legend li { display:flex; align-items:center; gap:5px; font-size:9.5px; color:#475569; min-width:0; }
+  .fhq-finance-legend i { flex:none; width:7px; height:7px; border-radius:50%; }
+  .fhq-finance-legend span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  .fhq-availability-body { display:grid; grid-template-columns:112px minmax(0, 1fr); gap:14px; padding:6px 15px 14px; align-items:center; margin-top:auto; }
+  .fhq-fleet-gauge { position:relative; width:112px; height:112px; }
+  .fhq-fleet-gauge > span { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:23px; font-weight:800; letter-spacing:-.5px; }
+  .fhq-fleet-gauge small { display:block; font-size:10px; font-weight:500; color:#64748b; letter-spacing:0; }
+  .fhq-availability-body dl { display:grid; grid-template-columns:1fr auto; gap:9px 10px; font-size:11.5px; margin:0; }
+  .fhq-availability-body dt { color:#334155; }
+  .fhq-availability-body dd { margin:0; font-weight:700; text-align:right; }
+  .fhq-availability-body .good { color:#16a34a; } .fhq-availability-body .info { color:#2563eb; }
+  .fhq-availability-body .warn { color:#ea580c; } .fhq-availability-body .bad { color:#dc2626; }
+
+  /* ── dark theme ────────────────────────────────────────────────────── */
   [data-theme="dark"] .fhq-dashboard { color:var(--text); }
   [data-theme="dark"] .fhq-card { background:var(--card); border-color:var(--border); }
-  [data-theme="dark"] .fhq-rota-table th { background:var(--surface-2); }
-  [data-theme="dark"] .fhq-rota-table th, [data-theme="dark"] .fhq-rota-table td, [data-theme="dark"] .fhq-section-head, [data-theme="dark"] .fhq-rota-filters { border-color:var(--border); }
-  [data-theme="dark"] .fhq-rota-form { background:var(--surface-2); border-color:var(--border); }
-  [data-theme="dark"] .fhq-rota-form input, [data-theme="dark"] .fhq-rota-form select, [data-theme="dark"] .fhq-rota-filters select, [data-theme="dark"] .fhq-shift-edit input, [data-theme="dark"] .fhq-shift-edit select { background:var(--input-bg); color:var(--text); border-color:var(--border-md); }
-  [data-theme="dark"] .fhq-rail-item { color:var(--text); border-color:var(--border); }
-  @media (max-width:1280px) {
-    .fhq-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
-    .fhq-main-grid { grid-template-columns:1fr; }
-    .fhq-rail { display:grid; grid-template-columns:1fr 1fr; }
+  [data-theme="dark"] .fhq-score-card, [data-theme="dark"] .fhq-kpi,
+  [data-theme="dark"] .fhq-rail-item, [data-theme="dark"] .fhq-risk-row, [data-theme="dark"] .fhq-tile { color:var(--text); }
+  [data-theme="dark"] .fhq-tile { background:var(--surface-2); border-color:var(--border); }
+  [data-theme="dark"] .fhq-tile:hover { border-color:var(--border-md); }
+  [data-theme="dark"] .fhq-chip { border-color:var(--border); }
+  [data-theme="dark"] .fhq-rail-item { border-bottom-color:var(--border); }
+  [data-theme="dark"] .fhq-tile-bar, [data-theme="dark"] .fhq-risk-bar { background:rgba(148,163,184,.18); }
+  [data-theme="dark"] .fhq-card-title, [data-theme="dark"] .fhq-kpi-label,
+  [data-theme="dark"] .fhq-tile-label, [data-theme="dark"] .fhq-top-title,
+  [data-theme="dark"] .fhq-availability-body dt, [data-theme="dark"] .fhq-kpi-actions span { color:var(--text-2); }
+  [data-theme="dark"] .fhq-score-value small, [data-theme="dark"] .fhq-kpi-sub,
+  [data-theme="dark"] .fhq-tile-unit, [data-theme="dark"] .fhq-rail-body small,
+  [data-theme="dark"] .fhq-risk-who small, [data-theme="dark"] .fhq-mini-main small,
+  [data-theme="dark"] .fhq-finance-values small, [data-theme="dark"] .fhq-top-list li,
+  [data-theme="dark"] .fhq-finance-legend li, [data-theme="dark"] .fhq-fleet-gauge small { color:var(--text-muted); }
+  [data-theme="dark"] .fhq-top-list li strong { color:var(--text); }
+
+  /* ── responsive ────────────────────────────────────────────────────── */
+  @media (max-width:1500px) {
+    .fhq-kpis { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+    .fhq-score-card { grid-column:span 3; }
+    .fhq-score-card .fhq-score-wrap { margin-top:6px; }
+  }
+  @media (max-width:1360px) {
+    .fhq-tiles { grid-template-columns:repeat(4, minmax(0, 1fr)); }
     .fhq-bottom-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   }
-  @media (max-width:760px) {
-    .fhq-kpis, .fhq-rail, .fhq-bottom-grid { grid-template-columns:1fr; }
-    .fhq-section-head { align-items:flex-start; flex-direction:column; }
-    .fhq-rota-form { grid-template-columns:1fr 1fr; }
-    .fhq-rota-filters { grid-template-columns:1fr 1fr; }
-    .fhq-rota-form button { grid-column:1 / -1; }
-    .fhq-availability-body { grid-template-columns:1fr; justify-items:center; }
+  @media (max-width:1180px) {
+    .fhq-main-grid { grid-template-columns:1fr; }
+    .fhq-rail { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); align-items:start; }
+  }
+  @media (max-width:860px) {
+    .fhq-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .fhq-score-card { grid-column:span 2; }
+    .fhq-split, .fhq-rail, .fhq-bottom-grid { grid-template-columns:1fr; }
+    .fhq-tiles { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+    .fhq-trend-chips { grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width:560px) {
+    .fhq-kpis { grid-template-columns:1fr; }
+    .fhq-score-card { grid-column:span 1; }
+    .fhq-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .fhq-mini-split, .fhq-finance-body, .fhq-availability-body { grid-template-columns:1fr; }
+    .fhq-finance-values { grid-template-columns:1fr; }
+    .fhq-availability-body { justify-items:center; }
+    .fhq-risk-row { grid-template-columns:34px minmax(0, 1fr) auto; }
+    .fhq-risk-bar { grid-column:2 / -1; }
   }
 </style>
 
 <script>
-function fhqGauge(id, value, color) {
-  var canvas = document.getElementById(id);
-  if (!canvas || !window.Chart) return;
-  var track = document.documentElement.getAttribute('data-theme') === 'dark' ? 'rgba(255,255,255,.1)' : '#edf2f7';
-  new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    data: { datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, track], borderWidth: 0, borderRadius: 6 }] },
-    options: { cutout: '76%', responsive: false, events: [], plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-  });
-}
-fhqGauge('fhqScoreGauge', ${score.overall.toFixed(0)}, '${score.overall >= 85 ? '#22c55e' : score.overall >= 70 ? '#f59e0b' : '#ef4444'}');
-fhqGauge('fhqFleetGauge', ${dashboardOps.fleet.pct}, '#22c55e');
-
 (function() {
-  var el = document.getElementById('fhqFinanceChart');
-  if (!el || !window.Chart) return;
-  var slices = ${JSON.stringify(dashboardOps.finance.slices)};
-  if (!slices.length) slices = [{ label: 'No expenses', value: 1 }];
-  new Chart(el.getContext('2d'), {
-    type: 'doughnut',
-    data: {
-      labels: slices.map(function(s) { return s.label.replace(/_/g, ' '); }),
-      datasets: [{ data: slices.map(function(s) { return s.value; }), backgroundColor: ['#2563eb', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#64748b'], borderWidth: 0 }]
-    },
-    options: { cutout: '62%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
-  });
+  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  var track = isDark ? 'rgba(148,163,184,.18)' : '#eef2f7';
+
+  function gauge(id, value, color) {
+    var canvas = document.getElementById(id);
+    if (!canvas || !window.Chart) return;
+    new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, track], borderWidth: 0, borderRadius: 8 }] },
+      options: { cutout: '78%', responsive: false, events: [], plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+    });
+  }
+  gauge('fhqScoreGauge', ${score.overall.toFixed(0)}, '${gaugeColor}');
+  gauge('fhqFleetGauge', ${dashboardOps.fleet.pct}, '#16a34a');
+
+  // Compliance trend — filled blue line, one point per month.
+  var trendEl = document.getElementById('fhqTrendChart');
+  if (trendEl && window.Chart) {
+    var trend = ${JSON.stringify(complianceTrend)};
+    var ctx = trendEl.getContext('2d');
+    var fill = ctx.createLinearGradient(0, 0, 0, 130);
+    fill.addColorStop(0, 'rgba(37,99,235,.20)');
+    fill.addColorStop(1, 'rgba(37,99,235,0)');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: trend.map(function(p) { return p.label; }),
+        datasets: [{
+          data: trend.map(function(p) { return p.value; }),
+          borderColor: '#2563eb', backgroundColor: fill, borderWidth: 2,
+          pointBackgroundColor: '#2563eb', pointBorderColor: '#fff', pointBorderWidth: 2,
+          pointRadius: 4, pointHoverRadius: 5, fill: true, tension: .35, spanGaps: true,
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: function(c) { return c.parsed.y + '% compliant'; } } }
+        },
+        scales: {
+          y: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 }, callback: function(v) { return v + '%'; } },
+               grid: { color: isDark ? 'rgba(148,163,184,.14)' : '#f1f5f9', drawTicks: false }, border: { display: false } },
+          x: { ticks: { font: { size: 9 } }, grid: { display: false }, border: { display: false } }
+        }
+      }
+    });
+  }
+
+  // Finance expense split — doughnut plus a value/percentage legend.
+  var finEl = document.getElementById('fhqFinanceChart');
+  if (finEl && window.Chart) {
+    var slices = ${JSON.stringify(dashboardOps.finance.slices)};
+    var palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b'];
+    var empty = !slices.length;
+    if (empty) slices = [{ label: 'No expenses', value: 1 }];
+    var total = slices.reduce(function(sum, s) { return sum + s.value; }, 0) || 1;
+    new Chart(finEl.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: slices.map(function(s) { return String(s.label).replace(/_/g, ' '); }),
+        datasets: [{ data: slices.map(function(s) { return s.value; }),
+          backgroundColor: empty ? [track] : palette, borderWidth: 0 }]
+      },
+      options: { cutout: '64%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+    var legend = document.getElementById('fhqFinanceLegend');
+    if (legend && !empty) {
+      legend.innerHTML = slices.slice(0, 6).map(function(s, i) {
+        var label = String(s.label).replace(/_/g, ' ');
+        var pct = Math.round((s.value / total) * 100);
+        var amount = '£' + Math.round(s.value).toLocaleString();
+        return '<li><i style="background:' + palette[i % palette.length] + '"></i>'
+          + '<span>' + label + ' · ' + amount + ' (' + pct + '%)</span></li>';
+      }).join('');
+    }
+  }
 })();
 </script>
 ` }) %>

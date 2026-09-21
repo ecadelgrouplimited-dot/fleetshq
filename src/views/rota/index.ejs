@@ -1,0 +1,153 @@
+<%- include('../layouts/main', { body: `
+<div class="rota-page">
+  <section class="fhq-card fhq-rota">
+    <div class="fhq-section-head">
+      <div>
+        <h3>Employee Rota</h3>
+        <span>${rota.week.label}</span>
+      </div>
+      <div class="fhq-rota-tools">
+        <a href="${rota.week.prevHref}" class="btn btn-outline btn-sm" aria-label="Previous week">&lt;</a>
+        <a href="${rota.week.todayHref}" class="btn btn-outline btn-sm">Today</a>
+        <a href="${rota.week.nextHref}" class="btn btn-outline btn-sm" aria-label="Next week">&gt;</a>
+        ${rota.canManageRota ? `<button class="btn btn-primary btn-sm" type="button" onclick="document.getElementById('fhqRotaForm').classList.toggle('open')">Add Rota</button>` : ''}
+      </div>
+    </div>
+
+    <form class="fhq-rota-filters" method="get" action="/rota">
+      <input type="hidden" name="week" value="${rota.week.key}">
+      <select name="employeeId" aria-label="Filter employee">
+        <option value="">All employees</option>
+        ${rota.rotaOptions.employees.map(e => `<option value="${esc(e.id)}" ${rota.rotaFilters.employeeId === e.id ? 'selected' : ''}>${esc(e.fullName)}</option>`).join('')}
+      </select>
+      <select name="role" aria-label="Filter role">
+        <option value="">All roles</option>
+        ${rota.rotaOptions.roles.map(role => `<option value="${esc(role)}" ${rota.rotaFilters.role === role ? 'selected' : ''}>${esc(role)}</option>`).join('')}
+      </select>
+      <select name="location" aria-label="Filter location">
+        <option value="">All locations</option>
+        ${rota.rotaOptions.locations.map(location => `<option value="${esc(location)}" ${rota.rotaFilters.location === location ? 'selected' : ''}>${esc(location)}</option>`).join('')}
+      </select>
+      <select name="shiftType" aria-label="Filter shift type">
+        <option value="">All shifts</option>
+        ${rota.rotaOptions.statuses.map(s => `<option value="${s}" ${rota.rotaFilters.shiftType === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}
+      </select>
+      <button class="btn btn-outline btn-sm">Filters</button>
+      <a href="/rota?week=${rota.week.key}" class="btn btn-ghost btn-sm">Clear</a>
+    </form>
+
+    ${rota.canManageRota ? `
+    <form id="fhqRotaForm" class="fhq-rota-form" method="post" action="/rota">
+      <input type="hidden" name="_csrf" value="${csrfToken}">
+      <select name="employeeId" required><option value="">Employee</option>${rota.rotaOptions.employees.map(e => `<option value="${esc(e.id)}">${esc(e.fullName)}</option>`).join('')}</select>
+      <input type="date" name="shiftDate" required value="${rota.week.days.find(d => d.isToday)?.key || rota.week.days[0].key}">
+      <select name="status">${rota.rotaOptions.statuses.map(s => `<option value="${s}">${s.replace(/_/g, ' ')}</option>`).join('')}</select>
+      <input type="time" name="startTime" aria-label="Start time">
+      <input type="time" name="endTime" aria-label="End time">
+      <select name="vehicleId"><option value="">Vehicle</option>${rota.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}">${esc(v.registration)}</option>`).join('')}</select>
+      <input name="routeLabel" placeholder="Route / duty">
+      <input name="location" placeholder="Location">
+      <button class="btn btn-primary btn-sm">Save</button>
+    </form>` : ''}
+
+    <div class="fhq-rota-scroll">
+      <table class="fhq-rota-table">
+        <thead>
+          <tr>
+            <th>Employee / Role</th>
+            ${rota.week.days.map(d => `<th class="${d.isToday ? 'today' : ''}">${d.label}<span>${d.shortDate}</span></th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${rota.rotaRows.length === 0 ? `<tr><td colspan="8"><div class="empty-state"><p>No active drivers to schedule</p></div></td></tr>` : rota.rotaRows.map(row => `
+          <tr>
+            <td>${avatar(row.employee, { size: 34, withName: true, sub: row.employee.jobTitle || 'Driver' })}</td>
+            ${row.cells.map(cell => `<td><div class="fhq-shift ${cell.tone}">
+              <strong>${esc(cell.time || cell.title)}</strong>
+              <span>${esc(cell.detail || cell.title)}</span>
+              ${rota.canManageRota && cell.id ? `
+              <details class="fhq-shift-edit">
+                <summary>Edit</summary>
+                <form method="post" action="/rota/${cell.id}">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <input type="date" name="shiftDate" value="${cell.shiftDate}">
+                  <select name="status">${rota.rotaOptions.statuses.map(s => `<option value="${s}" ${cell.status === s ? 'selected' : ''}>${s.replace(/_/g, ' ')}</option>`).join('')}</select>
+                  <input type="time" name="startTime" value="${esc(cell.startTime)}">
+                  <input type="time" name="endTime" value="${esc(cell.endTime)}">
+                  <select name="vehicleId"><option value="">Vehicle</option>${rota.rotaOptions.vehicles.map(v => `<option value="${esc(v.id)}" ${cell.vehicleId === v.id ? 'selected' : ''}>${esc(v.registration)}</option>`).join('')}</select>
+                  <input name="routeLabel" value="${esc(cell.routeLabel)}" placeholder="Route / duty">
+                  <input name="location" value="${esc(cell.location)}" placeholder="Location">
+                  <input name="notes" value="${esc(cell.notes)}" placeholder="Notes">
+                  <button class="btn btn-primary btn-sm">Save</button>
+                </form>
+                <form method="post" action="/rota/${cell.id}/delete" data-confirm="Delete this rota shift?">
+                  <input type="hidden" name="_csrf" value="${csrfToken}">
+                  <input type="hidden" name="week" value="${rota.week.key}">
+                  <button class="btn btn-outline btn-sm">Delete</button>
+                </form>
+              </details>` : ''}
+            </div></td>`).join('')}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="fhq-legend">
+      ${[
+        ['assigned', 'Assigned'], ['rest_day', 'Rest Day / Off'], ['relief_cover', 'Relief / Cover'],
+        ['on_site', 'On Site / Office'], ['standby', 'Standby'], ['leave', 'Leave'],
+      ].map(([tone, label]) => `<span><i class="${tone}"></i>${label}</span>`).join('')}
+      <em>All times are local to operating centre</em>
+    </div>
+  </section>
+</div>
+
+<style>
+  .rota-page { color:#0f172a; }
+  .fhq-card { background:#fff; border:1px solid #e9eef5; border-radius:10px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+  .fhq-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border-bottom:1px solid #edf1f7; }
+  .fhq-section-head h3 { font-size:16px; margin:0; }
+  .fhq-section-head span { color:#64748b; font-size:12px; font-weight:700; }
+  .fhq-rota-tools { display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .fhq-rota-filters { display:grid; grid-template-columns:repeat(4,minmax(120px,1fr)) auto auto; gap:8px; padding:12px 14px; border-bottom:1px solid #edf1f7; }
+  .fhq-rota-form { display:none; grid-template-columns:1.2fr 150px 140px 95px 95px 130px 1fr 1fr auto; gap:8px; padding:12px 14px; border-bottom:1px solid #edf1f7; background:#f8fafc; }
+  .fhq-rota-form.open { display:grid; }
+  .fhq-rota-form input, .fhq-rota-form select, .fhq-rota-filters select, .fhq-shift-edit input, .fhq-shift-edit select { min-width:0; border:1px solid #cbd5e1; border-radius:7px; padding:7px 8px; font:inherit; font-size:12px; background:#fff; }
+  .fhq-rota-scroll { overflow-x:auto; }
+  .fhq-rota-table { width:100%; min-width:900px; border-collapse:separate; border-spacing:0; }
+  .fhq-rota-table th, .fhq-rota-table td { border-right:1px solid #edf1f7; border-bottom:1px solid #edf1f7; padding:10px; vertical-align:middle; }
+  .fhq-rota-table th { text-align:left; font-size:11px; font-weight:900; background:#fbfdff; white-space:nowrap; }
+  .fhq-rota-table th:first-child { width:190px; }
+  .fhq-rota-table th span { display:block; margin-top:2px; color:#64748b; font-weight:700; }
+  .fhq-rota-table th.today { color:#2563eb; }
+  .fhq-shift { min-height:48px; border-radius:6px; padding:7px 8px; display:flex; flex-direction:column; justify-content:center; gap:3px; text-align:center; border:1px solid transparent; }
+  .fhq-shift strong { font-size:11px; font-weight:900; }
+  .fhq-shift span { font-size:10.5px; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .fhq-shift-edit { margin-top:4px; text-align:left; }
+  .fhq-shift-edit summary { cursor:pointer; list-style:none; font-size:10px; font-weight:900; text-align:center; opacity:.85; }
+  .fhq-shift-edit form { display:grid; grid-template-columns:1fr; gap:5px; margin-top:6px; }
+  .fhq-shift-edit .btn { width:100%; justify-content:center; min-height:28px; padding:4px 6px; font-size:10.5px; }
+  .fhq-shift.assigned { background:#ecfdf5; color:#047857; border-color:#bbf7d0; }
+  .fhq-shift.rest_day { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+  .fhq-shift.relief_cover { background:#fef2f2; color:#b91c1c; border-color:#fecaca; }
+  .fhq-shift.on_site, .fhq-shift.office, .fhq-shift.work_from_home { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; }
+  .fhq-shift.standby { background:#f8fafc; color:#64748b; border-color:#e2e8f0; }
+  .fhq-shift.leave, .fhq-shift.sick, .fhq-shift.training { background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe; }
+  .fhq-legend { display:flex; align-items:center; gap:16px; padding:12px 16px; flex-wrap:wrap; font-size:11px; color:#64748b; font-weight:700; }
+  .fhq-legend span { display:inline-flex; align-items:center; gap:6px; }
+  .fhq-legend i { width:9px; height:9px; border-radius:50%; background:#94a3b8; }
+  .fhq-legend i.assigned { background:#34d399; } .fhq-legend i.rest_day { background:#fbbf24; } .fhq-legend i.relief_cover { background:#fda4af; } .fhq-legend i.on_site { background:#93c5fd; } .fhq-legend i.standby { background:#cbd5e1; } .fhq-legend i.leave { background:#c4b5fd; }
+  .fhq-legend em { margin-left:auto; font-style:normal; color:#94a3b8; }
+  [data-theme="dark"] .rota-page { color:var(--text); }
+  [data-theme="dark"] .fhq-card { background:var(--card); border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-table th { background:var(--surface-2); }
+  [data-theme="dark"] .fhq-rota-table th, [data-theme="dark"] .fhq-rota-table td, [data-theme="dark"] .fhq-section-head, [data-theme="dark"] .fhq-rota-filters { border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-form { background:var(--surface-2); border-color:var(--border); }
+  [data-theme="dark"] .fhq-rota-form input, [data-theme="dark"] .fhq-rota-form select, [data-theme="dark"] .fhq-rota-filters select, [data-theme="dark"] .fhq-shift-edit input, [data-theme="dark"] .fhq-shift-edit select { background:var(--input-bg); color:var(--text); border-color:var(--border-md); }
+  @media (max-width:760px) {
+    .fhq-section-head { align-items:flex-start; flex-direction:column; }
+    .fhq-rota-form { grid-template-columns:1fr 1fr; }
+    .fhq-rota-filters { grid-template-columns:1fr 1fr; }
+    .fhq-rota-form button { grid-column:1 / -1; }
+  }
+</style>
+` }) %>

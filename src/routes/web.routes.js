@@ -1010,13 +1010,166 @@ const landingGate = (req, res, next) => {
   return next();
 };
 
-// ── Dashboard ──────────────────────────────────────────
+// ── Employee rota ──────────────────────────────────────
+// The rota used to live on the dashboard. The transport-manager dashboard
+// redesign replaced that panel with the compliance overview, so the rota now
+// has its own page at /rota — this builds its view model.
 const ROTA_STATUSES = ['assigned', 'rest_day', 'relief_cover', 'on_site', 'office', 'work_from_home', 'standby', 'leave', 'sick', 'training'];
+
+async function buildRotaWeek(req) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const weekAnchor = req.query.week ? new Date(req.query.week) : new Date();
+  if (isNaN(weekAnchor.getTime())) weekAnchor.setTime(Date.now());
+  weekAnchor.setHours(0, 0, 0, 0);
+  const weekStart = new Date(weekAnchor);
+  weekStart.setDate(weekAnchor.getDate() - ((weekAnchor.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const prevWeek = new Date(weekStart); prevWeek.setDate(prevWeek.getDate() - 7);
+  const nextWeek = new Date(weekStart); nextWeek.setDate(nextWeek.getDate() + 7);
+  const dateKey = (d) => new Date(d).toISOString().slice(0, 10);
+  const rotaFilters = {
+    employeeId: (req.query.employeeId || '').trim(),
+    role: (req.query.role || '').trim(),
+    location: (req.query.location || '').trim(),
+    shiftType: (req.query.shiftType || '').trim(),
+  };
+  const filterParams = new URLSearchParams();
+  Object.entries(rotaFilters).forEach(([key, value]) => { if (value) filterParams.set(key, value); });
+  const filterSuffix = filterParams.toString() ? `&${filterParams.toString()}` : '';
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    return {
+      key: dateKey(date),
+      label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
+      shortDate: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+      isToday: date.toDateString() === today.toDateString(),
+    };
+  });
+
+  const [allRotaEmployees, rotaVehicles, shifts, approvedLeave, rotaJobs] = await Promise.all([
+    prisma.employee.findMany({
+      where: { employmentStatus: 'active', isDriver: true },
+      select: { id: true, fullName: true, jobTitle: true, workLocation: true, photoStorageKey: true },
+      orderBy: { fullName: 'asc' },
+      take: 100,
+    }),
+    prisma.vehicle.findMany({
+      where: { status: { not: 'sold' } },
+      select: { id: true, registration: true, imageStorageKey: true },
+      orderBy: { registration: 'asc' },
+    }),
+    prisma.employeeShift.findMany({
+      where: { shiftDate: { gte: weekStart, lt: weekEnd } },
+      orderBy: [{ shiftDate: 'asc' }, { startTime: 'asc' }],
+    }),
+    prisma.leaveRequest.findMany({
+      where: { status: 'approved', startDate: { lt: weekEnd }, endDate: { gte: weekStart } },
+    }),
+    prisma.job.findMany({
+      where: {
+        driverId: { not: null },
+        shipment: { collectionDate: { gte: weekStart, lt: weekEnd } },
+      },
+      include: { shipment: { select: { serviceName: true, collectionDate: true, pickupPostcode: true, deliveryPostcode: true } } },
+    }),
+  ]);
+
+  const rotaRolesAvailable = [...new Set(allRotaEmployees.map((e) => e.jobTitle).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const rotaLocationsAvailable = [...new Set(allRotaEmployees.map((e) => e.workLocation).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const rotaEmployees = allRotaEmployees
+    .filter((employee) => !rotaFilters.employeeId || employee.id === rotaFilters.employeeId)
+    .filter((employee) => !rotaFilters.role || employee.jobTitle === rotaFilters.role)
+    .filter((employee) => !rotaFilters.location || employee.workLocation === rotaFilters.location)
+    .slice(0, 25);
+  const vehicleMap = Object.fromEntries(rotaVehicles.map((v) => [v.id, v]));
+  const shiftByEmployeeDay = {};
+  shifts.forEach((shift) => {
+    const key = `${shift.employeeId}:${dateKey(shift.shiftDate)}`;
+    if (!shiftByEmployeeDay[key]) shiftByEmployeeDay[key] = shift;
+  });
+  const jobsByEmployeeDay = {};
+  rotaJobs.forEach((job) => {
+    if (!job.driverId || !job.shipment?.collectionDate) return;
+    const key = `${job.driverId}:${dateKey(job.shipment.collectionDate)}`;
+    if (!jobsByEmployeeDay[key]) jobsByEmployeeDay[key] = job;
+  });
+  const leaveFor = (employeeId, day) => approvedLeave.find((leave) => leave.employeeId === employeeId
+    && new Date(leave.startDate) <= new Date(day)
+    && new Date(leave.endDate) >= new Date(day));
+  const rotaRows = rotaEmployees.map((employee) => ({
+    employee,
+    cells: weekDays.map((day) => {
+      const shift = shiftByEmployeeDay[`${employee.id}:${day.key}`];
+      if (shift) {
+        const vehicle = vehicleMap[shift.vehicleId];
+        return {
+          id: shift.id,
+          source: 'shift',
+          tone: shift.status,
+          title: shift.status.replace(/_/g, ' '),
+          time: shift.startTime && shift.endTime ? `${shift.startTime} - ${shift.endTime}` : '',
+          detail: shift.routeLabel || shift.location || vehicle?.registration || shift.notes || '',
+          shiftDate: dateKey(shift.shiftDate),
+          startTime: shift.startTime || '',
+          endTime: shift.endTime || '',
+          status: shift.status,
+          vehicleId: shift.vehicleId || '',
+          routeLabel: shift.routeLabel || '',
+          location: shift.location || '',
+          notes: shift.notes || '',
+        };
+      }
+      const leave = leaveFor(employee.id, day.key);
+      if (leave) return { source: 'leave', tone: leave.type === 'sick' ? 'sick' : 'leave', title: leave.type.replace(/_/g, ' '), time: '', detail: 'Approved leave' };
+      const job = jobsByEmployeeDay[`${employee.id}:${day.key}`];
+      if (job) {
+        return {
+          source: 'job',
+          tone: 'assigned',
+          title: job.shipment.serviceName || 'Assigned',
+          time: 'Job allocated',
+          detail: [job.shipment.pickupPostcode, job.shipment.deliveryPostcode].filter(Boolean).join(' -> '),
+        };
+      }
+      const dayDate = new Date(day.key);
+      return dayDate.getDay() === 0 || dayDate.getDay() === 6
+        ? { source: 'system', tone: 'rest_day', title: 'Rest Day', time: '', detail: '' }
+        : { source: 'system', tone: 'standby', title: 'Standby', time: '', detail: '' };
+    }),
+  })).filter((row) => !rotaFilters.shiftType || row.cells.some((cell) => cell.source === 'shift' && cell.tone === rotaFilters.shiftType));
+
+  return {
+    week: {
+      label: `${weekDays[0].shortDate} - ${weekDays[6].shortDate}`,
+      prevHref: `/rota?week=${dateKey(prevWeek)}${filterSuffix}`,
+      nextHref: `/rota?week=${dateKey(nextWeek)}${filterSuffix}`,
+      todayHref: `/rota?week=${dateKey(today)}${filterSuffix}`,
+      days: weekDays,
+      key: dateKey(weekStart),
+    },
+    rotaRows,
+    rotaOptions: { employees: allRotaEmployees, vehicles: rotaVehicles, statuses: ROTA_STATUSES, roles: rotaRolesAvailable, locations: rotaLocationsAvailable },
+    rotaFilters,
+    canManageRota: hasRole(req.user, rotaRoles),
+  };
+}
+
+router.get('/rota', webAuth, requireRoles(...peopleRoles), async (req, res) => {
+  try {
+    const rota = await buildRotaWeek(req);
+    res.render('rota/index', { title: 'Employee Rota', subtitle: rota.week.label, rota, path: '/rota' });
+  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
 
 router.post('/rota', webAuth, requireRoles(...rotaRoles), async (req, res) => {
   try {
     const { employeeId, vehicleId, shiftDate, status, startTime, endTime, routeLabel, location, notes } = req.body;
-    if (!employeeId || !shiftDate) return res.redirect('/');
+    if (!employeeId || !shiftDate) return res.redirect('/rota');
     await prisma.employeeShift.create({
       data: {
         employeeId,
@@ -1031,7 +1184,7 @@ router.post('/rota', webAuth, requireRoles(...rotaRoles), async (req, res) => {
         createdById: req.user.id,
       },
     });
-    return res.redirect('/?week=' + encodeURIComponent(shiftDate));
+    return res.redirect('/rota?week=' + encodeURIComponent(shiftDate));
   } catch (e) {
     return res.render('error', { title: 'Rota update failed', message: e.message, code: 500 });
   }
@@ -1051,7 +1204,7 @@ router.post('/rota/:id', webAuth, requireRoles(...rotaRoles), async (req, res) =
     };
     if (shiftDate) data.shiftDate = new Date(shiftDate);
     await prisma.employeeShift.update({ where: { id: req.params.id }, data });
-    return res.redirect('/?week=' + encodeURIComponent(shiftDate || new Date().toISOString().slice(0, 10)));
+    return res.redirect('/rota?week=' + encodeURIComponent(shiftDate || new Date().toISOString().slice(0, 10)));
   } catch (e) {
     return res.render('error', { title: 'Rota update failed', message: e.message, code: 500 });
   }
@@ -1061,7 +1214,7 @@ router.post('/rota/:id/delete', webAuth, requireRoles(...rotaRoles), async (req,
   try {
     const { week } = req.body;
     await prisma.employeeShift.delete({ where: { id: req.params.id } });
-    return res.redirect('/?week=' + encodeURIComponent(week || new Date().toISOString().slice(0, 10)));
+    return res.redirect('/rota?week=' + encodeURIComponent(week || new Date().toISOString().slice(0, 10)));
   } catch (e) {
     return res.render('error', { title: 'Rota delete failed', message: e.message, code: 500 });
   }
@@ -1258,17 +1411,33 @@ router.get('/', landingGate, webAuth, async (req, res) => {
     const in30 = shiftDays(30);
     const in60 = shiftDays(60);
     const pmiSoon = shiftDays(14);
-    const dueTrainingWhere = { OR: [{ status: 'expired' }, { AND: [{ status: { not: 'completed' } }, { expiryDate: { lte: in30 } }] }] };
-    const [motDue, insuranceDue, roadTaxDue, tachoDue, pmiDue, cpcDue, trainingDue, rtwDue,
-      driverCount, vehicleActions, driverActions, totalTrailers, trailerActions, priorScore, trendScores] = await Promise.all([
+    // DVSA guidance: a laden roller brake test at least every 13 weeks. A vehicle
+    // counts as due when its newest brake_test document predates that window.
+    const brakeTestWindow = shiftDays(-91);
+    // DVLA licence checks are expected at least every six months; drivers with no
+    // risk profile at all have never been checked.
+    const licenceCheckWindow = shiftDays(-182);
+    const checkedDrivers = await prisma.driverRiskProfile.findMany({
+      where: { dvlaCheckDate: { gte: licenceCheckWindow } }, select: { driverId: true },
+    });
+    const checkedDriverIds = checkedDrivers.map((p) => p.driverId);
+    const staleLicenceCheckDrivers = await prisma.employee.findMany({
+      where: { employmentStatus: 'active', isDriver: true, id: { notIn: checkedDriverIds } },
+      select: { id: true },
+    });
+    const staleLicenceCheckIds = staleLicenceCheckDrivers.map((d) => d.id);
+    const dueTrainingWhere ={ OR: [{ status: 'expired' }, { AND: [{ status: { not: 'completed' } }, { expiryDate: { lte: in30 } }] }] };
+    const [motDue, insuranceDue, roadTaxDue, pmiDue, cpcDue, trainingDue,
+      driverCount, vehicleActions, driverActions, totalTrailers, trailerActions, priorScore, trendScores,
+      brakeTestDue, vorOverdue, licenceDue, tachoCardDue, tachoInfringementDrivers] = await Promise.all([
       prisma.vehicle.count({ where: { status: { not: 'sold' }, motExpiryDate: { lte: in30 } } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, insuranceExpiryDate: { lte: in30 } } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, roadTaxExpiryDate: { lte: in30 } } }),
-      prisma.vehicle.count({ where: { status: { not: 'sold' }, tachoCalibrExpiry: { lte: in30 } } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, nextPmiDate: { lte: pmiSoon } } }),
-      prisma.trainingRecord.count({ where: { trainingType: 'cpc', OR: [{ status: 'expired' }, { expiryDate: { lte: in30 } }] } }),
-      prisma.trainingRecord.count({ where: dueTrainingWhere }),
-      prisma.sponsoredWorker.count({ where: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] } }),
+      // Counted per driver (not per training record) so the tile's "Drivers" unit is honest.
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true,
+        trainingRecords: { some: { trainingType: 'cpc', OR: [{ status: 'expired' }, { expiryDate: { lte: in30 } }] } } } }),
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true, trainingRecords: { some: dueTrainingWhere } } }),
       prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true } }),
       prisma.vehicle.count({ where: { status: { not: 'sold' }, OR: [
         { status: 'vor' }, { motExpiryDate: { lte: in30 } }, { insuranceExpiryDate: { lte: in30 } },
@@ -1280,24 +1449,86 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       prisma.trailer.count({ where: { status: { not: 'sold' }, OR: [{ status: 'vor' }, { motExpiryDate: { lte: in30 } }, { insuranceExpiryDate: { lte: in30 } }, { nextPmiDate: { lte: pmiSoon } }] } }),
       prisma.complianceScore.findFirst({ where: { scoreDate: { lte: shiftDays(-25) } }, orderBy: { scoreDate: 'desc' } }),
       prisma.complianceScore.findMany({ where: { scoreDate: { gte: shiftDays(-185) } }, orderBy: { scoreDate: 'asc' }, select: { scoreDate: true, overallScore: true } }),
+      // Vehicles with no brake-test evidence inside the 13-week window.
+      prisma.vehicle.count({ where: { status: { not: 'sold' },
+        documents: { none: { documentType: 'brake_test', documentDate: { gte: brakeTestWindow } } } } }),
+      // VOR vehicles still off-road past their estimated return date.
+      prisma.vorRecord.count({ where: { actualReturnDate: null, estimatedReturnDate: { lt: today } } }),
+      // Drivers due a licence check: DVLA check never done or older than six
+      // months, or a licence document that expires inside 30 days.
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true, OR: [
+        { documents: { some: { documentType: 'driving_licence', expiryDate: { lte: in30 } } } },
+        { id: { in: staleLicenceCheckIds } } ] } }),
+      // Drivers with no tacho card on file, or one expiring inside 30 days.
+      prisma.employee.count({ where: { employmentStatus: 'active', isDriver: true, OR: [
+        { documents: { none: { documentType: 'tacho_card' } } },
+        { documents: { some: { documentType: 'tacho_card', expiryDate: { lte: in30 } } } } ] } }),
+      // Distinct drivers carrying an open tacho / drivers-hours infringement.
+      prisma.driverInfringement.findMany({
+        where: { status: { not: 'closed' }, type: { in: ['tachograph', 'drivers_hours', 'working_time', 'no_break'] } },
+        select: { driverId: true }, distinct: ['driverId'],
+      }),
     ]);
-    const tone = (n) => (n > 0 ? 'amber' : 'green');
+    const tachoInfringements = tachoInfringementDrivers.length;
+    // Tiles fill the 6-across "Compliance Overview" panel. `unit` is the word under
+    // the number, `tone` drives the icon tint and the progress bar, and `denom` is
+    // the population the bar measures the count against.
     const complianceTiles = [
-      { key: 'mot', label: 'MOT Due', count: motDue, href: '/fleet', tone: tone(motDue) },
-      { key: 'pmi', label: 'PMI Due', count: pmiDue, href: '/fleet/pmi-planner', tone: tone(pmiDue) },
-      { key: 'insurance', label: 'Insurance Due', count: insuranceDue, href: '/fleet', tone: tone(insuranceDue) },
-      { key: 'roadtax', label: 'Road Tax Due', count: roadTaxDue, href: '/fleet', tone: tone(roadTaxDue) },
-      { key: 'tacho', label: 'Tacho Calibration', count: tachoDue, href: '/fleet', tone: tone(tachoDue) },
-      { key: 'cpc', label: 'CPC Due', count: cpcDue, href: '/training', tone: tone(cpcDue) },
-      { key: 'rtw', label: 'RTW / Visa Due', count: rtwDue, href: '/sponsored-workers', tone: rtwDue > 0 ? 'red' : 'green' },
-      { key: 'training', label: 'Training Due', count: trainingDue, href: '/training', tone: tone(trainingDue) },
+      { key: 'pmi', label: 'PMI Due', count: pmiDue, unit: 'Vehicles', href: '/fleet/pmi-planner', tone: 'amber', denom: totalVehicles },
+      { key: 'mot', label: 'MOT Due', count: motDue, unit: 'Vehicles', href: '/fleet', tone: 'green', denom: totalVehicles },
+      { key: 'brake', label: 'Brake Test Due', count: brakeTestDue, unit: 'Vehicles', href: '/fleet', tone: 'red', denom: totalVehicles },
+      { key: 'defects', label: 'Open Defects', count: openDefects, unit: 'Defects', href: '/defects', tone: 'amber', denom: Math.max(totalVehicles, openDefects) },
+      { key: 'vor', label: 'VOR Overdue', count: vorOverdue, unit: 'Vehicles', href: '/vor', tone: 'purple', denom: totalVehicles },
+      { key: 'insurance', label: 'Insurance Due', count: insuranceDue, unit: 'Vehicles', href: '/fleet', tone: 'blue', denom: totalVehicles },
+      { key: 'roadtax', label: 'Road Tax Due', count: roadTaxDue, unit: roadTaxDue === 1 ? 'Vehicle' : 'Vehicles', href: '/fleet', tone: 'blue', denom: totalVehicles },
+      { key: 'licence', label: 'Driver Licence Due', count: licenceDue, unit: 'Drivers', href: '/driver-risk', tone: 'green', denom: driverCount },
+      { key: 'cpc', label: 'CPC Due', count: cpcDue, unit: 'Drivers', href: '/training', tone: 'orange', denom: driverCount },
+      { key: 'infringements', label: 'Tacho Infringements', count: tachoInfringements, unit: 'Drivers', href: '/driver-risk', tone: 'red', denom: driverCount },
+      { key: 'tachocard', label: 'Tacho Card Due', count: tachoCardDue, unit: 'Drivers', href: '/employees?type=drivers', tone: 'blue', denom: driverCount },
+      { key: 'training', label: 'Training Due', count: trainingDue, unit: 'Drivers', href: '/training', tone: 'green', denom: driverCount },
     ];
     const overallNow = Number(score.overallScore ?? score.overall);
     const scoreDelta = priorScore ? overallNow - Number(priorScore.overallScore) : null;
-    const complianceTrend = trendScores.map((s) => ({
-      label: new Date(s.scoreDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-      value: Number(s.overallScore),
-    }));
+    // Six-month trend: one point per calendar month (the latest score stored in each),
+    // so the x-axis reads "Dec 2024 … May 2025" rather than one point per snapshot.
+    const trendByMonth = new Map();
+    trendScores.forEach((s) => {
+      const d = new Date(s.scoreDate);
+      trendByMonth.set(`${d.getFullYear()}-${d.getMonth()}`, Number(s.overallScore));
+    });
+    const complianceTrend = Array.from({ length: 6 }, (_, index) => {
+      const d = new Date(today.getFullYear(), today.getMonth() - (5 - index), 1);
+      const hit = trendByMonth.get(`${d.getFullYear()}-${d.getMonth()}`);
+      return {
+        label: d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+        value: hit === undefined ? null : hit,
+        isCurrent: index === 5,
+      };
+    });
+    if (complianceTrend[5].value === null) complianceTrend[5].value = overallNow;
+
+    // Top risk drivers — same scoring model as the Driver Risk page, highest risk first.
+    const riskDriverRows = await prisma.employee.findMany({
+      where: { isDriver: true, employmentStatus: 'active' },
+      select: { id: true, fullName: true, photoStorageKey: true, jobTitle: true, drivingVehicle: { select: { registration: true } } },
+      orderBy: { fullName: 'asc' },
+      take: 200,
+    });
+    const { rows: riskRows } = await buildDriverRisk(riskDriverRows);
+    const topRiskDrivers = riskRows
+      .filter((r) => r.totalInfringements > 0 || r.licencePoints > 0)
+      .sort((a, b) => a.score - b.score || b.totalInfringements - a.totalInfringements)
+      .slice(0, 4)
+      .map((r) => ({
+        id: r.id,
+        fullName: r.fullName,
+        photoStorageKey: r.photoStorageKey,
+        infringements: r.totalInfringements,
+        licencePoints: r.licencePoints,
+        band: r.band,
+        // Bar length reads as "how much risk", i.e. the inverse of the safety score.
+        riskPct: Math.max(8, Math.min(100, 100 - r.score)),
+      }));
 
     const alertGroups = {
       critical: alerts.filter(a => a.severity === 'critical'),
@@ -1376,70 +1607,37 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       orderBy: [{ dueDate: 'asc' }, { createdAt: 'desc' }],
       take: 6,
     });
+    // Resolve the scalar assignee/vehicle references so each task can show the
+    // person or vehicle it concerns underneath its title (as the design does).
+    const [taskAssignees, taskVehicles] = await Promise.all([
+      prisma.employee.findMany({
+        where: { id: { in: upcomingRaw.map((t) => t.assigneeId).filter(Boolean) } },
+        select: { id: true, fullName: true },
+      }),
+      prisma.vehicle.findMany({
+        where: { id: { in: upcomingRaw.map((t) => t.vehicleId).filter(Boolean) } },
+        select: { id: true, registration: true },
+      }),
+    ]);
+    const taskAssigneeMap = Object.fromEntries(taskAssignees.map((e) => [e.id, e.fullName]));
+    const taskVehicleMap = Object.fromEntries(taskVehicles.map((v) => [v.id, v.registration]));
     const upcomingTasks = upcomingRaw.map((t) => ({
-      id: t.id, title: t.title, priority: t.priority, dueDate: t.dueDate,
+      id: t.id, title: t.title, priority: t.priority, dueDate: t.dueDate, category: t.category,
+      relatedTo: t.vehicleId && taskVehicleMap[t.vehicleId]
+        ? `Vehicle ${taskVehicleMap[t.vehicleId]}`
+        : (taskAssigneeMap[t.assigneeId] || TASK_CATEGORY_LABELS[t.category] || null),
       isOverdue: t.dueDate && new Date(t.dueDate) < new Date(),
     }));
-
-    const weekAnchor = req.query.week ? new Date(req.query.week) : new Date();
-    if (isNaN(weekAnchor.getTime())) weekAnchor.setTime(Date.now());
-    weekAnchor.setHours(0, 0, 0, 0);
-    const weekStart = new Date(weekAnchor);
-    weekStart.setDate(weekAnchor.getDate() - ((weekAnchor.getDay() + 6) % 7));
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 7);
-    const prevWeek = new Date(weekStart); prevWeek.setDate(prevWeek.getDate() - 7);
-    const nextWeek = new Date(weekStart); nextWeek.setDate(nextWeek.getDate() + 7);
-    const dateKey = (d) => new Date(d).toISOString().slice(0, 10);
-    const rotaFilters = {
-      employeeId: (req.query.employeeId || '').trim(),
-      role: (req.query.role || '').trim(),
-      location: (req.query.location || '').trim(),
-      shiftType: (req.query.shiftType || '').trim(),
-    };
-    const filterParams = new URLSearchParams();
-    Object.entries(rotaFilters).forEach(([key, value]) => { if (value) filterParams.set(key, value); });
-    const filterSuffix = filterParams.toString() ? `&${filterParams.toString()}` : '';
-    const weekDays = Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + index);
-      return {
-        key: dateKey(date),
-        label: date.toLocaleDateString('en-GB', { weekday: 'short' }),
-        shortDate: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
-        isToday: date.toDateString() === today.toDateString(),
-      };
-    });
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-    const [allRotaEmployees, rotaVehicles, shifts, approvedLeave, rotaJobs,
+    const [rotaVehicles,
       monthFuelLogs, prevMonthFuelLogs, monthAdBlueLogs, prevMonthAdBlueLogs, incomeMonth, expenseMonth, incomePrevMonth, expensePrevMonth, expenseByCat] = await Promise.all([
-      prisma.employee.findMany({
-        where: { employmentStatus: 'active', isDriver: true },
-        select: { id: true, fullName: true, jobTitle: true, workLocation: true, photoStorageKey: true },
-        orderBy: { fullName: 'asc' },
-        take: 100,
-      }),
       prisma.vehicle.findMany({
         where: { status: { not: 'sold' } },
         select: { id: true, registration: true, imageStorageKey: true },
         orderBy: { registration: 'asc' },
-      }),
-      prisma.employeeShift.findMany({
-        where: { shiftDate: { gte: weekStart, lt: weekEnd } },
-        orderBy: [{ shiftDate: 'asc' }, { startTime: 'asc' }],
-      }),
-      prisma.leaveRequest.findMany({
-        where: { status: 'approved', startDate: { lt: weekEnd }, endDate: { gte: weekStart } },
-      }),
-      prisma.job.findMany({
-        where: {
-          driverId: { not: null },
-          shipment: { collectionDate: { gte: weekStart, lt: weekEnd } },
-        },
-        include: { shipment: { select: { serviceName: true, collectionDate: true, pickupPostcode: true, deliveryPostcode: true } } },
       }),
       prisma.fuelLog.findMany({ where: { loggedDate: { gte: monthStart, lt: monthEnd } }, orderBy: { loggedDate: 'asc' } }),
       prisma.fuelLog.findMany({ where: { loggedDate: { gte: prevMonthStart, lt: monthStart } }, select: { litres: true, cost: true, vehicleId: true, loggedDate: true } }),
@@ -1452,69 +1650,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       prisma.expense.groupBy({ by: ['category'], where: { expenseDate: { gte: monthStart, lt: monthEnd } }, _sum: { amount: true } }),
     ]);
 
-    const rotaRolesAvailable = [...new Set(allRotaEmployees.map((e) => e.jobTitle).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-    const rotaLocationsAvailable = [...new Set(allRotaEmployees.map((e) => e.workLocation).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-    const rotaEmployees = allRotaEmployees
-      .filter((employee) => !rotaFilters.employeeId || employee.id === rotaFilters.employeeId)
-      .filter((employee) => !rotaFilters.role || employee.jobTitle === rotaFilters.role)
-      .filter((employee) => !rotaFilters.location || employee.workLocation === rotaFilters.location)
-      .slice(0, 8);
     const vehicleMap = Object.fromEntries(rotaVehicles.map((v) => [v.id, v]));
-    const shiftByEmployeeDay = {};
-    shifts.forEach((shift) => {
-      const key = `${shift.employeeId}:${dateKey(shift.shiftDate)}`;
-      if (!shiftByEmployeeDay[key]) shiftByEmployeeDay[key] = shift;
-    });
-    const jobsByEmployeeDay = {};
-    rotaJobs.forEach((job) => {
-      if (!job.driverId || !job.shipment?.collectionDate) return;
-      const key = `${job.driverId}:${dateKey(job.shipment.collectionDate)}`;
-      if (!jobsByEmployeeDay[key]) jobsByEmployeeDay[key] = job;
-    });
-    const leaveFor = (employeeId, day) => approvedLeave.find((leave) => leave.employeeId === employeeId
-      && new Date(leave.startDate) <= new Date(day)
-      && new Date(leave.endDate) >= new Date(day));
-    const rotaRows = rotaEmployees.map((employee) => ({
-      employee,
-      cells: weekDays.map((day) => {
-        const shift = shiftByEmployeeDay[`${employee.id}:${day.key}`];
-        if (shift) {
-          const vehicle = vehicleMap[shift.vehicleId];
-          return {
-            id: shift.id,
-            source: 'shift',
-            tone: shift.status,
-            title: shift.status.replace(/_/g, ' '),
-            time: shift.startTime && shift.endTime ? `${shift.startTime} - ${shift.endTime}` : '',
-            detail: shift.routeLabel || shift.location || vehicle?.registration || shift.notes || '',
-            shiftDate: dateKey(shift.shiftDate),
-            startTime: shift.startTime || '',
-            endTime: shift.endTime || '',
-            status: shift.status,
-            vehicleId: shift.vehicleId || '',
-            routeLabel: shift.routeLabel || '',
-            location: shift.location || '',
-            notes: shift.notes || '',
-          };
-        }
-        const leave = leaveFor(employee.id, day.key);
-        if (leave) return { source: 'leave', tone: leave.type === 'sick' ? 'sick' : 'leave', title: leave.type.replace(/_/g, ' '), time: '', detail: 'Approved leave' };
-        const job = jobsByEmployeeDay[`${employee.id}:${day.key}`];
-        if (job) {
-          return {
-            source: 'job',
-            tone: 'assigned',
-            title: job.shipment.serviceName || 'Assigned',
-            time: 'Job allocated',
-            detail: [job.shipment.pickupPostcode, job.shipment.deliveryPostcode].filter(Boolean).join(' -> '),
-          };
-        }
-        const dayDate = new Date(day.key);
-        return dayDate.getDay() === 0 || dayDate.getDay() === 6
-          ? { source: 'system', tone: 'rest_day', title: 'Rest Day', time: '', detail: '' }
-          : { source: 'system', tone: 'standby', title: 'Standby', time: '', detail: '' };
-      }),
-    })).filter((row) => !rotaFilters.shiftType || row.cells.some((cell) => cell.source === 'shift' && cell.tone === rotaFilters.shiftType));
 
     const fuelLitres = monthFuelLogs.reduce((sum, log) => sum + Number(log.litres), 0);
     const prevFuelLitres = prevMonthFuelLogs.reduce((sum, log) => sum + Number(log.litres), 0);
@@ -1554,18 +1690,6 @@ router.get('/', landingGate, webAuth, async (req, res) => {
     const fleetAvailable = activeVehicles;
     const fleetAvailabilityPct = totalVehicles > 0 ? Math.round((fleetAvailable / totalVehicles) * 100) : 0;
     const dashboardOps = {
-      week: {
-        label: `${weekDays[0].shortDate} - ${weekDays[6].shortDate}`,
-        prevHref: `/?week=${dateKey(prevWeek)}${filterSuffix}`,
-        nextHref: `/?week=${dateKey(nextWeek)}${filterSuffix}`,
-        todayHref: `/?week=${dateKey(today)}${filterSuffix}`,
-        days: weekDays,
-        key: dateKey(weekStart),
-      },
-      rotaRows,
-      rotaOptions: { employees: allRotaEmployees, vehicles: rotaVehicles, statuses: ROTA_STATUSES, roles: rotaRolesAvailable, locations: rotaLocationsAvailable },
-      rotaFilters,
-      canManageRota: hasRole(req.user, rotaRoles),
       fuel: {
         litres: fuelLitres,
         deltaPct: prevFuelLitres > 0 ? Math.round(((fuelLitres - prevFuelLitres) / prevFuelLitres) * 100) : null,
@@ -1629,7 +1753,7 @@ router.get('/', landingGate, webAuth, async (req, res) => {
         driverCount, driverActions, vehicleActions, totalTrailers, trailerActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
         driver: Number(score.driverScore ?? score.driver), overall: Number(score.overallScore ?? score.overall) },
-      complianceTiles, complianceTrend, scoreDelta, upcomingTasks,
+      complianceTiles, complianceTrend, scoreDelta, upcomingTasks, topRiskDrivers,
       alerts, alertGroups, recentDefects, chartData, healthCards,
       dashboardOps, platformQueue, setup,
     });
