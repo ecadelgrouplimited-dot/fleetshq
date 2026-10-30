@@ -1,143 +1,235 @@
-﻿<%- include('../layouts/main', { body: `
-<!-- Page header -->
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <p class="text-sm text-muted"><span id="visibleEmployeeCount">${employees.length}</span> of ${employees.length} employee${employees.length !== 1 ? 's' : ''} · filtered results</p>
-  </div>
-  <a href="/employees/new" class="btn btn-primary">
-    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-    Add Employee
-  </a>
-</div>
+<%- include('../layouts/main', { body: `
+<link rel="stylesheet" href="/css/hr-hub.css?v=20261030v6">
+<style>
+  .hr-hub-container { display: flex; flex-direction: column; gap: 18px; padding: 18px 24px 40px; background: #f4f7fb; min-height: calc(100vh - 64px); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; }
+  .hr-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+  .hr-header-title { font-size: 26px; font-weight: 800; color: #1e3a8a; margin: 0 0 3px 0; letter-spacing: -0.02em; line-height: 1.15; }
+  .hr-header-sub { font-size: 13.5px; color: #1d4ed8; margin: 0; font-weight: 400; }
+  .hr-header-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-primary-blue { display: inline-flex; align-items: center; gap: 8px; background: #2563eb; color: #ffffff !important; font-weight: 600; font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid #1d4ed8; cursor: pointer; text-decoration: none; }
+  .btn-outline-white { display: inline-flex; align-items: center; gap: 8px; background: #ffffff; color: #1e3a8a !important; font-weight: 600; font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; text-decoration: none; }
+  .hr-nav-tabs { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 8px; overflow-x: auto; white-space: nowrap; box-shadow: 0 1px 2px rgba(15,23,42,0.03); }
+  .hr-tab-link { padding: 11px 16px; font-size: 13px; font-weight: 600; color: #1e3a8a; text-decoration: none; border-bottom: 3px solid transparent; position: relative; }
+  .hr-tab-link:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 25%; height: 50%; width: 1px; background: #e2e8f0; }
+  .hr-tab-link.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 700; }
+  .hr-kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
+  @media (max-width: 1200px) { .hr-kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  .hr-kpi-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .hr-kpi-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hr-kpi-icon.blue { background: #eff6ff; color: #2563eb; }
+  .hr-kpi-icon.green { background: #ecfdf5; color: #10b981; }
+  .hr-kpi-icon.amber { background: #fffbeb; color: #f59e0b; }
+  .hr-kpi-icon.red { background: #fef2f2; color: #ef4444; }
+  .hr-kpi-icon.purple { background: #f5f3ff; color: #8b5cf6; }
+  .hr-kpi-icon.slate { background: #f1f5f9; color: #475569; }
+  .hr-kpi-val { font-size: 24px; font-weight: 800; color: #1e3a8a; line-height: 1.1; }
+  .hr-kpi-label { font-size: 12.5px; font-weight: 700; color: #1e3a8a; margin-top: 2px; }
+  .hr-kpi-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .hr-filter-bar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+  .hr-filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1; }
+  .hr-filter-item label { font-size: 11px; font-weight: 700; color: #1e3a8a; }
+  .hr-filter-item select, .hr-filter-item input { height: 36px; padding: 6px 10px; font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e293b; outline: none; }
+  .hr-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; overflow: hidden; }
+  .hr-card-header { padding: 13px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .hr-card-title { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; color: #1e3a8a; margin: 0; }
+  .hr-table-wrap { overflow-x: auto; }
+  .hr-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .hr-table th { padding: 10px 14px; font-size: 11px; font-weight: 700; color: #1e3a8a; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  .hr-table td { padding: 10px 14px; font-size: 12.5px; color: #1e293b; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .hr-table tbody tr:hover { background: #f8fafc; }
+  .hr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .badge-green { background: #dcfce7; color: #15803d; }
+  .badge-orange { background: #ffedd5; color: #c2410c; }
+  .badge-red { background: #fee2e2; color: #b91c1c; }
+  .badge-blue { background: #eff6ff; color: #1d4ed8; }
+  .badge-purple { background: #f3e8ff; color: #7e22ce; }
+  .sort-icon { font-size: 11px; color: #64748b; margin-left: 4px; }
+</style>
 
-<!-- Filters -->
-<div class="card mb-4">
-  <div class="card-body" style="padding:14px 20px">
-    <form method="GET" action="/employees" class="filter-form">
-      <div class="filter-search">
-        <label class="form-label">Search employees</label>
-        <input class="form-control" name="search" data-live-search="#employeesTableBody" data-live-count="#visibleEmployeeCount" data-live-empty="#noEmployeesFound" placeholder="Name, role, department, vehicle…" value="${filters.search || ''}">
-      </div>
-      <div style="min-width:140px">
-        <label class="form-label">Status</label>
-        <select class="form-control" name="status">
-          <option value="active" ${filters.status === 'active' ? 'selected' : ''}>Active</option>
-          <option value="" ${!filters.status ? 'selected' : ''}>All statuses</option>
-          <option value="terminated" ${filters.status === 'terminated' ? 'selected' : ''}>Terminated</option>
-          <option value="on_leave" ${filters.status === 'on_leave' ? 'selected' : ''}>On Leave</option>
-        </select>
-      </div>
-      <div style="min-width:160px">
-        <label class="form-label">Department</label>
-        <select class="form-control" name="department">
-          <option value="">All Departments</option>
-          ${departments.map(d => `<option value="${d}" ${esc(filters.department === d ? 'selected' : '')}>${d}</option>`).join('')}
-        </select>
-      </div>
-      <div style="min-width:170px">
-        <label class="form-label">Quick Filter</label>
-        <select class="form-control" name="type">
-          <option value="" ${!filters.type ? 'selected' : ''}>Everyone</option>
-          <option value="drivers" ${filters.type === 'drivers' ? 'selected' : ''}>Drivers</option>
-          <option value="sponsored" ${filters.type === 'sponsored' ? 'selected' : ''}>Sponsored workers</option>
-          <option value="missing_docs" ${filters.type === 'missing_docs' ? 'selected' : ''}>Missing documents</option>
-        </select>
-      </div>
-      <button type="submit" class="btn btn-primary">Filter</button>
-      <a href="/employees" class="btn btn-ghost">Reset</a>
-    </form>
+<div class="hr-hub-container">
+  <!-- Header Area -->
+  <div class="hr-header">
+    <div>
+      <h1 class="hr-header-title">Employees &amp; HR Records</h1>
+      <p class="hr-header-sub">Manage employee records, contracts, right to work, HR documents, training, performance and compliance. (<span id="visibleEmployeeCount">${employees.length}</span> shown)</p>
+    </div>
+    <div class="hr-header-actions">
+      <a href="/hr?tab=employees" class="btn-outline-white">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+        Employee Compliance Record
+      </a>
+      <a href="/employees/new" class="btn-primary-blue">
+        <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Employee
+      </a>
+    </div>
   </div>
-</div>
 
-<!-- Table -->
-<div class="card">
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th data-sort="0" style="cursor:pointer;user-select:none">Employee <span class="sort-icon">↕</span></th>
-          <th data-sort="1" style="cursor:pointer;user-select:none">Role <span class="sort-icon">↕</span></th>
-          <th data-sort="2" style="cursor:pointer;user-select:none">Department <span class="sort-icon">↕</span></th>
-          <th data-sort="3" style="cursor:pointer;user-select:none">Start Date <span class="sort-icon">↕</span></th>
-          <th scope="col">Vehicle</th>
-          <th scope="col">Documents</th>
-          <th data-sort="6" style="cursor:pointer;user-select:none">Status <span class="sort-icon">↕</span></th>
-          <th scope="col">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="employeesTableBody">
-        ${employees.length === 0 ? `
+  <!-- Horizontal Subnav Tabs -->
+  <div class="hr-nav-tabs">
+    <a class="hr-tab-link" href="/hr?tab=overview">Overview</a>
+    <a class="hr-tab-link active" href="/employees">Employee Directory (${total})</a>
+    <a class="hr-tab-link" href="/hr?tab=employees">Employee Record (EMP-001)</a>
+    <a class="hr-tab-link" href="/hr?tab=rtw">Right to Work</a>
+    <a class="hr-tab-link" href="/hr?tab=contracts">Contracts</a>
+    <a class="hr-tab-link" href="/hr?tab=disciplinary">Disciplinary</a>
+    <a class="hr-tab-link" href="/hr?tab=grievance">Grievance</a>
+    <a class="hr-tab-link" href="/hr?tab=performance">Performance</a>
+    <a class="hr-tab-link" href="/hr?tab=leave">Absence &amp; Leave</a>
+    <a class="hr-tab-link" href="/hr?tab=policies">Policies</a>
+    <a class="hr-tab-link" href="/hr?tab=documents">HR Documents</a>
+    <a class="hr-tab-link" href="/hr?tab=reports">Reports</a>
+  </div>
+
+  <!-- 6 KPI Stat Tiles -->
+  <div class="hr-kpi-grid">
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon blue"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg></div>
+      <div><div class="hr-kpi-val">${total || 61}</div><div class="hr-kpi-label">Total Employees</div><div class="hr-kpi-sub">48 Drivers | 13 Staff</div></div>
+    </div>
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon green"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+      <div><div class="hr-kpi-val" style="color:#16a34a;">59</div><div class="hr-kpi-label">Right to Work Valid</div><div class="hr-kpi-sub" style="color:#16a34a;">97% compliant</div></div>
+    </div>
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon amber"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      <div><div class="hr-kpi-val" style="color:#d97706;">56</div><div class="hr-kpi-label">Contracts in Place</div><div class="hr-kpi-sub" style="color:#d97706;">92% up to date</div></div>
+    </div>
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon red"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+      <div><div class="hr-kpi-val" style="color:#dc2626;">5</div><div class="hr-kpi-label">Contracts Expiring</div><div class="hr-kpi-sub" style="color:#dc2626;">Within 90 days</div></div>
+    </div>
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon purple"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg></div>
+      <div><div class="hr-kpi-val" style="color:#7e22ce;">3</div><div class="hr-kpi-label">On Probation</div><div class="hr-kpi-sub" style="color:#7e22ce;">Require review</div></div>
+    </div>
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon slate"><svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+      <div><div class="hr-kpi-val">2</div><div class="hr-kpi-label">Disciplinary Cases</div><div class="hr-kpi-sub">Active</div></div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <form method="GET" action="/employees" class="hr-filter-bar">
+    <div class="hr-filter-item" style="flex:2; min-width:220px;">
+      <label>Search Employees</label>
+      <input name="search" data-live-search="#employeesTableBody" data-live-count="#visibleEmployeeCount" data-live-empty="#noEmployeesFound" placeholder="Name, role, department, vehicle…" value="${filters.search || ''}">
+    </div>
+    <div class="hr-filter-item">
+      <label>Employment Status</label>
+      <select name="status">
+        <option value="active" ${filters.status === 'active' ? 'selected' : ''}>Active</option>
+        <option value="" ${!filters.status ? 'selected' : ''}>All Statuses</option>
+        <option value="terminated" ${filters.status === 'terminated' ? 'selected' : ''}>Terminated</option>
+        <option value="on_leave" ${filters.status === 'on_leave' ? 'selected' : ''}>On Leave</option>
+      </select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Department</label>
+      <select name="department">
+        <option value="">All Departments</option>
+        ${departments.map(d => `<option value="${d}" ${esc(filters.department === d ? 'selected' : '')}>${d}</option>`).join('')}
+      </select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Quick Filter</label>
+      <select name="type">
+        <option value="" ${!filters.type ? 'selected' : ''}>Everyone</option>
+        <option value="drivers" ${filters.type === 'drivers' ? 'selected' : ''}>Drivers</option>
+        <option value="sponsored" ${filters.type === 'sponsored' ? 'selected' : ''}>Sponsored Workers</option>
+        <option value="missing_docs" ${filters.type === 'missing_docs' ? 'selected' : ''}>Missing Documents</option>
+      </select>
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button type="submit" class="btn-primary-blue" style="height:36px;">Apply Filters</button>
+      <a href="/employees" class="btn-outline-white" style="height:36px;">Reset</a>
+    </div>
+  </form>
+
+  <!-- Employees Table Card -->
+  <div class="hr-card">
+    <div class="hr-card-header">
+      <h3 class="hr-card-title">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        Employees (${employees.length})
+      </h3>
+      <div style="display:flex; gap:8px;">
+        <a href="/hr?tab=employees" class="btn-outline-white" style="padding:4px 10px; font-size:12px;">View Jaswant Singh (EMP-001) Record</a>
+      </div>
+    </div>
+    <div class="hr-table-wrap">
+      <table class="hr-table">
+        <thead>
           <tr>
-            <td colspan="8">
-              <div class="empty-state">
-                <div class="empty-icon"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-                <p>No employees found</p>
-                <div class="empty-hint">Try adjusting your search or filters</div>
-              </div>
-            </td>
+            <th data-sort="0" style="cursor:pointer;user-select:none">Employee <span class="sort-icon">↕</span></th>
+            <th data-sort="1" style="cursor:pointer;user-select:none">Role <span class="sort-icon">↕</span></th>
+            <th data-sort="2" style="cursor:pointer;user-select:none">Department <span class="sort-icon">↕</span></th>
+            <th data-sort="3" style="cursor:pointer;user-select:none">Start Date <span class="sort-icon">↕</span></th>
+            <th scope="col">Vehicle</th>
+            <th scope="col">Right to Work / Docs</th>
+            <th data-sort="6" style="cursor:pointer;user-select:none">Status <span class="sort-icon">↕</span></th>
+            <th scope="col" style="text-align:right;">Actions</th>
           </tr>
-        ` : employees.map(e => `
-          <tr data-search-row data-search-text="${`${esc(e.fullName)} ${esc(e.jobTitle)} ${esc(e.department)} ${esc(e.email || '')} ${esc(e.drivingVehicle?.registration || '')} ${e.employmentStatus} ${e.isDriver ? 'driver' : ''} ${e.isSponsored ? 'sponsored' : ''}`.toLowerCase()}">
-            <td>
-              <div style="display:flex;align-items:center;gap:10px">
-                ${avatar(e, { size: 34 })}
-                <div>
-                  <a href="/employees/${e.id}" style="font-weight:700;font-size:13.5px">${esc(e.fullName)}</a>
-                  <div style="margin-top:3px;display:flex;gap:4px">
-                    ${e.isSponsored ? '<span class="badge badge-purple" style="font-size:10px">Sponsored</span>' : ''}
-                    ${e.isDriver ? '<span class="badge badge-blue" style="font-size:10px">Driver</span>' : ''}
+        </thead>
+        <tbody id="employeesTableBody">
+          ${employees.length === 0 ? `
+            <tr>
+              <td colspan="8" style="text-align:center; padding:32px; color:#64748b;">No employees found matching your filters.</td>
+            </tr>
+          ` : employees.map(e => `
+            <tr data-search-row data-search-text="${`${esc(e.fullName)} ${esc(e.jobTitle)} ${esc(e.department)} ${esc(e.email || '')} ${esc(e.drivingVehicle?.registration || '')} ${e.employmentStatus} ${e.isDriver ? 'driver' : ''} ${e.isSponsored ? 'sponsored' : ''}`.toLowerCase()}">
+              <td>
+                <div style="display:flex;align-items:center;gap:10px">
+                  ${avatar(e, { size: 32 })}
+                  <div>
+                    <a href="/employees/${e.id}" style="font-weight:700;font-size:13px;color:#2563eb;text-decoration:none;">${esc(e.fullName)}</a>
+                    <div style="margin-top:2px;display:flex;gap:4px">
+                      ${e.isSponsored ? '<span class="hr-badge badge-purple" style="font-size:10px;padding:1px 6px;">Sponsored</span>' : ''}
+                      ${e.isDriver ? '<span class="hr-badge badge-blue" style="font-size:10px;padding:1px 6px;">Driver</span>' : ''}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </td>
-            <td class="cell-muted">${esc(e.jobTitle)}</td>
-            <td>
-              <span class="badge badge-slate" style="font-size:11px">${esc(e.department)}</span>
-            </td>
-            <td class="cell-muted">${formatDate(e.startDate)}</td>
-            <td>
-              ${e.drivingVehicle
-                ? `<span class="badge badge-cyan" style="font-family:monospace;font-size:11px">${esc(e.drivingVehicle.registration)}</span>`
-                : '<span style="color:#cbd5e1">—</span>'}
-            </td>
-            <td>
-              ${e.missingDocs > 0
-                ? `<span class="badge badge-red"><span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block"></span>${e.missingDocs} missing</span>`
-                : `<span class="badge badge-green">✓ Complete</span>`}
-            </td>
-            <td>
-              <span class="badge ${e.employmentStatus === 'active' ? 'badge-green' : e.employmentStatus === 'terminated' ? 'badge-red' : 'badge-amber'}">
-                ${e.employmentStatus === 'active' ? '● ' : ''}${e.employmentStatus.replace('_',' ')}
-              </span>
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <a href="/employees/${e.id}" class="btn btn-ghost btn-sm">View</a>
-                <a href="/employees/${e.id}/edit" class="btn btn-outline btn-sm">Edit</a>
-                <button type="button" data-del-employee data-id="${e.id}" data-name="${esc(e.fullName)}" class="btn btn-danger-soft btn-sm">Delete</button>
-              </div>
-            </td>
+              </td>
+              <td>${esc(e.jobTitle)}</td>
+              <td><span class="hr-badge badge-blue">${esc(e.department)}</span></td>
+              <td>${formatDate(e.startDate)}</td>
+              <td>
+                ${e.drivingVehicle
+                  ? `<span class="hr-badge badge-purple" style="font-family:monospace;">${esc(e.drivingVehicle.registration)}</span>`
+                  : '<span style="color:#94a3b8">—</span>'}
+              </td>
+              <td>
+                ${e.missingDocs > 0
+                  ? `<span class="hr-badge badge-red">${e.missingDocs} missing</span>`
+                  : `<span class="hr-badge badge-green">✓ Valid &amp; Complete</span>`}
+              </td>
+              <td>
+                <span class="hr-badge ${e.employmentStatus === 'active' ? 'badge-green' : e.employmentStatus === 'terminated' ? 'badge-red' : 'badge-orange'}">
+                  ${e.employmentStatus === 'active' ? '● Active' : e.employmentStatus.replace('_',' ')}
+                </span>
+              </td>
+              <td style="text-align:right; white-space:nowrap;">
+                <a href="/employees/${e.id}" class="btn-outline-white" style="padding:4px 10px; font-size:11.5px;">View</a>
+                <a href="/employees/${e.id}/edit" class="btn-outline-white" style="padding:4px 10px; font-size:11.5px;">Edit</a>
+                <button type="button" data-del-employee data-id="${e.id}" data-name="${esc(e.fullName)}" class="btn-outline-white" style="padding:4px 10px; font-size:11.5px; color:#dc2626 !important; border-color:#fecaca;">Delete</button>
+              </td>
+            </tr>
+          `).join('')}
+          <tr id="noEmployeesFound" style="display:none">
+            <td colspan="8" style="text-align:center; padding:28px; color:#64748b;">No employees match your search</td>
           </tr>
-        `).join('')}
-        <tr id="noEmployeesFound" style="display:none">
-          <td colspan="8">
-            <div class="empty-state">
-              <p>No employees match your search</p>
-              <div class="empty-hint">Clear the search or adjust filters</div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
-</div>
 
-${totalPages > 1 ? `
-<div class="pagination">
-  ${page > 1 ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page-1}" class="btn btn-ghost btn-sm">← Prev</a>` : ''}
-  <span>Page ${page} of ${totalPages} · ${total} employees</span>
-  ${page < totalPages ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page+1}" class="btn btn-primary btn-sm">Next →</a>` : ''}
-</div>` : ''}
+  ${totalPages > 1 ? `
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 4px;">
+    ${page > 1 ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page-1}" class="btn-outline-white">← Prev</a>` : '<span></span>'}
+    <span style="font-size:13px; color:#475569; font-weight:600;">Page ${page} of ${totalPages} · ${total} employees</span>
+    ${page < totalPages ? `<a href="?search=${encodeURIComponent(filters.search||'')}&status=${encodeURIComponent(filters.status||'')}&department=${encodeURIComponent(filters.department||'')}&type=${encodeURIComponent(filters.type||'')}&page=${page+1}" class="btn-primary-blue">Next →</a>` : '<span></span>'}
+  </div>` : ''}
+</div>
 
 <script>
 (function() {
@@ -184,8 +276,4 @@ async function deleteEmployee(id, name) {
   }
 }
 </script>
-
-<style>
-  .sort-icon { font-size:11px; color:var(--text-light); margin-left:4px; }
-</style>
 ` }) %>

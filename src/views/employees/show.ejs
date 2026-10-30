@@ -1,5 +1,94 @@
 <%- include('../layouts/main', { body: `
-<link rel="stylesheet" href="/css/driver-hub.css">
+<link rel="stylesheet" href="/css/driver-hub.css?v=20261030v6">
+<style>
+  /* Inlined to bypass 30-day static CSS cache in server.js */
+  :root {
+    --fh-primary: #2563eb;
+    --fh-primary-hover: #1d4ed8;
+    --fh-bg: #f4f7fb;
+    --fh-card: #ffffff;
+    --fh-border: #e2e8f0;
+    --fh-text-main: #0f172a;
+    --fh-text-muted: #64748b;
+    --fh-green: #10b981;
+    --fh-green-bg: #ecfdf5;
+    --fh-green-border: #a7f3d0;
+    --fh-green-text: #059669;
+    --fh-amber: #f59e0b;
+    --fh-amber-bg: #fffbeb;
+    --fh-amber-border: #fde68a;
+    --fh-amber-text: #d97706;
+    --fh-red: #ef4444;
+    --fh-red-bg: #fef2f2;
+    --fh-red-border: #fecaca;
+    --fh-red-text: #dc2626;
+    --fh-blue-soft: #eff6ff;
+    --fh-blue-border: #bfdbfe;
+  }
+  .dh-container { padding: 20px 26px 40px; background: var(--fh-bg); min-height: calc(100vh - 64px); color: var(--fh-text-main); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .dh-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+  .dh-breadcrumbs { font-size: 18px; font-weight: 800; color: var(--fh-text-main); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .dh-breadcrumbs a { color: #2563eb; text-decoration: none; }
+  .dh-breadcrumbs a:hover { text-decoration: underline; }
+  .dh-breadcrumbs .sep { color: #94a3b8; font-weight: 500; }
+  .dh-subtitle { font-size: 13px; color: var(--fh-text-muted); }
+  .dh-header-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-dh-primary { background: var(--fh-primary); color: #ffffff !important; border: 1px solid var(--fh-primary); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; transition: all .15s ease; text-decoration: none; }
+  .btn-dh-primary:hover { background: var(--fh-primary-hover); }
+  .btn-dh-white { background: #ffffff; color: #334155 !important; border: 1px solid var(--fh-border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; transition: all .15s ease; }
+  .btn-dh-white:hover { background: #f1f5f9; border-color: #cbd5e1; }
+  .dh-card { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 12px; box-shadow: 0 1px 3px rgba(15,23,42,0.03); overflow: hidden; margin-bottom: 20px; }
+  .dh-card-head { padding: 13px 18px; border-bottom: 1px solid var(--fh-border); display: flex; align-items: center; justify-content: space-between; background: #ffffff; gap: 10px; flex-wrap: wrap; }
+  .dh-card-title { font-size: 14px; font-weight: 700; color: var(--fh-text-main); display: flex; align-items: center; gap: 8px; }
+  .dh-card-link { font-size: 12px; font-weight: 600; color: #2563eb; text-decoration: none; }
+  .dh-card-link:hover { text-decoration: underline; }
+  .dh-card-body { padding: 16px 18px; }
+  .dh-table-wrap { width: 100%; overflow-x: auto; }
+  .dh-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .dh-table th { text-align: left; padding: 10px 14px; background: #f8fafc; color: #64748b; font-weight: 700; font-size: 11.5px; border-bottom: 1px solid var(--fh-border); white-space: nowrap; }
+  .dh-table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+  .dh-table tr:hover { background: #f8fafc; }
+  .dh-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .dh-badge-green { background: var(--fh-green-bg); color: var(--fh-green-text); border: 1px solid var(--fh-green-border); }
+  .dh-badge-amber { background: var(--fh-amber-bg); color: var(--fh-amber-text); border: 1px solid var(--fh-amber-border); }
+  .dh-badge-red { background: var(--fh-red-bg); color: var(--fh-red-text); border: 1px solid var(--fh-red-border); }
+  .dh-badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .dh-badge-slate { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .dh-hero-card { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 12px; padding: 18px 22px; display: grid; grid-template-columns: auto 1fr 1.1fr auto; gap: 22px; align-items: center; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,0.03); }
+  @media (max-width: 1100px) { .dh-hero-card { grid-template-columns: 1fr; } }
+  .dh-hero-photo { width: 116px; height: 116px; border-radius: 12px; object-fit: cover; border: 2px solid #e2e8f0; display: block; }
+  .dh-hero-primary { display: flex; flex-direction: column; gap: 4px; }
+  .dh-hero-name { font-size: 20px; font-weight: 800; color: var(--fh-text-main); display: flex; align-items: center; gap: 8px; }
+  .dh-hero-code { font-size: 12px; font-weight: 700; color: #64748b; }
+  .dh-hero-contact-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #334155; margin-top: 2px; }
+  .dh-hero-details-col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; font-size: 12px; border-left: 1px solid #f1f5f9; padding-left: 20px; }
+  .dh-detail-row { display: flex; align-items: center; gap: 6px; }
+  .dh-detail-row .label { color: #64748b; min-width: 98px; }
+  .dh-detail-row .val { font-weight: 600; color: #1e293b; }
+  .dh-hero-status-box { background: #f8fafc; border: 1px solid var(--fh-border); border-radius: 10px; padding: 14px 18px; min-width: 245px; }
+  .dh-hero-status-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 12px; font-weight: 700; gap: 8px; }
+  .dh-status-line { display: flex; align-items: center; justify-content: space-between; font-size: 12px; padding: 3px 0; color: #475569; }
+  .dh-tabs-nav { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid var(--fh-border); border-radius: 10px; padding: 6px 8px; margin-bottom: 18px; overflow-x: auto; }
+  .dh-tab-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: #475569; text-decoration: none; border: none; background: transparent; cursor: pointer; white-space: nowrap; transition: all .15s ease; }
+  .dh-tab-btn:hover { background: #f1f5f9; color: #0f172a; }
+  .dh-tab-btn.active { background: var(--fh-primary); color: #ffffff; }
+  .dh-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 1100px) { .dh-grid-3 { grid-template-columns: 1fr; } }
+  .dh-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 900px) { .dh-grid-2 { grid-template-columns: 1fr; } }
+  .dh-grid-6-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 1200px) { .dh-grid-6-cards { grid-template-columns: repeat(3, 1fr); } }
+  .dh-compliance-card { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: space-between; }
+  .dh-compliance-card .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .dh-compliance-card .title { font-size: 13px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+  .dh-compliance-card .info-line { font-size: 11.5px; color: #64748b; margin-top: 3px; }
+  .dh-compliance-card .info-val { font-weight: 600; color: #0f172a; }
+  .dh-compliance-card .foot-link { font-size: 11.5px; font-weight: 700; color: #2563eb; margin-top: 10px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none; }
+  .dh-kv-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: 12.5px; gap: 10px; }
+  .dh-kv-row:last-child { border-bottom: none; }
+  .dh-kv-label { color: #64748b; font-weight: 500; }
+  .dh-kv-val { color: #0f172a; font-weight: 600; text-align: right; }
+</style>
 
 <div class="dh-container">
   <!-- Page Header Breadcrumbs & Action Buttons -->
@@ -13,7 +102,7 @@
         <span style="color:#0f172a;">${profile.name}</span>
         ${activeTab !== 'overview' ? `
           <span class="sep">&gt;</span>
-          <span style="color:#2563eb; text-transform:capitalize;">${activeTab.replace(/-/g, ' ')}</span>
+          <span style="color:#2563eb; text-transform:capitalize;">${activeTab === 'incidents' ? 'Incidents & Risk' : activeTab === 'notes' ? 'Notes & Actions' : activeTab === 'licence' ? 'Licence & CPC' : activeTab === 'medical' ? 'Medical & Fitness' : activeTab === 'training' ? 'Training & Competency' : activeTab === 'employment' ? 'Employment & HR' : activeTab === 'rota' ? 'Rota & Attendance' : activeTab.replace(/-/g, ' ')}</span>
         ` : ''}
       </div>
       <div class="dh-subtitle">Complete driver profile, records, compliance and history</div>
@@ -29,7 +118,7 @@
       </a>
       <a href="/employees/${profile.id}/edit" class="btn-dh-primary">
         <svg style="width:14px; height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-        <span>Edit Driver</span>
+        <span>${activeTab === 'compliance' ? 'Edit Compliance' : activeTab === 'documents' ? 'Upload Document' : activeTab === 'incidents' ? '+ Add Incident' : activeTab === 'notes' ? '+ Add Note / Action' : 'Edit Driver'}</span>
       </a>
     </div>
   </div>
@@ -93,16 +182,108 @@
       </div>
     </div>
 
-    <div class="dh-hero-status-box">
-      <div class="dh-hero-status-head">
-        <span>Current Status</span>
-        <span class="dh-badge dh-badge-green">✓ Available</span>
+    <!-- Right Hero Status Box (Dynamic per Design 2–12) -->
+    ${activeTab === 'compliance' ? `
+      <div class="dh-hero-status-box" style="min-width:295px;">
+        <div class="dh-hero-status-head" style="margin-bottom:6px;">
+          <span>Overall Compliance Status</span>
+          <span class="dh-badge dh-badge-green">✓ Compliant</span>
+        </div>
+        <div style="font-size:11px; color:#059669; margin-bottom:10px;">All key compliance requirements up to date</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center;">
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#059669;">${compliance.counts.upToDate}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#059669;">Up to Date</div>
+          </div>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#d97706;">${compliance.counts.dueSoon}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#d97706;">Due Soon</div>
+          </div>
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#dc2626;">${compliance.counts.expired}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#dc2626;">Expired</div>
+          </div>
+          <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#64748b;">${compliance.counts.missing}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#64748b;">Missing</div>
+          </div>
+        </div>
       </div>
-      <div class="dh-status-line"><span>On Duty:</span> <b style="color:#64748b;">No</b></div>
-      <div class="dh-status-line"><span>On Holiday:</span> <b style="color:#64748b;">No</b></div>
-      <div class="dh-status-line"><span>Sick / Absent:</span> <b style="color:#64748b;">No</b></div>
-      <div class="dh-status-line"><span>Pending RTW:</span> <b style="color:#64748b;">No</b></div>
-    </div>
+    ` : activeTab === 'documents' ? `
+      <div class="dh-hero-status-box" style="min-width:295px;">
+        <div class="dh-hero-status-head" style="margin-bottom:6px;">
+          <span>Document Compliance Status</span>
+          <span class="dh-badge dh-badge-green">✓ All Documents Valid</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center; margin-top:8px;">
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#2563eb;">${documents.summary.total}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#2563eb;">Total Docs</div>
+          </div>
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#059669;">${documents.summary.valid}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#059669;">Valid</div>
+          </div>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#d97706;">${documents.summary.dueSoon}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#d97706;">Due Soon</div>
+          </div>
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#dc2626;">${documents.summary.expired}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#dc2626;">Expired</div>
+          </div>
+        </div>
+      </div>
+    ` : activeTab === 'incidents' ? `
+      <div class="dh-hero-status-box" style="min-width:280px;">
+        <div class="dh-hero-status-head" style="margin-bottom:8px;">
+          <span>Driver Risk Rating</span>
+          <span class="dh-badge dh-badge-green">✓ ${incidents.riskRating}</span>
+        </div>
+        <div style="height:8px; border-radius:99px; background:linear-gradient(90deg, #10b981 0%, #f59e0b 55%, #ef4444 100%); position:relative; margin:10px 0;">
+          <div style="position:absolute; left:18%; top:-3px; width:14px; height:14px; border-radius:50%; background:#10b981; border:2px solid #ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>
+        </div>
+        <div class="dh-status-line"><span>Last Review:</span> <b style="color:#0f172a;">${incidents.lastReview}</b></div>
+        <div class="dh-status-line"><span>Next Review Due:</span> <b style="color:#0f172a;">${incidents.nextReviewDue}</b></div>
+      </div>
+    ` : activeTab === 'notes' ? `
+      <div class="dh-hero-status-box" style="min-width:295px;">
+        <div class="dh-hero-status-head" style="margin-bottom:4px;">
+          <span>Open Actions</span>
+          <span class="dh-badge dh-badge-red">! ${notes.summary.overdue} Overdue</span>
+        </div>
+        <div style="font-size:11px; color:#dc2626; margin-bottom:8px;">Require immediate attention</div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center;">
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#2563eb;">${notes.summary.total}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#2563eb;">Total Notes</div>
+          </div>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#d97706;">${notes.summary.open}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#d97706;">Open</div>
+          </div>
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#059669;">${notes.summary.completed}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#059669;">Completed</div>
+          </div>
+          <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:6px; padding:6px 4px;">
+            <div style="font-size:15px; font-weight:800; color:#64748b;">${notes.summary.archived}</div>
+            <div style="font-size:9.5px; font-weight:700; color:#64748b;">Archived</div>
+          </div>
+        </div>
+      </div>
+    ` : `
+      <div class="dh-hero-status-box">
+        <div class="dh-hero-status-head">
+          <span>Current Status</span>
+          <span class="dh-badge dh-badge-green">✓ Available</span>
+        </div>
+        <div class="dh-status-line"><span>On Duty:</span> <b style="color:#64748b;">No</b></div>
+        <div class="dh-status-line"><span>On Holiday:</span> <b style="color:#64748b;">No</b></div>
+        <div class="dh-status-line"><span>Sick / Absent:</span> <b style="color:#64748b;">No</b></div>
+        <div class="dh-status-line"><span>Pending RTW:</span> <b style="color:#64748b;">No</b></div>
+      </div>
+    `}
   </div>
 
   <!-- Profile Navigation Tabs (11 Tabs matching Designs 2 - 12) -->
@@ -1005,66 +1186,168 @@
     </div>
   ` : ''}
 
-  <!-- TAB 8: COMPLIANCE (Design 9) -->
+  <!-- TAB 8: COMPLIANCE (Design 9 - Fleet HQ Driver Compliance 9.png) -->
   ${activeTab === 'compliance' ? `
-    <div class="dh-grid-2">
-      <div class="dh-card">
+    <!-- Row 1: Driving Licence, CPC, Medical & Fitness Compliance -->
+    <div class="dh-grid-3">
+      <!-- Driving Licence Compliance -->
+      <div class="dh-card" style="margin-bottom:0;">
         <div class="dh-card-head">
-          <div class="dh-card-title">Overall Compliance Status</div>
-          <span class="dh-badge dh-badge-green">✓ Compliant</span>
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0"/></svg>
+            <span>Driving Licence Compliance</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <a href="/employees/${profile.id}?tab=licence" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View / Edit</a>
+          </div>
         </div>
-        <div class="dh-card-body" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; text-align:center;">
-          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:12px;">
-            <div style="font-size:20px; font-weight:800; color:#059669;">8</div>
-            <div style="font-size:11px; font-weight:600; color:#059669;">Up to Date</div>
-          </div>
-          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:12px;">
-            <div style="font-size:20px; font-weight:800; color:#d97706;">2</div>
-            <div style="font-size:11px; font-weight:600; color:#d97706;">Due Soon</div>
-          </div>
-          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px;">
-            <div style="font-size:20px; font-weight:800; color:#dc2626;">0</div>
-            <div style="font-size:11px; font-weight:600; color:#dc2626;">Expired</div>
-          </div>
-          <div style="background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; padding:12px;">
-            <div style="font-size:20px; font-weight:800; color:#64748b;">0</div>
-            <div style="font-size:11px; font-weight:600; color:#64748b;">Missing</div>
-          </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Licence Number</span><span class="dh-kv-val" style="font-family:monospace;">${licence.licenceNumber}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Licence Type</span><span class="dh-kv-val">${licence.licenceType}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Issue Date</span><span class="dh-kv-val">${licence.dateIssued}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Expiry Date</span><span class="dh-kv-val">${licence.validTo} <span class="dh-badge dh-badge-green" style="margin-left:4px;">${licence.validToCountdown}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">DVLA Check Last Done</span><span class="dh-kv-val">${licence.lastChecked} <span class="dh-badge dh-badge-green" style="margin-left:4px;">Up to date</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Next DVLA Check Due</span><span class="dh-kv-val">${licence.nextCheckDue} <span class="dh-badge dh-badge-amber" style="margin-left:4px;">${licence.checkCountdown}</span></span></div>
         </div>
       </div>
 
-      <div class="dh-card">
-        <div class="dh-card-head"><div class="dh-card-title">Driver Monitoring (Last 12 Months)</div></div>
-        <div class="dh-card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px;">
-          <div><span style="color:#64748b;">Tachograph Infringements:</span> <b style="color:#0f172a; margin-left:6px;">0</b></div>
-          <div><span style="color:#64748b;">Licence Points:</span> <b style="color:#0f172a; margin-left:6px;">0</b></div>
-          <div><span style="color:#64748b;">CPC At Risk:</span> <b style="color:#059669; margin-left:6px;">No</b></div>
-          <div><span style="color:#64748b;">Conduct / Disciplinary:</span> <b style="color:#059669; margin-left:6px;">None</b></div>
+      <!-- CPC Compliance -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+            <span>CPC Compliance</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <a href="/employees/${profile.id}?tab=licence" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View / Edit</a>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Total Modules Required</span><span class="dh-kv-val">4</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Modules Completed</span><span class="dh-kv-val">4 <span class="dh-badge dh-badge-green" style="margin-left:4px;">100%</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Last Module Completed</span><span class="dh-kv-val">12 Sep 2024</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Next Module Due</span><span class="dh-kv-val">15 Sep 2029 <span class="dh-badge dh-badge-green" style="margin-left:4px;">4 years 118 days</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">CPC Card Number</span><span class="dh-kv-val" style="font-family:monospace;">${licence.cpcCard.cardNumber}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">CPC Card Expiry</span><span class="dh-kv-val">${licence.cpcCard.validTo} <span class="dh-badge dh-badge-green" style="margin-left:4px;">4 years 118 days</span></span></div>
+        </div>
+      </div>
+
+      <!-- Medical & Fitness Compliance -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            <span>Medical &amp; Fitness Compliance</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <a href="/employees/${profile.id}?tab=medical" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View / Edit</a>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Medical Type</span><span class="dh-kv-val">${medical.certificate.type}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Last Medical Date</span><span class="dh-kv-val">${medical.certificate.dateOfExam}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Expiry Date</span><span class="dh-kv-val">${medical.certificate.expiryDate} <span class="dh-badge dh-badge-green" style="margin-left:4px;">${medical.certificate.daysLeft}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Fit to Drive</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ Yes (No Restrictions)</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Next Medical Due</span><span class="dh-kv-val">${medical.certificate.nextDue} <span class="dh-badge dh-badge-green" style="margin-left:4px;">256 days</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Eye Test Due</span><span class="dh-kv-val">15 Mar 2026 <span class="dh-badge dh-badge-green" style="margin-left:4px;">299 days</span></span></div>
         </div>
       </div>
     </div>
-  ` : ''}
 
-  <!-- TAB 9: DOCUMENTS (Design 10) -->
-  ${activeTab === 'documents' ? `
-    <div class="dh-grid-2">
-      <!-- Documents List -->
-      <div class="dh-card">
+    <!-- Row 2: Right to Work, Driver Monitoring, Declarations & Policies -->
+    <div class="dh-grid-3">
+      <!-- Right to Work Compliance -->
+      <div class="dh-card" style="margin-bottom:0;">
         <div class="dh-card-head">
-          <div class="dh-card-title">Driver Documents (${documents.list.length})</div>
-          <button type="button" class="btn-dh-primary" style="padding:4px 10px; font-size:11px;">+ Upload Document</button>
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Right to Work Compliance</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <a href="/employees/${profile.id}?tab=employment" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View / Edit</a>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Document Type</span><span class="dh-kv-val">British Passport</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Document Number</span><span class="dh-kv-val" style="font-family:monospace;">527831234</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Expiry Date</span><span class="dh-kv-val">15 Mar 2034 <span class="dh-badge dh-badge-green" style="margin-left:4px;">8 years 299 days</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Checked On</span><span class="dh-kv-val">${employment.rightToWork.checkedOn}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Checked By</span><span class="dh-kv-val">${employment.rightToWork.checkedBy}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Next Check Due</span><span class="dh-kv-val">01 Sep 2025 <span class="dh-badge dh-badge-amber" style="margin-left:4px;">103 days</span></span></div>
+        </div>
+      </div>
+
+      <!-- Driver Monitoring -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Driver Monitoring</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <a href="/employees/${profile.id}?tab=incidents" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View Details</a>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Tachograph Infringements (12 months)</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">${compliance.monitoring.tachoInfringements12m}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Total Infringement Points</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">${compliance.monitoring.totalPoints}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">CPC At Risk</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ ${compliance.monitoring.cpcAtRisk}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Medical At Risk</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ ${compliance.monitoring.medicalAtRisk}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Licence At Risk</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ ${compliance.monitoring.licenceAtRisk}</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Conduct / Disciplinary</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ ${compliance.monitoring.conductDisciplinary}</span></span></div>
+        </div>
+      </div>
+
+      <!-- Declarations & Policies -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            <span>Declarations &amp; Policies</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="dh-badge dh-badge-green">✓ Compliant</span>
+            <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View / Edit</button>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          ${compliance.declarations.map(d => `
+            <div class="dh-kv-row">
+              <span class="dh-kv-label" style="display:flex; align-items:center; gap:6px;">
+                <span style="color:#10b981; font-weight:800;">✓</span>
+                <span style="color:#1e293b; font-weight:500;">${d.name}</span>
+              </span>
+              <span class="dh-kv-val" style="color:#64748b; font-size:11.5px;">${d.date}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 3: Upcoming Expiry Dates, Recent Infringements, Compliance Documents -->
+    <div class="dh-grid-3">
+      <!-- Upcoming Expiry Dates -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Upcoming Expiry Dates</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View All</button>
         </div>
         <div class="dh-table-wrap">
           <table class="dh-table">
-            <thead><tr><th>Document</th><th>Uploaded</th><th>Expiry</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Item</th><th>Expiry Date</th><th>Days Left</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>
-              ${documents.list.map(doc => `
+              ${compliance.upcomingExpiries.map(u => `
                 <tr>
-                  <td style="font-weight:700; color:#0f172a;">${doc.name}</td>
-                  <td style="color:#64748b;">${doc.uploaded}</td>
-                  <td style="color:#64748b;">${doc.expiry}</td>
-                  <td><span class="dh-badge ${doc.status === 'Valid' ? 'dh-badge-green' : doc.status === 'Due Soon' ? 'dh-badge-amber' : 'dh-badge-slate'}">${doc.status}</span></td>
-                  <td><button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px;">View</button></td>
+                  <td style="font-weight:700; color:#0f172a;">${u.item}</td>
+                  <td>${u.expiry}</td>
+                  <td><span class="dh-badge ${u.status === 'Due Soon' ? 'dh-badge-amber' : 'dh-badge-green'}">${u.daysLeft}</span></td>
+                  <td><span class="dh-badge ${u.status === 'Due Soon' ? 'dh-badge-amber' : 'dh-badge-green'}">✓ ${u.status}</span></td>
+                  <td><button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px;">•••</button></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1072,30 +1355,333 @@
         </div>
       </div>
 
-      <!-- Document Preview & Audit History -->
-      <div>
-        <div class="dh-card">
-          <div class="dh-card-head"><div class="dh-card-title">Document Preview</div></div>
-          <div class="dh-card-body">
-            <img src="${documents.previewDoc.image}" alt="Preview" class="dh-card-img-preview" onerror="this.style.display='none'">
-            <div style="margin-top:14px; font-size:12px; display:flex; justify-content:space-between;">
-              <div>Uploaded: <b>${documents.previewDoc.dateUploaded}</b></div>
-              <div>Status: <span class="dh-badge dh-badge-green">✓ Valid</span></div>
-            </div>
+      <!-- Recent Infringements -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Recent Infringements</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View All</button>
+        </div>
+        <div class="dh-table-wrap">
+          <table class="dh-table">
+            <thead><tr><th>Date</th><th>Type</th><th>Details</th><th>Points</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr>
+                <td colspan="5" style="text-align:center; padding:36px 16px;">
+                  <div style="width:36px; height:36px; border-radius:50%; background:#ecfdf5; color:#10b981; display:inline-flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; margin-bottom:8px;">✓</div>
+                  <div style="font-weight:700; color:#0f172a; font-size:13px;">No recent infringements</div>
+                  <div style="color:#64748b; font-size:11.5px; margin-top:2px;">Driver has a clean compliance record for the last 12 months</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Compliance Documents -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Compliance Documents</div>
+          <a href="/employees/${profile.id}?tab=documents" class="btn-dh-primary" style="padding:4px 10px; font-size:11px;">+ Upload Document</a>
+        </div>
+        <div class="dh-table-wrap">
+          <table class="dh-table">
+            <thead><tr><th>Document Name</th><th>Uploaded</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${overview.documentsList.map(d => `
+                <tr>
+                  <td style="font-weight:600; color:#0f172a;">📄 ${d.name}</td>
+                  <td style="color:#64748b;">${d.uploaded}</td>
+                  <td style="color:#64748b;">${d.expiry}</td>
+                  <td><span class="dh-badge dh-badge-green">✓ Valid</span></td>
+                  <td><button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px;">⬇</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  ` : ''}
+
+  <!-- TAB 9: DOCUMENTS (Design 10 - Fleet Driver Documents 10.png) -->
+  ${activeTab === 'documents' ? `
+    <!-- Top Full-Width Driver Documents Table Card -->
+    <div class="dh-card">
+      <div class="dh-card-head">
+        <div class="dh-card-title">
+          <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          <span>Driver Documents (${documents.list.length})</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <select class="dh-select" style="padding:6px 10px; font-size:12px;"><option>All Document Types</option><option>Driving Licence</option><option>CPC Card</option><option>Passport</option><option>Medical</option></select>
+          <select class="dh-select" style="padding:6px 10px; font-size:12px;"><option>All Statuses</option><option>Valid</option><option>Due Soon</option><option>Expired</option></select>
+          <input type="text" placeholder="Search documents..." style="padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#f8fafc; outline:none; min-width:180px;">
+          <button type="button" class="btn-dh-primary" style="padding:6px 12px; font-size:12px;">+ Upload Document</button>
+        </div>
+      </div>
+      <div class="dh-table-wrap">
+        <table class="dh-table">
+          <thead>
+            <tr>
+              <th>Document Type</th>
+              <th>Document Name / Description</th>
+              <th>File Name</th>
+              <th>Date Uploaded</th>
+              <th>Expiry Date</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${documents.list.map((doc, idx) => `
+              <tr class="${idx === 0 ? 'selected' : ''}">
+                <td style="font-weight:700; color:#0f172a;">📄 ${doc.type}</td>
+                <td style="color:#334155;">${doc.name}</td>
+                <td style="font-family:monospace; color:#2563eb; font-size:11.5px;">${doc.file}</td>
+                <td style="color:#64748b;">${doc.uploaded}</td>
+                <td style="color:#334155; font-weight:500;">${doc.expiry}</td>
+                <td>
+                  <span class="dh-badge ${doc.status === 'Valid' ? 'dh-badge-green' : doc.status === 'Due Soon' ? 'dh-badge-amber' : 'dh-badge-slate'}">
+                    ${doc.status === 'Valid' ? '✓ ' : doc.status === 'Due Soon' ? '! ' : ''}${doc.status}
+                  </span>
+                </td>
+                <td style="text-align:right; white-space:nowrap;">
+                  <button type="button" class="btn-dh-white" style="padding:3px 7px; font-size:11px;" title="Preview">👁</button>
+                  <button type="button" class="btn-dh-white" style="padding:3px 7px; font-size:11px;" title="Download">⬇</button>
+                  <button type="button" class="btn-dh-white" style="padding:3px 7px; font-size:11px;">•••</button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bottom 3-Column Grid: Document Preview, Document Details, Document History -->
+    <div class="dh-grid-3">
+      <!-- Document Preview -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Document Preview</div>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span style="font-size:11px; color:#64748b; background:#f1f5f9; padding:3px 8px; border-radius:6px; font-weight:600;">− 100% +</span>
+            <button type="button" class="btn-dh-white" style="padding:3px 8px; font-size:11px;">⬇</button>
+          </div>
+        </div>
+        <div class="dh-card-body">
+          <img src="${documents.previewDoc.image}" alt="Driving Licence Preview" class="dh-card-img-preview" onerror="this.style.display='none'">
+          <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:#64748b;">
+            <span><b>${documents.previewDoc.name}</b></span>
+            <span class="dh-badge dh-badge-green">✓ ${documents.previewDoc.status}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Document Details -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Document Details</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 10px; font-size:11px;">Edit</button>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Document Type</span><span class="dh-kv-val">${documents.previewDoc.name}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Description</span><span class="dh-kv-val">UK Driving Licence – Front</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">File Name</span><span class="dh-kv-val" style="font-family:monospace; color:#2563eb;">JL_Driving_Licence_Front.jpg</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Date Uploaded</span><span class="dh-kv-val">${documents.previewDoc.dateUploaded}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Uploaded By</span><span class="dh-kv-val">${documents.previewDoc.uploadedBy}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Expiry Date</span><span class="dh-kv-val">${documents.previewDoc.expiryDate}</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Status</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">✓ Valid</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Notes</span><span class="dh-kv-val" style="color:#64748b;">Verified against DVLA online check</span></div>
+        </div>
+      </div>
+
+      <!-- Document History -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Document History</div>
+        </div>
+        <div class="dh-table-wrap">
+          <table class="dh-table">
+            <thead><tr><th>Date</th><th>Action</th><th>By</th><th>Details</th></tr></thead>
+            <tbody>
+              ${documents.previewDoc.history.map(h => `
+                <tr>
+                  <td style="color:#64748b; white-space:nowrap;">${h.date}</td>
+                  <td><span class="dh-badge ${h.action === 'Verified' ? 'dh-badge-green' : h.action === 'Uploaded' ? 'dh-badge-blue' : 'dh-badge-slate'}">${h.action}</span></td>
+                  <td style="font-weight:600; color:#0f172a;">${h.by}</td>
+                  <td style="color:#64748b;">${h.details}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  ` : ''}
+
+  <!-- TAB 10: INCIDENTS & RISK (Design 11 - Fleet HQ Incidents & Risk 11.png) -->
+  ${activeTab === 'incidents' ? `
+    <!-- Top Full-Width Incidents & Accidents Card -->
+    <div class="dh-card">
+      <div class="dh-card-head">
+        <div class="dh-card-title">
+          <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          <span>Incidents &amp; Accidents (${incidents.list.length})</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <select class="dh-select" style="padding:6px 10px; font-size:12px;"><option>All Types</option><option>Accident</option><option>Incident</option><option>Near Miss</option></select>
+          <select class="dh-select" style="padding:6px 10px; font-size:12px;"><option>All Dates</option><option>Last 12 Months</option><option>2025</option><option>2024</option></select>
+          <input type="text" placeholder="Search incidents..." style="padding:6px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#f8fafc; outline:none; min-width:170px;">
+          <button type="button" class="btn-dh-primary" style="padding:6px 12px; font-size:12px;">+ Add Incident</button>
+        </div>
+      </div>
+      <div class="dh-table-wrap">
+        <table class="dh-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Location</th>
+              <th>Description</th>
+              <th>Vehicle</th>
+              <th>Injury</th>
+              <th>Fault</th>
+              <th>Outcome</th>
+              <th>Status</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${incidents.list.map((inc, idx) => `
+              <tr class="${idx === 0 ? 'selected' : ''}">
+                <td style="color:#64748b; white-space:nowrap;">${inc.date}</td>
+                <td><span class="dh-badge ${inc.type === 'Accident' ? 'dh-badge-red' : inc.type === 'Incident' ? 'dh-badge-amber' : 'dh-badge-blue'}">${inc.type}</span></td>
+                <td style="color:#334155; font-weight:600;">${inc.location}</td>
+                <td style="font-weight:600; color:#0f172a;">${inc.desc}</td>
+                <td style="font-family:monospace; color:#2563eb; font-weight:700;">${inc.vehicle}</td>
+                <td>${inc.injury}</td>
+                <td><span class="dh-badge ${inc.fault === 'Not at Fault' ? 'dh-badge-green' : inc.fault === 'Driver at Fault' ? 'dh-badge-red' : 'dh-badge-slate'}">${inc.fault}</span></td>
+                <td style="color:#475569;">${inc.outcome}</td>
+                <td><span class="dh-badge dh-badge-green">✓ ${inc.status}</span></td>
+                <td style="text-align:right;"><button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px;">•••</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bottom Section: Left Incident Details (1 col) + Right 2x2 Grid (2 cols) -->
+    <div style="display:grid; grid-template-columns: 1fr 2fr; gap:18px;">
+      <!-- Left: Incident Details -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Incident Details</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 10px; font-size:11px;">Edit</button>
+        </div>
+        <div class="dh-card-body">
+          <div class="dh-kv-row"><span class="dh-kv-label">Date</span><span class="dh-kv-val">15 Mar 2025</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Time</span><span class="dh-kv-val">14:25</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Type</span><span class="dh-kv-val"><span class="dh-badge dh-badge-red">Accident</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Location</span><span class="dh-kv-val">M1 J32</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Vehicle</span><span class="dh-kv-val" style="font-family:monospace; color:#2563eb;">YD69 JWK</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Description</span><span class="dh-kv-val">Rear end collision with car in slow traffic</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Injury</span><span class="dh-kv-val">No</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Police Involved</span><span class="dh-kv-val">Yes</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Fault</span><span class="dh-kv-val"><span class="dh-badge dh-badge-green">Not at Fault</span></span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Outcome</span><span class="dh-kv-val">Claim closed by insurer</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Cost to Company</span><span class="dh-kv-val">£0 (Insurer)</span></div>
+          <div class="dh-kv-row"><span class="dh-kv-label">Lessons Learned</span><span class="dh-kv-val">Maintain safe following distance</span></div>
+        </div>
+      </div>
+
+      <!-- Right: 2x2 Grid (Near Misses, Risk Assessments, Corrective Actions, Related Documents) -->
+      <div class="dh-grid-2" style="margin-bottom:0;">
+        <!-- Near Misses -->
+        <div class="dh-card" style="margin-bottom:0;">
+          <div class="dh-card-head">
+            <div class="dh-card-title">Near Misses</div>
+            <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View All</button>
+          </div>
+          <div class="dh-table-wrap">
+            <table class="dh-table">
+              <thead><tr><th>Date</th><th>Location</th><th>Details</th></tr></thead>
+              <tbody>
+                ${incidents.nearMisses.map(nm => `
+                  <tr>
+                    <td style="color:#64748b; white-space:nowrap;">${nm.date}</td>
+                    <td style="font-weight:600; color:#0f172a;">${nm.location}</td>
+                    <td style="color:#475569;">${nm.details}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
           </div>
         </div>
 
-        <div class="dh-card">
-          <div class="dh-card-head"><div class="dh-card-title">Document Audit History</div></div>
+        <!-- Risk Assessments -->
+        <div class="dh-card" style="margin-bottom:0;">
+          <div class="dh-card-head">
+            <div class="dh-card-title">Risk Assessments</div>
+            <button type="button" class="btn-dh-primary" style="padding:3px 9px; font-size:11px;">+ Add Assessment</button>
+          </div>
           <div class="dh-table-wrap">
             <table class="dh-table">
-              <thead><tr><th>Date</th><th>Action</th><th>By</th></tr></thead>
+              <thead><tr><th>Date</th><th>Assessment Type</th><th>Risk Level</th><th>Next Review</th><th>Status</th></tr></thead>
               <tbody>
-                ${documents.previewDoc.history.map(h => `
+                ${incidents.riskAssessments.map(ra => `
                   <tr>
-                    <td style="color:#64748b;">${h.date}</td>
-                    <td style="font-weight:600; color:#0f172a;">${h.action}</td>
-                    <td style="color:#64748b;">${h.by}</td>
+                    <td style="color:#64748b; white-space:nowrap;">${ra.date}</td>
+                    <td style="font-weight:600; color:#0f172a;">${ra.type}</td>
+                    <td><span class="dh-badge ${ra.level === 'Low' ? 'dh-badge-green' : 'dh-badge-amber'}">${ra.level}</span></td>
+                    <td style="color:#64748b;">${ra.review}</td>
+                    <td><span class="dh-badge dh-badge-green">✓ ${ra.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Corrective Actions -->
+        <div class="dh-card" style="margin-bottom:0;">
+          <div class="dh-card-head">
+            <div class="dh-card-title">Corrective Actions</div>
+            <button type="button" class="btn-dh-primary" style="padding:3px 9px; font-size:11px;">+ Add Action</button>
+          </div>
+          <div class="dh-table-wrap">
+            <table class="dh-table">
+              <thead><tr><th>Date</th><th>Action</th><th>Responsible</th><th>Status</th></tr></thead>
+              <tbody>
+                ${incidents.correctiveActions.map(ca => `
+                  <tr>
+                    <td style="color:#64748b; white-space:nowrap;">${ca.date}</td>
+                    <td style="font-weight:600; color:#0f172a;">${ca.action}</td>
+                    <td style="color:#475569;">${ca.responsible}</td>
+                    <td><span class="dh-badge dh-badge-green">✓ ${ca.status}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Related Documents -->
+        <div class="dh-card" style="margin-bottom:0;">
+          <div class="dh-card-head">
+            <div class="dh-card-title">Related Documents</div>
+            <button type="button" class="btn-dh-primary" style="padding:3px 9px; font-size:11px;">+ Upload Document</button>
+          </div>
+          <div class="dh-table-wrap">
+            <table class="dh-table">
+              <thead><tr><th>Document Name</th><th>Date</th><th>Type</th><th></th></tr></thead>
+              <tbody>
+                ${incidents.documents.map(doc => `
+                  <tr>
+                    <td style="font-weight:600; color:#2563eb;">📄 ${doc.name}</td>
+                    <td style="color:#64748b; white-space:nowrap;">${doc.date}</td>
+                    <td><span class="dh-badge dh-badge-slate">${doc.type}</span></td>
+                    <td><button type="button" class="btn-dh-white" style="padding:2px 7px; font-size:11px;">⬇</button></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1106,51 +1692,48 @@
     </div>
   ` : ''}
 
-  <!-- TAB 10: INCIDENTS & RISK (Design 11) -->
-  ${activeTab === 'incidents' ? `
-    <div class="dh-card">
-      <div class="dh-card-head">
-        <div class="dh-card-title">Incidents &amp; Accidents History</div>
-        <button type="button" class="btn-dh-primary" style="padding:4px 10px; font-size:11px;">+ Add Incident</button>
-      </div>
-      <div class="dh-table-wrap">
-        <table class="dh-table">
-          <thead><tr><th>Date</th><th>Type</th><th>Location</th><th>Description</th><th>Vehicle</th><th>Fault</th><th>Status</th></tr></thead>
-          <tbody>
-            ${incidents.list.map(inc => `
-              <tr>
-                <td style="color:#64748b;">${inc.date}</td>
-                <td><span class="dh-badge ${inc.type === 'Accident' ? 'dh-badge-red' : inc.type === 'Incident' ? 'dh-badge-amber' : 'dh-badge-blue'}">${inc.type}</span></td>
-                <td style="color:#334155;">${inc.location}</td>
-                <td style="font-weight:600; color:#0f172a;">${inc.desc}</td>
-                <td style="font-family:monospace; color:#2563eb;">${inc.vehicle}</td>
-                <td><span class="dh-badge ${inc.fault === 'Not at Fault' ? 'dh-badge-green' : 'dh-badge-red'}">${inc.fault}</span></td>
-                <td><span class="dh-badge dh-badge-slate">${inc.status}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  ` : ''}
-
-  <!-- TAB 11: NOTES & ACTIONS (Design 12) -->
+  <!-- TAB 11: NOTES & ACTIONS (Design 12 - Fleet HQ Driver Notes 12.png) -->
   ${activeTab === 'notes' ? `
-    <div class="dh-grid-2">
-      <!-- Notes List -->
-      <div class="dh-card">
-        <div class="dh-card-head"><div class="dh-card-title">Driver Notes &amp; Actions</div></div>
+    <!-- Main 2-Column Row: Left Driver Notes & Actions Table (wider) + Right Add Note/Action Form -->
+    <div style="display:grid; grid-template-columns: 1.85fr 1fr; gap:18px; margin-bottom:18px;">
+      <!-- Left: Notes & Actions Table -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">
+            <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+            <span>Driver Notes &amp; Actions (${notes.list.length})</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <select class="dh-select" style="padding:5px 10px; font-size:12px;"><option>All Categories</option><option>Disciplinary</option><option>Training</option><option>Compliance</option><option>General</option></select>
+            <select class="dh-select" style="padding:5px 10px; font-size:12px;"><option>All Statuses</option><option>Open</option><option>In Progress</option><option>Completed</option></select>
+            <input type="text" placeholder="Search notes..." style="padding:5px 10px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; background:#f8fafc; outline:none; width:150px;">
+          </div>
+        </div>
         <div class="dh-table-wrap">
           <table class="dh-table">
-            <thead><tr><th>Date</th><th>Category</th><th>Title</th><th>Priority</th><th>Status</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Category</th>
+                <th>Title / Description</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Due Date</th>
+                <th>Added By</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
             <tbody>
               ${notes.list.map(n => `
                 <tr>
-                  <td style="color:#64748b;">${n.date}</td>
-                  <td><span class="dh-badge dh-badge-slate">${n.category}</span></td>
-                  <td style="font-weight:600; color:#0f172a;">${n.title}</td>
+                  <td style="color:#64748b; white-space:nowrap;">${n.date}</td>
+                  <td><span class="dh-badge dh-badge-blue">${n.category}</span></td>
+                  <td style="font-weight:700; color:#0f172a;">${n.title}</td>
                   <td><span class="dh-badge ${n.priority === 'High' ? 'dh-badge-red' : n.priority === 'Medium' ? 'dh-badge-amber' : 'dh-badge-green'}">${n.priority}</span></td>
-                  <td><span class="dh-badge ${n.status === 'Completed' ? 'dh-badge-green' : 'dh-badge-amber'}">${n.status}</span></td>
+                  <td><span class="dh-badge ${n.status === 'Completed' ? 'dh-badge-green' : n.status === 'Open' ? 'dh-badge-red' : n.status === 'In Progress' ? 'dh-badge-amber' : 'dh-badge-slate'}">${n.status}</span></td>
+                  <td style="color:${n.status === 'Open' ? '#dc2626' : '#64748b'}; font-weight:${n.status === 'Open' ? '700' : '400'}; white-space:nowrap;">${n.dueDate}</td>
+                  <td style="color:#475569;">${n.addedBy}</td>
+                  <td style="text-align:right;"><button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px;">•••</button></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1158,19 +1741,21 @@
         </div>
       </div>
 
-      <!-- Add Note / Action Form -->
-      <div class="dh-card">
-        <div class="dh-card-head"><div class="dh-card-title">Add Note / Action</div></div>
+      <!-- Right: Add Note / Action Form -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Add Note / Action</div>
+        </div>
         <div class="dh-card-body">
           <form style="display:flex; flex-direction:column; gap:12px;">
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
               <div class="dh-form-group">
                 <label>Category</label>
-                <select><option>General</option><option>Training</option><option>Disciplinary</option><option>Vehicle</option></select>
+                <select><option>General</option><option>Compliance</option><option>Training</option><option>Disciplinary</option><option>Vehicle</option><option>HR</option><option>Medical</option></select>
               </div>
               <div class="dh-form-group">
                 <label>Priority</label>
-                <select><option>Low</option><option>Medium</option><option>High</option></select>
+                <select><option>Medium</option><option>High</option><option>Low</option></select>
               </div>
               <div class="dh-form-group">
                 <label>Status</label>
@@ -1179,17 +1764,98 @@
             </div>
             <div class="dh-form-group">
               <label>Title *</label>
-              <input type="text" placeholder="Enter note title...">
+              <input type="text" placeholder="Enter note or action title...">
             </div>
             <div class="dh-form-group">
               <label>Description</label>
-              <textarea rows="4" style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12.5px; outline:none; background:#f8fafc;" placeholder="Enter full details..."></textarea>
+              <textarea rows="4" style="padding:8px 12px; border:1px solid #e2e8f0; border-radius:8px; font-size:12.5px; outline:none; background:#f8fafc; font-family:inherit;" placeholder="Enter full details and required actions..."></textarea>
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div class="dh-form-group">
+                <label>Due Date</label>
+                <input type="date" value="2025-05-30">
+              </div>
+              <div class="dh-form-group">
+                <label>Assign To</label>
+                <select><option>Transport Manager</option><option>Admin</option><option>Fleet Trainer</option><option>Driver</option></select>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0;">
+              <label style="font-size:12px; font-weight:600; color:#475569; display:flex; align-items:center; gap:6px; cursor:pointer;">
+                <input type="checkbox" checked style="accent-color:#2563eb;"> Set Reminder Notification
+              </label>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
               <button type="button" class="btn-dh-white">Cancel</button>
               <button type="button" class="btn-dh-primary">Save Note / Action</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom 3-Column Row: Actions Summary, Upcoming Actions, Note Categories -->
+    <div class="dh-grid-3">
+      <!-- Actions Summary -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head"><div class="dh-card-title">Actions Summary</div></div>
+        <div class="dh-card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px; font-weight:800; color:#dc2626;">3</div>
+            <div style="font-size:12px; font-weight:700; color:#dc2626; margin-top:2px;">Overdue</div>
+          </div>
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px; font-weight:800; color:#d97706;">3</div>
+            <div style="font-size:12px; font-weight:700; color:#d97706; margin-top:2px;">Due This Week</div>
+          </div>
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px; font-weight:800; color:#2563eb;">2</div>
+            <div style="font-size:12px; font-weight:700; color:#2563eb; margin-top:2px;">Due This Month</div>
+          </div>
+          <div style="background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:24px; font-weight:800; color:#059669;">8</div>
+            <div style="font-size:12px; font-weight:700; color:#059669; margin-top:2px;">Completed</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upcoming Actions -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Upcoming Actions</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">View All</button>
+        </div>
+        <div class="dh-table-wrap">
+          <table class="dh-table">
+            <thead><tr><th>Due Date</th><th>Title</th><th>Priority</th><th>Status</th><th>Assigned To</th></tr></thead>
+            <tbody>
+              ${notes.upcomingActions.map(ua => `
+                <tr>
+                  <td style="color:#dc2626; font-weight:700; white-space:nowrap;">${ua.date}</td>
+                  <td style="font-weight:600; color:#0f172a;">${ua.title}</td>
+                  <td><span class="dh-badge ${ua.priority === 'High' ? 'dh-badge-red' : 'dh-badge-amber'}">${ua.priority}</span></td>
+                  <td><span class="dh-badge ${ua.status === 'Open' ? 'dh-badge-red' : 'dh-badge-amber'}">${ua.status}</span></td>
+                  <td style="color:#64748b;">${ua.assignedTo}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Note Categories -->
+      <div class="dh-card" style="margin-bottom:0;">
+        <div class="dh-card-head">
+          <div class="dh-card-title">Note Categories</div>
+          <button type="button" class="btn-dh-white" style="padding:3px 9px; font-size:11px;">Manage</button>
+        </div>
+        <div class="dh-card-body" style="display:grid; grid-template-columns:1fr 1fr; gap:8px 16px;">
+          ${notes.categories.map(cat => `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:5px 8px; background:#f8fafc; border:1px solid #f1f5f9; border-radius:6px; font-size:12px;">
+              <span style="font-weight:600; color:#334155;">${cat.name}</span>
+              <span class="dh-badge dh-badge-blue" style="padding:1px 7px;">${cat.count}</span>
+            </div>
+          `).join('')}
         </div>
       </div>
     </div>

@@ -1,7 +1,11 @@
 node_modules/
 .env
-.env.local
+.env.*
+!.env.example
 uploads/
+database_backup/
+DESIGNS/
+*.bundle
 *.log
 .DS_Store
 dist/

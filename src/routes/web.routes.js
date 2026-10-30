@@ -20,6 +20,10 @@ const { sendMail, opsRecipients } = require('../services/mail.service');
 const emailTemplates = require('../services/emailTemplates');
 const { ROLE_LABELS, getUserRoles, hasAnyRole, getUserPanels, roleLabel } = require('../utils/rbac');
 const driverService = require('../services/driver.service');
+const hrService = require('../services/hr.service');
+const medicalService = require('../services/medical.service');
+const leaveService = require('../services/leave.service');
+const trainingService = require('../services/training.service');
 
 router.use(cookieParser());
 
@@ -1899,53 +1903,19 @@ router.get('/sponsored-workers', webAuth, requireRoles(...evidenceRoles), async 
 // ── Training & Competency ──────────────────────────────
 router.get('/training', webAuth, async (req, res) => {
   try {
-    if (req.user.role === 'driver') {
-      if (!req.user.employeeId) {
-        return res.status(403).render('error', { title: 'Access denied', message: 'Your driver account is not linked to an employee record.', code: 403 });
-      }
-      const driver = await prisma.employee.findUnique({
-        where: { id: req.user.employeeId },
-        include: { trainingRecords: true },
-      });
-      if (!driver) {
-        return res.status(403).render('error', { title: 'Access denied', message: 'Your driver record could not be found.', code: 403 });
-      }
-      const talks = await prisma.toolboxTalk.findMany({
-        include: { assignments: { where: { employeeId: req.user.employeeId }, select: { signedAt: true } } },
-        orderBy: { dateIssued: 'desc' },
-        take: 10,
-      });
-      const { TRAINING_TYPES } = require('../utils/constants');
-      const completed = driver.trainingRecords.filter((r) => r.status === 'completed').length;
-      return res.render('training/index', {
-        title: 'My Training',
-        drivers: [{ ...driver, completionPercent: Math.round((completed / TRAINING_TYPES.length) * 100) }],
-        talks: talks.map((t) => ({ ...t, totalSigned: t.assignments.filter((a) => a.signedAt).length, assignments: t.assignments })),
-        formatDate,
-      });
-    }
-
-    const drivers = await prisma.employee.findMany({
-      where: { isDriver: true, employmentStatus: 'active' },
-      include: { trainingRecords: true },
-      orderBy: { fullName: 'asc' },
+    const activeTab = req.query.tab || 'overview';
+    const trainingData = await trainingService.getTrainingData(activeTab, { tenantId: req.user?.tenantId });
+    res.render('training/index', {
+      title: 'Training & Competency',
+      activeTab,
+      ...trainingData,
+      formatDate,
+      path: '/training'
     });
-
-    const { TRAINING_TYPES } = require('../utils/constants');
-    const enriched = drivers.map(d => {
-      const completed = d.trainingRecords.filter(r => r.status === 'completed').length;
-      return { ...d, completionPercent: Math.round((completed / TRAINING_TYPES.length) * 100) };
-    });
-
-    const talks = await prisma.toolboxTalk.findMany({
-      include: { issuedBy: { select: { firstName: true, lastName: true } },
-        assignments: { select: { signedAt: true } } },
-      orderBy: { dateIssued: 'desc' }, take: 10,
-    });
-
-    res.render('training/index', { title: 'Training & Competency', drivers: enriched,
-      talks: talks.map(t => ({ ...t, totalSigned: t.assignments.filter(a => a.signedAt).length })), formatDate });
-  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+  } catch (e) {
+    console.error('Training Route Error:', e);
+    res.render('error', { title: 'Error', message: e.message, code: 500 });
+  }
 });
 
 // ── Fleet & Roadworthiness ─────────────────────────────
@@ -4261,14 +4231,22 @@ const empNameMap = async (ids) => {
 router.get('/leave', webAuth, async (req, res) => {
   try {
     const isHr = hasRole(req.user, hrPanelRoles);
-    const mine = req.user.employeeId
-      ? await prisma.leaveRequest.findMany({ where: { employeeId: req.user.employeeId }, orderBy: { createdAt: 'desc' } })
-      : [];
-    const all = isHr ? await prisma.leaveRequest.findMany({ orderBy: [{ status: 'asc' }, { startDate: 'asc' }], take: 100 }) : [];
-    const names = await empNameMap([...all.map((l) => l.employeeId), ...mine.map((l) => l.employeeId)]);
-    const employees = isHr ? await prisma.employee.findMany({ where: { employmentStatus: 'active' }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }) : [];
-    res.render('hr/leave', { title: 'Leave Management', isHr, mine, all, names, employees, badge: LEAVE_BADGE, canSelfRequest: !!req.user.employeeId, formatDate, path: '/leave' });
-  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+    const activeTab = req.query.tab || 'overview';
+    const leaveData = await leaveService.getLeaveData(activeTab, { tenantId: req.user?.tenantId });
+    res.render('leave/index', {
+      title: 'Leave & Absence',
+      activeTab,
+      ...leaveData,
+      isHr,
+      badge: LEAVE_BADGE,
+      canSelfRequest: !!req.user.employeeId,
+      formatDate,
+      path: '/leave',
+    });
+  } catch (e) {
+    console.error('Leave Route Error:', e);
+    res.render('error', { title: 'Error', message: e.message, code: 500 });
+  }
 });
 
 router.post('/leave', webAuth, async (req, res) => {
@@ -4302,37 +4280,20 @@ router.post('/leave/:id/decision', webAuth, requireRoles(...hrPanelRoles), async
 // ── HR overview (panel home) ──────────────────────────────────────────
 router.get('/hr', webAuth, requireRoles(...hrPanelRoles), async (req, res) => {
   try {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const in60 = new Date(); in60.setDate(in60.getDate() + 60);
-    const [
-      totalEmployees, activeEmployees, pendingLeave, onLeaveToday,
-      completedEnrolments, overdueEnrolments, rtwWatch,
-    ] = await Promise.all([
-      prisma.employee.count(),
-      prisma.employee.count({ where: { employmentStatus: 'active' } }),
-      prisma.leaveRequest.findMany({ where: { status: 'pending' }, orderBy: { startDate: 'asc' }, take: 10 }),
-      prisma.leaveRequest.count({ where: { status: 'approved', startDate: { lte: today }, endDate: { gte: today } } }),
-      prisma.courseEnrolment.count({ where: { status: 'completed' } }),
-      prisma.courseEnrolment.findMany({ where: { status: { in: ['assigned', 'in_progress'] } }, orderBy: { assignedAt: 'asc' }, take: 10, include: { course: { select: { title: true } } } }),
-      prisma.sponsoredWorker.findMany({ where: { OR: [{ visaExpiryDate: { lte: in60 } }, { rightToWorkFollowupDate: { lte: in60 } }] }, include: { employee: { select: { fullName: true } } }, orderBy: { visaExpiryDate: 'asc' }, take: 10 }),
-    ]);
-    const allEmpIds = [
-      ...pendingLeave.map((l) => l.employeeId),
-      ...overdueEnrolments.map((e) => e.employeeId),
-    ];
-    const empNames = await empNameMap(allEmpIds);
+    const activeTab = req.query.tab || 'overview';
+    const data = await hrService.getHrSubTabData(activeTab, { tenantId: req.user.tenantId });
     res.render('hr/overview', {
-      title: 'HR Overview',
-      stats: {
-        totalEmployees, activeEmployees,
-        pendingLeave: pendingLeave.length, onLeaveToday,
-        completedEnrolments, overdueEnrolments: overdueEnrolments.length,
-        rtwAtRisk: rtwWatch.length,
-      },
-      pendingLeave, overdueEnrolments, rtwWatch, empNames,
-      badge: LEAVE_BADGE, formatDate, path: '/hr',
+      title: 'Employment & HR',
+      ...data,
+      activeTab,
+      badge: LEAVE_BADGE,
+      formatDate,
+      path: '/hr',
     });
-  } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+  } catch (e) {
+    console.error('HR Route Error:', e);
+    res.render('error', { title: 'Error', message: e.message, code: 500 });
+  }
 });
 
 // ── LMS admin ─────────────────────────────────────────────────────────
@@ -4618,6 +4579,18 @@ router.get('/home-office-reporting', webAuth, (req, res) => res.redirect('/spons
 router.get('/audit-inspection', webAuth, (req, res) => res.redirect('/audit-evidence'));
 router.get('/immigration-docs', webAuth, (req, res) => res.redirect('/sponsored-workers'));
 router.get('/compliance-breaches', webAuth, (req, res) => res.redirect('/defects'));
-router.get('/medical', webAuth, (req, res) => res.redirect('/employees?type=medical'));
+router.get('/medical', webAuth, async (req, res) => {
+  try {
+    const data = await medicalService.getMedicalFitnessData({ tenantId: req.user.tenantId });
+    res.render('medical/index', {
+      title: 'Medical & Fitness',
+      ...data,
+      path: '/medical',
+    });
+  } catch (e) {
+    console.error('Medical route error:', e);
+    res.render('error', { title: 'Error', message: e.message, code: 500 });
+  }
+});
 
 module.exports = router;

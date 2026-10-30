@@ -1,5 +1,75 @@
 <%- include('../layouts/main', { body: `
-<link rel="stylesheet" href="/css/driver-hub.css">
+<link rel="stylesheet" href="/css/driver-hub.css?v=20261030v6">
+<style>
+  :root {
+    --fh-primary: #2563eb;
+    --fh-primary-hover: #1d4ed8;
+    --fh-bg: #f4f7fb;
+    --fh-card: #ffffff;
+    --fh-border: #e2e8f0;
+    --fh-text-main: #0f172a;
+    --fh-text-muted: #64748b;
+    --fh-green: #10b981;
+    --fh-green-bg: #ecfdf5;
+    --fh-green-border: #a7f3d0;
+    --fh-green-text: #059669;
+    --fh-amber: #f59e0b;
+    --fh-amber-bg: #fffbeb;
+    --fh-amber-border: #fde68a;
+    --fh-amber-text: #d97706;
+    --fh-red: #ef4444;
+    --fh-red-bg: #fef2f2;
+    --fh-red-border: #fecaca;
+    --fh-red-text: #dc2626;
+  }
+  .dh-container { padding: 20px 26px 40px; background: var(--fh-bg); min-height: calc(100vh - 64px); color: var(--fh-text-main); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .dh-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+  .dh-breadcrumbs { font-size: 20px; font-weight: 800; color: var(--fh-text-main); display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .dh-breadcrumbs a { color: #2563eb; text-decoration: none; }
+  .dh-breadcrumbs .sep { color: #94a3b8; font-weight: 500; }
+  .dh-subtitle { font-size: 13px; color: var(--fh-text-muted); }
+  .dh-header-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-dh-primary { background: var(--fh-primary); color: #ffffff !important; border: 1px solid var(--fh-primary); border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
+  .btn-dh-white { background: #ffffff; color: #334155 !important; border: 1px solid var(--fh-border); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; text-decoration: none; }
+  .dh-kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 1100px) { .dh-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .dh-kpi-card { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 10px; padding: 15px 18px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .dh-kpi-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .dh-kpi-icon.blue { background: #eff6ff; color: #2563eb; }
+  .dh-kpi-icon.green { background: #ecfdf5; color: #10b981; }
+  .dh-kpi-icon.amber { background: #fffbeb; color: #f59e0b; }
+  .dh-kpi-icon.red { background: #fef2f2; color: #ef4444; }
+  .dh-kpi-icon.slate { background: #f1f5f9; color: #64748b; }
+  .dh-kpi-val { font-size: 22px; font-weight: 800; line-height: 1.1; color: var(--fh-text-main); }
+  .dh-kpi-label { font-size: 12px; font-weight: 600; color: var(--fh-text-muted); margin-top: 2px; }
+  .dh-filter-bar { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .dh-search-box { position: relative; flex: 1; min-width: 240px; }
+  .dh-search-box svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8; }
+  .dh-search-box input { width: 100%; padding: 8px 12px 8px 36px; border: 1px solid var(--fh-border); border-radius: 8px; font-size: 13px; outline: none; background: #f8fafc; }
+  .dh-select { padding: 8px 12px; border: 1px solid var(--fh-border); border-radius: 8px; font-size: 13px; background: #f8fafc; color: #334155; outline: none; cursor: pointer; }
+  .dh-split-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 18px; }
+  @media (max-width: 1180px) { .dh-split-grid { grid-template-columns: 1fr; } }
+  .dh-card { background: #ffffff; border: 1px solid var(--fh-border); border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); overflow: hidden; margin-bottom: 18px; }
+  .dh-card-head { padding: 13px 18px; border-bottom: 1px solid var(--fh-border); display: flex; align-items: center; justify-content: space-between; background: #ffffff; }
+  .dh-card-title { font-size: 14px; font-weight: 700; color: var(--fh-text-main); display: flex; align-items: center; gap: 8px; }
+  .dh-card-link { font-size: 12px; font-weight: 600; color: #2563eb; text-decoration: none; }
+  .dh-card-body { padding: 16px 18px; }
+  .dh-table-wrap { width: 100%; overflow-x: auto; }
+  .dh-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .dh-table th { text-align: left; padding: 10px 12px; background: #f8fafc; color: #64748b; font-weight: 700; font-size: 11.5px; border-bottom: 1px solid var(--fh-border); white-space: nowrap; }
+  .dh-table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+  .dh-table tr.selected { background: #eff6ff !important; }
+  .dh-table tr:hover { background: #f8fafc; cursor: pointer; }
+  .dh-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .dh-badge-green { background: var(--fh-green-bg); color: var(--fh-green-text); border: 1px solid var(--fh-green-border); }
+  .dh-badge-amber { background: var(--fh-amber-bg); color: var(--fh-amber-text); border: 1px solid var(--fh-amber-border); }
+  .dh-badge-red { background: var(--fh-red-bg); color: var(--fh-red-text); border: 1px solid var(--fh-red-border); }
+  .dh-badge-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .dh-badge-slate { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+  .dot-check { width: 16px; height: 16px; border-radius: 50%; background: #10b981; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+  .dot-alert { width: 16px; height: 16px; border-radius: 50%; background: #f59e0b; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+  .dot-cross { width: 16px; height: 16px; border-radius: 50%; background: #ef4444; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; }
+</style>
 
 <div class="dh-container">
   <!-- Page Header -->

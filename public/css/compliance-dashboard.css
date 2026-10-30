@@ -1,86 +1,67 @@
 /* ══════════════════════════════════════════════════════════════════════════
-   FLEETS HQ — Compliance Dashboard Stylesheet
-   Faithful implementation of FLEETS HQ/DESIGNS/Fleet HQ Compliance Dashboard.png
+   FLEETS HQ — Compliance Dashboard Stylesheet (v5 Exact Design Match)
+   Matches FLEETS HQ/DESIGNS/Fleet HQ Compliance Dashboard.png
    ══════════════════════════════════════════════════════════════════════════ */
 
-:root {
-  --fhq-bg: #f8fafc;
-  --fhq-card-bg: #ffffff;
-  --fhq-border: #e2e8f0;
-  --fhq-text: #0f172a;
-  --fhq-text-muted: #64748b;
-  --fhq-primary: #2563eb;
-  --fhq-primary-hover: #1d4ed8;
-  --fhq-success: #10b981;
-  --fhq-warning: #f59e0b;
-  --fhq-danger: #ef4444;
-  --fhq-blue: #3b82f6;
-  --fhq-slate: #64748b;
-  --fhq-radius: 12px;
-  --fhq-radius-sm: 8px;
-  --fhq-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
-  --fhq-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-}
-
 .fhq-dashboard-wrap {
-  background: var(--fhq-bg);
-  min-height: 100vh;
-  padding: 20px 24px 40px;
+  background: #f4f7fb;
+  min-height: calc(100vh - 64px);
+  padding: 16px 22px 36px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--fhq-text);
+  color: #1e3a8a;
 }
 
 /* ── Top Header ────────────────────────────────────────────────────────── */
 .fhq-dash-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  margin-bottom: 14px;
 }
 
 .fhq-dash-title h1 {
-  font-size: 24px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0;
-  letter-spacing: -0.3px;
+  font-size: 26px;
+  font-weight: 800;
+  color: #1e3a8a;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .fhq-dash-title p {
-  font-size: 13px;
-  color: #64748b;
-  margin: 4px 0 0;
+  font-size: 13.5px;
+  color: #1d4ed8;
+  margin: 0;
+  font-weight: 400;
 }
 
 .fhq-quick-actions-btn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: #2563eb;
+  background: #1d4ed8;
   color: #ffffff !important;
   font-size: 13px;
   font-weight: 600;
-  padding: 9px 16px;
-  border-radius: 8px;
-  border: none;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid #1d4ed8;
   cursor: pointer;
-  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
-  transition: background 0.15s ease, transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(29, 78, 216, 0.25);
   text-decoration: none;
 }
 
 .fhq-quick-actions-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
+  background: #1e40af;
 }
 
 /* ── Common Card Base ──────────────────────────────────────────────────── */
 .fhq-card {
-  background: var(--fhq-card-bg);
-  border: 1px solid var(--fhq-border);
-  border-radius: var(--fhq-radius);
-  box-shadow: var(--fhq-shadow-sm);
-  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  padding: 13px 15px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -90,7 +71,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .fhq-card-head-title {
@@ -99,19 +80,13 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
-}
-
-.fhq-card-head-title svg {
-  width: 18px;
-  height: 18px;
-  color: #2563eb;
+  color: #1e3a8a;
 }
 
 .fhq-card-link {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 600;
-  color: #2563eb;
+  color: #1d4ed8;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -119,23 +94,6 @@
 }
 
 .fhq-card-link:hover {
-  color: #1d4ed8;
-  text-decoration: underline;
-}
-
-.fhq-card-foot-link {
-  margin-top: auto;
-  padding-top: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #2563eb;
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.fhq-card-foot-link:hover {
   text-decoration: underline;
 }
 
@@ -143,28 +101,42 @@
 .fhq-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fhq-kpi-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fhq-kpi-icon-box.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.fhq-kpi-icon-box.blue {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .fhq-gauge-card-body {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 8px 0;
+  gap: 14px;
+  flex: 1;
 }
 
 .fhq-gauge-wrap {
   position: relative;
-  width: 96px;
-  height: 96px;
+  width: 102px;
+  height: 102px;
   flex-shrink: 0;
-}
-
-.fhq-gauge-svg {
-  transform: rotate(-90deg);
-  width: 100%;
-  height: 100%;
 }
 
 .fhq-gauge-text {
@@ -178,18 +150,17 @@
 }
 
 .fhq-gauge-val {
-  font-size: 18px;
+  font-size: 21px;
   font-weight: 800;
-  color: #0f172a;
-  line-height: 1.1;
+  color: #1e3a8a;
+  line-height: 1.05;
 }
 
 .fhq-gauge-sub {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  color: #1d4ed8;
+  margin-top: 1px;
 }
 
 .fhq-legend-list {
@@ -204,13 +175,14 @@
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
-  color: #475569;
+  color: #1e3a8a;
+  font-weight: 500;
 }
 
 .fhq-legend-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
 }
 
 .fhq-dot {
@@ -220,176 +192,118 @@
   flex-shrink: 0;
 }
 
-.fhq-dot.green { background: #10b981; }
+.fhq-dot.green { background: #16a34a; }
 .fhq-dot.orange { background: #f59e0b; }
-.fhq-dot.red { background: #ef4444; }
-.fhq-dot.blue { background: #3b82f6; }
+.fhq-dot.red { background: #dc2626; }
+.fhq-dot.blue { background: #2563eb; }
 .fhq-dot.slate { background: #94a3b8; }
 
 .fhq-legend-val {
   font-weight: 700;
-  color: #0f172a;
+  color: #1e3a8a;
 }
 
-/* Truck & Trailer Cards */
-.fhq-vehicle-kpi-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 0 8px;
-}
-
-.fhq-vehicle-kpi-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.fhq-vehicle-big-count {
-  font-size: 28px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1;
-}
-
-.fhq-vehicle-sublabel {
-  font-size: 11px;
-  font-weight: 600;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-.fhq-vehicle-visual {
-  width: 65px;
-  height: 85px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.08));
-}
-
-/* ── ROW 2: MAP & KEY DATES / ACTIVITIES ────────────────────────────────── */
-.fhq-row2-grid {
+/* ── ROW 2: MAP (Col 1) | KEY DATES + RECENT ACTIVITY (Col 2) | ALERTS + FLEET AVAILABILITY (Col 3) ── */
+.fhq-row2-3col {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-  margin-bottom: 20px;
+  grid-template-columns: 1.86fr 1.07fr 1.07fr;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: stretch;
 }
 
-/* Map Card */
-.fhq-map-card {
-  padding: 16px;
-}
-
-.fhq-map-container {
-  height: 420px;
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  overflow: hidden;
-  background: #e2e8f0;
-}
-
-/* Custom Leaflet Marker Pins */
-.fhq-map-pin {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 9px;
-  border-radius: 6px;
-  color: #ffffff;
-  font-family: 'Inter', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.fhq-map-pin:hover {
-  transform: scale(1.06);
-}
-
-.fhq-map-pin.green {
-  background: #10b981;
-}
-
-.fhq-map-pin.red {
-  background: #ef4444;
-}
-
-.fhq-map-pin.blue {
-  background: #3b82f6;
-}
-
-.fhq-map-pin-icon {
-  width: 14px;
-  height: 14px;
-}
-
-.fhq-map-pin-sub {
-  font-size: 9px;
-  font-weight: 500;
-  opacity: 0.9;
-}
-
-/* Key Dates Card */
-.fhq-right-col {
+.fhq-stack-col {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.fhq-key-dates-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  max-height: 220px;
-}
-
-.fhq-key-date-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  background: #f8fafc;
-  border: 1px solid #f1f5f9;
-}
-
-.fhq-key-date-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.fhq-key-date-left svg {
-  width: 14px;
-  height: 14px;
-  color: #64748b;
-}
-
-.fhq-key-date-right {
-  display: flex;
-  align-items: center;
   gap: 12px;
 }
 
-.fhq-key-date-val {
+/* ── ROW 3: VEHICLE STATUS | EMPLOYEE AVAILABILITY | SPONSORED WORKERS ── */
+.fhq-row3-3col {
+  display: grid;
+  grid-template-columns: 1.05fr 1.08fr 1.15fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* ── ROW 4: FUEL & ADBLUE | FINANCE | MAINTENANCE & PMI ── */
+.fhq-row4-3col {
+  display: grid;
+  grid-template-columns: 1.05fr 1.08fr 1.15fr;
+  gap: 12px;
+}
+
+/* Pill Tabs inside Cards */
+.fhq-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+
+.fhq-tab-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 4px 11px;
+  border-radius: 6px;
   font-size: 11px;
-  color: #64748b;
+  font-weight: 600;
+  color: #1e3a8a;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fhq-tab-btn.active-blue {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.fhq-tab-btn.active-green {
+  background: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+}
+
+/* Clean Micro-Tables */
+.fhq-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.fhq-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e3a8a;
+  padding: 5px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.fhq-table td {
+  padding: 5.5px 6px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e3a8a;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.fhq-table tr:last-child td {
+  border-bottom: none;
 }
 
 .fhq-pill {
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 99px;
-  min-width: 55px;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 58px;
   text-align: center;
 }
 
@@ -399,8 +313,8 @@
 }
 
 .fhq-pill.orange {
-  background: #ffedd5;
-  color: #c2410c;
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .fhq-pill.red {
@@ -413,306 +327,9 @@
   color: #1d4ed8;
 }
 
-.fhq-pill.slate {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-/* Split Activity & Actions */
-.fhq-split-subgrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.fhq-activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  max-height: 175px;
-}
-
-.fhq-activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  font-size: 11px;
-  line-height: 1.3;
-}
-
-.fhq-act-icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.fhq-act-icon.green { background: #dcfce7; color: #16a34a; }
-.fhq-act-icon.blue { background: #dbeafe; color: #2563eb; }
-.fhq-act-icon.orange { background: #ffedd5; color: #ea580c; }
-.fhq-act-icon.slate { background: #f1f5f9; color: #64748b; }
-
-.fhq-act-icon svg { width: 10px; height: 10px; }
-
-.fhq-act-text {
-  flex: 1;
-  color: #334155;
-}
-
-.fhq-act-time {
-  font-size: 10px;
-  color: #94a3b8;
-  white-space: nowrap;
-}
-
-.fhq-actions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  overflow-y: auto;
-  max-height: 175px;
-}
-
-.fhq-action-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: #1e293b;
-  text-decoration: none;
-  padding: 3px 6px;
-  border-radius: 6px;
-  transition: background 0.12s ease;
-}
-
-.fhq-action-item:hover {
-  background: #f1f5f9;
-}
-
-.fhq-count-badge {
-  font-size: 10px;
-  font-weight: 800;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.fhq-count-badge.red { background: #fee2e2; color: #dc2626; }
-.fhq-count-badge.orange { background: #ffedd5; color: #ea580c; }
-.fhq-count-badge.blue { background: #dbeafe; color: #2563eb; }
-
-/* ── ROW 3: DETAILED STATUS TABLES ──────────────────────────────────────── */
-.fhq-row3-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 1.25fr 0.8fr;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-/* Tabs inside Card */
-.fhq-tabs {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 8px;
-  overflow-x: auto;
-}
-
-.fhq-tab-btn {
-  background: #f1f5f9;
-  border: 1px solid transparent;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #475569;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.fhq-tab-btn:hover {
-  background: #e2e8f0;
-}
-
-.fhq-tab-btn.active {
-  background: #2563eb;
-  color: #ffffff;
-}
-
-/* Clean Micro-Tables */
-.fhq-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-.fhq-table th {
-  text-align: left;
-  font-size: 10px;
-  font-weight: 700;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 6px 8px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.fhq-table td {
-  padding: 7px 8px;
-  border-bottom: 1px solid #f8fafc;
-  color: #1e293b;
-  vertical-align: middle;
-}
-
-.fhq-table tr:hover td {
-  background: #f8fafc;
-}
-
-.fhq-user-cell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fhq-avatar-sm {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
-  color: #334155;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.fhq-reg-badge {
-  font-weight: 700;
-  font-family: monospace;
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px solid #e2e8f0;
-}
-
-/* ── ROW 4: BOTTOM OPERATIONAL ANALYTICS ────────────────────────────────── */
-.fhq-row4-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.25fr 1fr;
-  gap: 16px;
-}
-
-/* Fuel & AdBlue */
-.fhq-fuel-stat-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.fhq-fuel-stat-block {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.fhq-fuel-icon {
-  width: 28px;
-  height: 28px;
-  background: #eff6ff;
-  color: #2563eb;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.fhq-fuel-icon svg { width: 16px; height: 16px; }
-
-.fhq-fuel-val {
-  font-size: 14px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.fhq-delta {
-  font-size: 11px;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.fhq-delta.up-red { color: #dc2626; }
-.fhq-delta.up-green { color: #16a34a; }
-
-.fhq-fuel-chart-wrap {
-  height: 120px;
-  width: 100%;
-  margin-top: 8px;
-}
-
-/* Finance Card */
-.fhq-finance-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid #f1f5f9;
-  margin-bottom: 10px;
-}
-
-.fhq-finance-kpi-item {
-  display: flex;
-  flex-direction: column;
-}
-
-.fhq-fin-sub {
-  font-size: 10px;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.fhq-fin-val {
-  font-size: 13px;
-  font-weight: 800;
-  color: #0f172a;
-}
-
-.fhq-expense-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  padding: 3px 0;
-  color: #475569;
-}
-
-/* Responsive Breakpoints */
 @media (max-width: 1280px) {
   .fhq-kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .fhq-row2-grid { grid-template-columns: 1fr; }
-  .fhq-row3-grid { grid-template-columns: 1fr; }
-  .fhq-row4-grid { grid-template-columns: 1fr 1fr; }
-}
-
-@media (max-width: 768px) {
-  .fhq-kpi-grid { grid-template-columns: 1fr; }
-  .fhq-split-subgrid { grid-template-columns: 1fr; }
-  .fhq-row4-grid { grid-template-columns: 1fr; }
-  .fhq-dash-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .fhq-row2-3col,
+  .fhq-row3-3col,
+  .fhq-row4-3col { grid-template-columns: 1fr; }
 }

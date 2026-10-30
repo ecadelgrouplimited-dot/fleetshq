@@ -1,0 +1,351 @@
+<%- include('../layouts/main', { body: `
+<link rel="stylesheet" href="/css/hr-hub.css?v=20261030v6">
+<style>
+  .hr-hub-container { display: flex; flex-direction: column; gap: 18px; padding: 18px 24px 40px; background: #f4f7fb; min-height: calc(100vh - 64px); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #0f172a; }
+  .hr-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+  .hr-header-title { font-size: 26px; font-weight: 800; color: #1e3a8a; margin: 0 0 3px 0; letter-spacing: -0.02em; line-height: 1.15; }
+  .hr-header-sub { font-size: 13.5px; color: #1d4ed8; margin: 0; font-weight: 400; }
+  .hr-header-actions { display: flex; align-items: center; gap: 10px; }
+  .btn-primary-blue { display: inline-flex; align-items: center; gap: 8px; background: #2563eb; color: #ffffff !important; font-weight: 600; font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid #1d4ed8; cursor: pointer; text-decoration: none; }
+  .btn-outline-white { display: inline-flex; align-items: center; gap: 8px; background: #ffffff; color: #1e3a8a !important; font-weight: 600; font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; text-decoration: none; }
+  .hr-nav-tabs { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 8px; overflow-x: auto; white-space: nowrap; box-shadow: 0 1px 2px rgba(15,23,42,0.03); }
+  .hr-tab-link { padding: 11px 16px; font-size: 13px; font-weight: 600; color: #1e3a8a; text-decoration: none; border-bottom: 3px solid transparent; position: relative; }
+  .hr-tab-link:not(:last-child)::after { content: ""; position: absolute; right: 0; top: 25%; height: 50%; width: 1px; background: #e2e8f0; }
+  .hr-tab-link.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 700; }
+  .hr-kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  @media (max-width: 1100px) { .hr-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .hr-kpi-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
+  .hr-kpi-icon { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .hr-kpi-icon.green { background: #16a34a; color: #ffffff; }
+  .hr-kpi-icon.amber { background: #f59e0b; color: #ffffff; }
+  .hr-kpi-icon.red { background: #dc2626; color: #ffffff; }
+  .hr-kpi-icon.purple { background: #7e22ce; color: #ffffff; border-radius: 10px; }
+  .hr-kpi-icon.slate { background: #1e3a8a; color: #ffffff; border-radius: 10px; }
+  .hr-kpi-val { font-size: 24px; font-weight: 800; color: #1e3a8a; line-height: 1.1; }
+  .hr-kpi-label { font-size: 13px; font-weight: 700; color: #1e3a8a; margin-top: 2px; }
+  .hr-kpi-sub { font-size: 11.5px; color: #64748b; margin-top: 2px; }
+  .hr-filter-bar { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+  .hr-filter-item { display: flex; flex-direction: column; gap: 4px; min-width: 135px; flex: 1; }
+  .hr-filter-item label { font-size: 11px; font-weight: 700; color: #1e3a8a; }
+  .hr-filter-item select, .hr-filter-item input { height: 36px; padding: 6px 10px; font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #f8fafc; color: #1e293b; outline: none; }
+  .hr-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); display: flex; flex-direction: column; overflow: hidden; }
+  .hr-card-header { padding: 13px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+  .hr-card-title { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; color: #1e3a8a; margin: 0; }
+  .hr-table-wrap { overflow-x: auto; }
+  .hr-table { width: 100%; border-collapse: collapse; text-align: left; }
+  .hr-table th { padding: 9px 12px; font-size: 11px; font-weight: 700; color: #1e3a8a; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+  .hr-table td { padding: 9px 12px; font-size: 12.5px; color: #1e293b; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .hr-emp-cell { display: flex; align-items: center; gap: 9px; }
+  .hr-emp-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; flex-shrink: 0; }
+  .hr-emp-name { font-weight: 600; color: #2563eb; text-decoration: none; }
+  .hr-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; }
+  .hr-metric-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid #f8fafc; }
+  .hr-metric-left { font-size: 12px; color: #1e3a8a; font-weight: 600; min-width: 90px; }
+  .hr-metric-bar-bg { flex: 1; height: 9px; background: #f1f5f9; border-radius: 4px; overflow: hidden; margin: 0 10px; }
+  .hr-metric-bar-fill { height: 100%; border-radius: 4px; }
+  .hr-metric-val { font-size: 12px; font-weight: 700; color: #1e3a8a; min-width: 55px; text-align: right; }
+  .hr-donut-wrap { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 14px; }
+  .hr-donut-svg { width: 125px; height: 125px; position: relative; flex-shrink: 0; }
+  .hr-donut-legend { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .hr-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #1e3a8a; }
+  .hr-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .btn-dot-actions { background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2px 8px; font-size: 12px; font-weight: 700; color: #2563eb; cursor: pointer; }
+  .badge-fit { background: #dcfce7; color: #15803d; }
+  .badge-due { background: #fef3c7; color: #b45309; }
+  .badge-expired { background: #fee2e2; color: #b91c1c; }
+  .icon-pass { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: #16a34a; color: #ffffff; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; }
+  .icon-fail { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; color: #ffffff; align-items: center; justify-content: center; font-weight: 800; font-size: 11px; }
+  .badge-review { background: #fee2e2; color: #b91c1c; font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 700; }
+</style>
+
+<div class="hr-hub-container">
+
+  <!-- Header Area -->
+  <div class="hr-header">
+    <div class="hr-header-main">
+      <h1 class="hr-header-title">Medical &amp; Fitness</h1>
+      <p class="hr-header-sub">Manage employee medical examinations, fitness to drive and health compliance.</p>
+    </div>
+    <div class="hr-header-actions">
+      <button class="btn-primary-blue">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Add Medical Record
+      </button>
+      <button class="btn-outline-white">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- Horizontal Subnav Tabs -->
+  <div class="hr-nav-tabs">
+    <a class="hr-tab-link active" href="/medical?tab=overview">Overview</a>
+    <a class="hr-tab-link" href="/medical?tab=records">Medical Records</a>
+    <a class="hr-tab-link" href="/medical?tab=fitness">Fitness to Drive</a>
+    <a class="hr-tab-link" href="/medical?tab=vision">Vision &amp; Hearing</a>
+    <a class="hr-tab-link" href="/medical?tab=drug-alcohol">Drug &amp; Alcohol</a>
+    <a class="hr-tab-link" href="/medical?tab=vaccinations">Vaccinations</a>
+    <a class="hr-tab-link" href="/medical?tab=expiring">Expiring Soon</a>
+    <a class="hr-tab-link" href="/medical?tab=reports">Reports</a>
+  </div>
+
+  <!-- 5 Top KPI Cards -->
+  <div class="hr-kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon green">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+      </div>
+      <div>
+        <div class="hr-kpi-val">${kpis.fitToDrive}</div>
+        <div class="hr-kpi-label">Fit to Drive</div>
+        <div class="hr-kpi-sub" style="color:#10b981">${kpis.fitPct}% of employees</div>
+      </div>
+    </div>
+
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon amber">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div>
+        <div class="hr-kpi-val" style="color:#f59e0b">${kpis.dueSoon}</div>
+        <div class="hr-kpi-label">Due Soon</div>
+        <div class="hr-kpi-sub" style="color:#f59e0b">Within 30 days</div>
+      </div>
+    </div>
+
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon red">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+      </div>
+      <div>
+        <div class="hr-kpi-val" style="color:#ef4444">${kpis.expired}</div>
+        <div class="hr-kpi-label">Not Fit / Expired</div>
+        <div class="hr-kpi-sub" style="color:#ef4444">Require action</div>
+      </div>
+    </div>
+
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon purple">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <div>
+        <div class="hr-kpi-val">${kpis.awaitingResults}</div>
+        <div class="hr-kpi-label">Awaiting Results</div>
+        <div class="hr-kpi-sub">Pending review</div>
+      </div>
+    </div>
+
+    <div class="hr-kpi-card">
+      <div class="hr-kpi-icon slate">
+        <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+      </div>
+      <div>
+        <div class="hr-kpi-val">${kpis.totalEmployees}</div>
+        <div class="hr-kpi-label">Total Employees</div>
+        <div class="hr-kpi-sub">All drivers &amp; staff</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="hr-filter-bar">
+    <div class="hr-filter-item">
+      <label>Operating Centre</label>
+      <select><option>All Centres</option><option>Sheffield (Head Office)</option><option>Leeds Depot</option></select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Department / Role</label>
+      <select><option>All Roles</option><option>HGV Driver</option><option>Mechanic</option><option>Office Staff</option></select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Employment Status</label>
+      <select><option>Active Employees</option><option>On Leave</option><option>Probation</option></select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Medical Status</label>
+      <select><option>All Statuses</option><option>Fit to Drive</option><option>Due Soon</option><option>Expired</option></select>
+    </div>
+    <div class="hr-filter-item">
+      <label>Date Range (Expiry)</label>
+      <select><option>Next 12 Months</option><option>Next 30 Days</option><option>Next 90 Days</option></select>
+    </div>
+    <div class="hr-filter-item hr-filter-search">
+      <label>Search</label>
+      <input type="text" placeholder="Search by employee name...">
+    </div>
+    <div class="hr-filter-actions">
+      <button class="btn-primary-blue" style="height:36px">Apply Filters</button>
+      <button class="btn-outline-white" style="height:36px">Reset</button>
+    </div>
+  </div>
+
+  <!-- Employee Medical & Fitness Records Table -->
+  <div class="hr-card">
+    <div class="hr-card-header">
+      <h3 class="hr-card-title">
+        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        Employee Medical &amp; Fitness Records (${records.length})
+      </h3>
+    </div>
+    <div class="hr-table-wrap">
+      <table class="hr-table">
+        <thead>
+          <tr>
+            <th style="width:30px"><input type="checkbox"></th>
+            <th>ID</th>
+            <th>Employee</th>
+            <th>Role</th>
+            <th>Last Medical</th>
+            <th>Expiry Date</th>
+            <th>Days Left</th>
+            <th>Fitness Status</th>
+            <th style="text-align:center">Vision Test</th>
+            <th style="text-align:center">Hearing Test</th>
+            <th style="text-align:center">Drug &amp; Alcohol</th>
+            <th>Health Conditions</th>
+            <th style="text-align:right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${records.map(r => `
+            <tr>
+              <td><input type="checkbox"></td>
+              <td style="font-weight:600; color:#475569">${r.code}</td>
+              <td>
+                <div class="hr-emp-cell">
+                  <img src="${r.avatar}" class="hr-emp-avatar" alt="${r.name}" onerror="this.onerror=null;this.src='/img/employee-jaswant.png'">
+                  <a href="/employees/${r.id}?tab=medical" class="hr-emp-name">${r.name}</a>
+                </div>
+              </td>
+              <td>${r.role}</td>
+              <td>${r.lastMedical}</td>
+              <td style="color:${r.status === 'Expired' ? '#ef4444' : r.status === 'Due Soon' ? '#f59e0b' : '#1e293b'}; font-weight:600">${r.expiryDate}</td>
+              <td style="color:${r.daysLeft < 0 ? '#ef4444' : r.daysLeft <= 90 ? '#f59e0b' : '#2563eb'}; font-weight:600">${r.daysLeft}</td>
+              <td>
+                <span class="hr-badge ${r.statusClass}">
+                  ${r.status === 'Fit to Drive' ? '✓ ' : ''}${r.status}
+                </span>
+              </td>
+              <td style="text-align:center"><span class="${r.visionTest ? 'icon-pass' : 'icon-fail'}">${r.visionTest ? '✓' : '✕'}</span></td>
+              <td style="text-align:center"><span class="${r.hearingTest ? 'icon-pass' : 'icon-fail'}">${r.hearingTest ? '✓' : '✕'}</span></td>
+              <td style="text-align:center"><span class="${r.drugAlcohol ? 'icon-pass' : 'icon-fail'}">${r.drugAlcohol ? '✓' : '✕'}</span></td>
+              <td>
+                ${r.healthConditions === 'None' ? '<span style="color:#64748b">None</span>' : `<span class="badge-review">${r.healthConditions}</span>`}
+              </td>
+              <td style="text-align:right">
+                <button class="btn-dot-actions">•••</button>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Bottom 4 Analytics Cards Grid -->
+  <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:20px;">
+
+    <!-- Card 1: Medical Status Overview -->
+    <div class="hr-card">
+      <div class="hr-card-header">
+        <h3 class="hr-card-title">Medical Status Overview</h3>
+      </div>
+      <div class="hr-donut-wrap" style="flex-direction:column; padding:12px;">
+        <div class="hr-donut-svg">
+          <svg viewBox="0 0 36 36" style="transform: rotate(-90deg); width:120px; height:120px;">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" stroke-width="4.5"></circle>
+            <!-- 82% Fit to Drive -->
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#10b981" stroke-width="4.5" stroke-dasharray="72.1 88" stroke-dashoffset="0"></circle>
+            <!-- 11% Due Soon -->
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#f59e0b" stroke-width="4.5" stroke-dasharray="9.7 88" stroke-dashoffset="-72.1"></circle>
+            <!-- 7% Expired -->
+            <circle cx="18" cy="18" r="14" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-dasharray="6.2 88" stroke-dashoffset="-81.8"></circle>
+          </svg>
+          <div style="position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+            <span style="font-size:20px; font-weight:800; color:#0f172a; line-height:1">61</span>
+            <span style="font-size:10px; font-weight:600; color:#64748b; margin-top:2px">Employees</span>
+          </div>
+        </div>
+        <div class="hr-donut-legend" style="width:100%; margin-top:8px;">
+          ${medicalOverviewDonut.map(item => `
+            <div class="hr-legend-item">
+              <span class="hr-legend-dot" style="background:${item.color}"></span>
+              <span>${item.label}</span>
+              <strong style="margin-left:auto; color:#0f172a">${item.count} (${item.pct}%)</strong>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Upcoming Medical Expiry (Next 90 Days) -->
+    <div class="hr-card">
+      <div class="hr-card-header">
+        <h3 class="hr-card-title">Upcoming Medical Expiry (Next 90 Days)</h3>
+      </div>
+      <div style="padding:16px;">
+        <div style="display:flex; justify-content:center; gap:16px; margin-bottom:12px; font-size:11.5px;">
+          <span style="display:flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; background:#f59e0b; border-radius:2px;"></span> Due Soon</span>
+          <span style="display:flex; align-items:center; gap:4px;"><span style="width:8px; height:8px; background:#ef4444; border-radius:2px;"></span> Expired</span>
+        </div>
+        <div style="display:flex; align-items:flex-end; justify-content:space-around; height:120px; border-bottom:2px solid #e2e8f0; padding-bottom:8px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <span style="font-size:12px; font-weight:700">3</span>
+            <div style="width:36px; height:45px; background:#f59e0b; border-radius:4px 4px 0 0;"></div>
+            <span style="font-size:11px; color:#64748b; margin-top:4px;">May</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <span style="font-size:12px; font-weight:700">6</span>
+            <div style="width:36px; height:90px; background:#ef4444; border-radius:4px 4px 0 0;"></div>
+            <span style="font-size:11px; color:#64748b; margin-top:4px;">Jun</span>
+          </div>
+          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <span style="font-size:12px; font-weight:700">4</span>
+            <div style="width:36px; height:60px; background:#ef4444; border-radius:4px 4px 0 0;"></div>
+            <span style="font-size:11px; color:#64748b; margin-top:4px;">Jul</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Fitness Status by Role -->
+    <div class="hr-card">
+      <div class="hr-card-header">
+        <h3 class="hr-card-title">Fitness Status by Role</h3>
+      </div>
+      <div style="padding:10px 0;">
+        ${fitnessByRole.map(item => `
+          <div class="hr-metric-row">
+            <div class="hr-metric-left" style="min-width:90px">${item.role}</div>
+            <div class="hr-metric-bar-bg">
+              <div class="hr-metric-bar-fill" style="width:${item.count * 2}%; background:${item.color}"></div>
+            </div>
+            <div class="hr-metric-val">${item.count}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Card 4: Health Conditions (Declared) -->
+    <div class="hr-card">
+      <div class="hr-card-header">
+        <h3 class="hr-card-title">Health Conditions (Declared)</h3>
+      </div>
+      <div style="padding:10px 0;">
+        ${healthConditions.map(item => `
+          <div class="hr-metric-row">
+            <div class="hr-metric-left" style="min-width:95px">${item.label}</div>
+            <div class="hr-metric-bar-bg">
+              <div class="hr-metric-bar-fill" style="width:${item.pct}%; background:${item.color}"></div>
+            </div>
+            <div class="hr-metric-val">${item.count} <span style="font-size:11px; font-weight:500; color:#64748b">(${item.pct}%)</span></div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+` }) %>

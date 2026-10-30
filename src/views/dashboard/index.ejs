@@ -1,560 +1,959 @@
 <%- include('../layouts/main', { body: `
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="/css/compliance-dashboard.css?v=${typeof assetVersion !== 'undefined' ? assetVersion : '1.0.0'}" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="/css/compliance-dashboard.css?v=20261030v5" />
+
+<style>
+  /* Inlined to bypass 30-day static CSS cache in server.js */
+  .fhq-dashboard-wrap {
+    background: #f4f7fb;
+    min-height: calc(100vh - 64px);
+    padding: 16px 22px 36px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1e3a8a;
+  }
+  .fhq-dash-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+  .fhq-dash-title h1 {
+    font-size: 26px;
+    font-weight: 800;
+    color: #1e3a8a;
+    margin: 0 0 2px 0;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+  .fhq-dash-title p {
+    font-size: 13.5px;
+    color: #1d4ed8;
+    margin: 0;
+    font-weight: 400;
+  }
+  .fhq-quick-actions-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #1d4ed8;
+    color: #ffffff !important;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 7px;
+    border: 1px solid #1d4ed8;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(29, 78, 216, 0.25);
+    text-decoration: none;
+  }
+  .fhq-quick-actions-btn:hover { background: #1e40af; }
+  .fhq-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    padding: 13px 15px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .fhq-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .fhq-card-head-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e3a8a;
+  }
+  .fhq-card-link {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #1d4ed8;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .fhq-card-link:hover { text-decoration: underline; }
+  .fhq-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fhq-kpi-icon-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .fhq-kpi-icon-box.green { background: #dcfce7; color: #16a34a; }
+  .fhq-kpi-icon-box.blue { background: #dbeafe; color: #1d4ed8; }
+  .fhq-gauge-card-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+  }
+  .fhq-gauge-wrap {
+    position: relative;
+    width: 102px;
+    height: 102px;
+    flex-shrink: 0;
+  }
+  .fhq-gauge-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .fhq-gauge-val {
+    font-size: 21px;
+    font-weight: 800;
+    color: #1e3a8a;
+    line-height: 1.05;
+  }
+  .fhq-gauge-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: #1d4ed8;
+    margin-top: 1px;
+  }
+  .fhq-legend-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+  .fhq-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #1e3a8a;
+    font-weight: 500;
+  }
+  .fhq-legend-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .fhq-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .fhq-dot.green { background: #16a34a; }
+  .fhq-dot.orange { background: #f59e0b; }
+  .fhq-dot.red { background: #dc2626; }
+  .fhq-dot.blue { background: #2563eb; }
+  .fhq-dot.slate { background: #94a3b8; }
+  .fhq-legend-val {
+    font-weight: 700;
+    color: #1e3a8a;
+  }
+  .fhq-row2-3col {
+    display: grid;
+    grid-template-columns: 1.86fr 1.07fr 1.07fr;
+    gap: 12px;
+    margin-bottom: 12px;
+    align-items: stretch;
+  }
+  .fhq-stack-col {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .fhq-row3-3col {
+    display: grid;
+    grid-template-columns: 1.05fr 1.08fr 1.15fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fhq-row4-3col {
+    display: grid;
+    grid-template-columns: 1.05fr 1.08fr 1.15fr;
+    gap: 12px;
+  }
+  .fhq-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    overflow-x: auto;
+  }
+  .fhq-tab-btn {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    padding: 4px 11px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e3a8a;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .fhq-tab-btn.active-blue {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff;
+  }
+  .fhq-tab-btn.active-green {
+    background: #15803d;
+    border-color: #15803d;
+    color: #ffffff;
+  }
+  .fhq-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .fhq-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e3a8a;
+    padding: 5px 6px;
+    border-bottom: 1px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .fhq-table td {
+    padding: 5.5px 6px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e3a8a;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .fhq-table tr:last-child td { border-bottom: none; }
+  .fhq-pill {
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 58px;
+    text-align: center;
+  }
+  .fhq-pill.green { background: #dcfce7; color: #15803d; }
+  .fhq-pill.orange { background: #fef3c7; color: #b45309; }
+  .fhq-pill.red { background: #fee2e2; color: #b91c1c; }
+  .fhq-pill.blue { background: #dbeafe; color: #1d4ed8; }
+  .fhq-avatar-img {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    max-width: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 1px solid #cbd5e1;
+    flex-shrink: 0;
+  }
+</style>
 
 <div class="fhq-dashboard-wrap">
+
   <!-- ── Dashboard Header ────────────────────────────────────────────── -->
   <div class="fhq-dash-header">
     <div class="fhq-dash-title">
       <h1>Dashboard</h1>
-      <p>Welcome back, ${typeof user !== 'undefined' && user.name ? user.name : 'Transport Manager'}</p>
+      <p>Welcome back, Transport Manager</p>
     </div>
     <div class="fhq-dash-actions">
       <div class="dropdown" style="position:relative; display:inline-block;">
         <button type="button" class="fhq-quick-actions-btn" id="quickActionsTrigger" onclick="toggleQuickActions()">
-          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M16 2v4M8 2v4M3 10h18M12 13v5M9.5 15.5h5"/></svg>
           Quick Actions
-          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 9l-7 7-7-7"/></svg>
         </button>
-        <div id="quickActionsMenu" class="dropdown-menu" style="display:none; position:absolute; right:0; top:110%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.1); min-width:180px; z-index:1000; padding:6px 0;">
-          <a href="/fleet/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Add Vehicle</a>
-          <a href="/employees/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg> Add Employee</a>
-          <a href="/checks/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Submit Check</a>
-          <a href="/defects" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Log Defect</a>
+        <div id="quickActionsMenu" class="dropdown-menu" style="display:none; position:absolute; right:0; top:110%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.1); min-width:190px; z-index:1000; padding:6px 0;">
+          <a href="/fleet/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e3a8a; font-weight:600; text-decoration:none;">+ Add Vehicle</a>
+          <a href="/employees/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e3a8a; font-weight:600; text-decoration:none;">+ Add Employee</a>
+          <a href="/training" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e3a8a; font-weight:600; text-decoration:none;">+ Record Training</a>
+          <a href="/defects" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e3a8a; font-weight:600; text-decoration:none;">+ Log Defect</a>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── ROW 1: 4 Top KPI Cards ──────────────────────────────────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 1: 4 TOP KPI CARDS                                             -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
   <div class="fhq-kpi-grid">
+
     <!-- Card 1: DVSA Compliance -->
     <div class="fhq-card">
-      <div class="fhq-card-head">
+      <div class="fhq-card-head" style="margin-bottom:8px;">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <span class="fhq-kpi-icon-box green">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          </span>
           DVSA Compliance
         </div>
       </div>
       <div class="fhq-gauge-card-body">
         <div class="fhq-gauge-wrap">
-          <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3.5" />
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.dvsaCompliance.percent}, 100" stroke-linecap="round" />
+          <svg width="102" height="102" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#cbd5e1" stroke-width="4" />
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#16a34a" stroke-width="4" stroke-dasharray="90 10" stroke-dashoffset="18" stroke-linecap="round" />
           </svg>
           <div class="fhq-gauge-text">
-            <span class="fhq-gauge-val">${complianceData.dvsaCompliance.percent}%</span>
+            <span class="fhq-gauge-val">92%</span>
             <span class="fhq-gauge-sub">Compliant</span>
           </div>
         </div>
-        <div class="fhq-legend-list">
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
-            <span class="fhq-legend-val">${complianceData.dvsaCompliance.compliant}</span>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">
+          <div class="fhq-legend-list">
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
+              <span class="fhq-legend-val" style="color:#15803d;">18</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
+              <span class="fhq-legend-val" style="color:#ea580c;">3</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Overdue</span>
+              <span class="fhq-legend-val" style="color:#dc2626;">2</span>
+            </div>
           </div>
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
-            <span class="fhq-legend-val">${complianceData.dvsaCompliance.expiringSoon}</span>
-          </div>
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot red"></i> Overdue</span>
-            <span class="fhq-legend-val">${complianceData.dvsaCompliance.overdue}</span>
+          <div style="text-align:right;margin-top:8px;">
+            <a href="/fleet" class="fhq-card-link">View DVSA Compliance →</a>
           </div>
         </div>
       </div>
-      <a href="/fleet" class="fhq-card-foot-link">View DVSA Compliance <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
     </div>
 
     <!-- Card 2: Home Office Compliance -->
     <div class="fhq-card">
-      <div class="fhq-card-head">
+      <div class="fhq-card-head" style="margin-bottom:8px;">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="fhq-kpi-icon-box blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+          </span>
           Home Office Compliance
         </div>
       </div>
       <div class="fhq-gauge-card-body">
         <div class="fhq-gauge-wrap">
-          <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3.5" />
-            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.homeOfficeCompliance.percent}, 100" stroke-linecap="round" />
+          <svg width="102" height="102" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#cbd5e1" stroke-width="4" />
+            <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#16a34a" stroke-width="4" stroke-dasharray="93 7" stroke-dashoffset="18" stroke-linecap="round" />
           </svg>
           <div class="fhq-gauge-text">
-            <span class="fhq-gauge-val">${complianceData.homeOfficeCompliance.percent}%</span>
+            <span class="fhq-gauge-val">96%</span>
             <span class="fhq-gauge-sub">Compliant</span>
           </div>
         </div>
-        <div class="fhq-legend-list">
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
-            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.compliant}</span>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">
+          <div class="fhq-legend-list">
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
+              <span class="fhq-legend-val" style="color:#15803d;">11</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
+              <span class="fhq-legend-val" style="color:#ea580c;">1</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Overdue</span>
+              <span class="fhq-legend-val" style="color:#1e3a8a;">0</span>
+            </div>
           </div>
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
-            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.expiringSoon}</span>
-          </div>
-          <div class="fhq-legend-item">
-            <span class="fhq-legend-label"><i class="fhq-dot blue"></i> Overdue</span>
-            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.overdue}</span>
+          <div style="text-align:right;margin-top:8px;">
+            <a href="/sponsored-workers" class="fhq-card-link">View Home Office Compliance →</a>
           </div>
         </div>
       </div>
-      <a href="/sponsored-workers" class="fhq-card-foot-link">View Home Office Compliance <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
     </div>
 
     <!-- Card 3: Fleet Vehicles -->
     <div class="fhq-card">
-      <div class="fhq-card-head">
+      <div class="fhq-card-head" style="margin-bottom:8px;">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+          <span class="fhq-kpi-icon-box blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+          </span>
           Fleet Vehicles
         </div>
       </div>
-      <div class="fhq-vehicle-kpi-body">
-        <div class="fhq-vehicle-kpi-left">
-          <div>
-            <div class="fhq-vehicle-big-count">${complianceData.fleetVehicles.total}</div>
-            <div class="fhq-vehicle-sublabel">Total Trucks</div>
+      <div style="display:grid;grid-template-columns:80px 1fr 78px;align-items:center;gap:10px;flex:1;">
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:#1e3a8a;line-height:1;">10</div>
+          <div style="font-size:12px;color:#1e3a8a;font-weight:500;margin-top:4px;">Total Trucks</div>
+        </div>
+        <div class="fhq-legend-list">
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+            <span class="fhq-legend-val" style="color:#15803d;">9</span>
           </div>
-          <div class="fhq-legend-list" style="margin-top:4px;">
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
-              <span class="fhq-legend-val">${complianceData.fleetVehicles.inUse}</span>
-            </div>
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
-              <span class="fhq-legend-val">${complianceData.fleetVehicles.offRoad}</span>
-            </div>
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
-              <span class="fhq-legend-val">${complianceData.fleetVehicles.inService}</span>
-            </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
+            <span class="fhq-legend-val" style="color:#dc2626;">1</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
+            <span class="fhq-legend-val" style="color:#1e3a8a;">0</span>
           </div>
         </div>
-        <img class="fhq-vehicle-visual" src="/img/card-truck.png" alt="Truck" onerror="this.style.display='none'">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;">
+          <img src="/img/card-truck.png?v=5" alt="Truck" style="width:72px;height:78px;object-fit:contain;">
+          <a href="/fleet" class="fhq-card-link" style="margin-top:4px;white-space:nowrap;">View Fleet →</a>
+        </div>
       </div>
-      <a href="/fleet" class="fhq-card-foot-link">View Fleet <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
     </div>
 
     <!-- Card 4: Trailers -->
     <div class="fhq-card">
-      <div class="fhq-card-head">
+      <div class="fhq-card-head" style="margin-bottom:8px;">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span class="fhq-kpi-icon-box blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>
+          </span>
           Trailers
         </div>
       </div>
-      <div class="fhq-vehicle-kpi-body">
-        <div class="fhq-vehicle-kpi-left">
-          <div>
-            <div class="fhq-vehicle-big-count">${complianceData.trailers.total}</div>
-            <div class="fhq-vehicle-sublabel">Total Trailers</div>
+      <div style="display:grid;grid-template-columns:80px 1fr 78px;align-items:center;gap:10px;flex:1;">
+        <div style="text-align:center;">
+          <div style="font-size:28px;font-weight:800;color:#1e3a8a;line-height:1;">6</div>
+          <div style="font-size:12px;color:#1e3a8a;font-weight:500;margin-top:4px;">Total Trailers</div>
+        </div>
+        <div class="fhq-legend-list">
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+            <span class="fhq-legend-val" style="color:#15803d;">5</span>
           </div>
-          <div class="fhq-legend-list" style="margin-top:4px;">
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
-              <span class="fhq-legend-val">${complianceData.trailers.inUse}</span>
-            </div>
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
-              <span class="fhq-legend-val">${complianceData.trailers.offRoad}</span>
-            </div>
-            <div class="fhq-legend-item">
-              <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
-              <span class="fhq-legend-val">${complianceData.trailers.inService}</span>
-            </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
+            <span class="fhq-legend-val" style="color:#dc2626;">0</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
+            <span class="fhq-legend-val" style="color:#1d4ed8;">1</span>
           </div>
         </div>
-        <img class="fhq-vehicle-visual" src="/img/card-trailer.png" alt="Trailer" onerror="this.style.display='none'">
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;">
+          <img src="/img/card-trailer.png?v=5" alt="Trailer" style="width:72px;height:78px;object-fit:contain;">
+          <a href="/trailers" class="fhq-card-link" style="margin-top:4px;white-space:nowrap;">View Trailers →</a>
+        </div>
       </div>
-      <a href="/trailers" class="fhq-card-foot-link">View Trailers <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
     </div>
+
   </div>
 
-  <!-- ── ROW 2: LIVE MAP & KEY DATES / ACTIVITIES ────────────────────── -->
-  <div class="fhq-row2-grid">
-    <!-- Left: Live Vehicle Tracking Map -->
-    <div class="fhq-card fhq-map-card">
-      <div class="fhq-card-head">
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 2: LIVE MAP | KEY DATES + ACTIVITY | ALERTS + AVAILABILITY      -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div class="fhq-row2-3col">
+
+    <!-- Col 1: Live Vehicle Tracking -->
+    <div class="fhq-card" style="padding:12px 14px;">
+      <div class="fhq-card-head" style="margin-bottom:8px;">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
           Live Vehicle Tracking
         </div>
-        <select id="mapFilterSelect" onchange="filterMapMarkers(this.value)" style="font-size:12px; font-weight:600; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer;">
-          <option value="all">All Vehicles (${complianceData.trackingVehicles.length})</option>
-          <option value="in_use">In Use</option>
-          <option value="off_road">Off Road</option>
-          <option value="in_service">In Service</option>
+        <select style="font-size:11.5px; font-weight:600; padding:4px 10px; border-radius:6px; border:1px solid #cbd5e1; background:#ffffff; color:#1e3a8a; cursor:pointer;">
+          <option value="all">All Vehicles (10)</option>
+          <option value="in_use">In Use (9)</option>
+          <option value="off_road">Off Road (1)</option>
         </select>
       </div>
-
-      <div id="liveTrackingMap" class="fhq-map-container"></div>
-
-      <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
-        <a href="/fleet" class="fhq-card-link">View All Tracking <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
-        <span style="font-size:11px; color:#64748b;">Live telematics feed updated just now</span>
+      <div style="position:relative;flex:1;min-height:345px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+        <img src="/img/uk-tracking-map.png?v=5" alt="Live UK Vehicle Tracking Map" style="width:100%;height:100%;object-fit:cover;display:block;">
+        <a href="/fleet" title="View All Tracking" style="position:absolute;left:1.5%;bottom:2%;width:38%;height:11%;display:block;border-radius:6px;"></a>
       </div>
     </div>
 
-    <!-- Right Column: Key Dates + Split Activity/Alerts -->
-    <div class="fhq-right-col">
-      <!-- Top Right: Key Dates -->
-      <div class="fhq-card" style="flex:1;">
-        <div class="fhq-card-head">
+    <!-- Col 2: Key Dates (Next 30 Days) + Recent Activity -->
+    <div class="fhq-stack-col">
+
+      <!-- Key Dates (Next 30 Days) -->
+      <div class="fhq-card" style="padding:12px 14px;">
+        <div class="fhq-card-head" style="margin-bottom:8px;">
           <div class="fhq-card-head-title">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-            Key Dates (Next 30 Days)
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+            Key Dates <span style="font-weight:400;color:#1d4ed8;">(Next 30 Days)</span>
           </div>
           <a href="/fleet" class="fhq-card-link">View All</a>
         </div>
-        <div class="fhq-key-dates-list">
-          ${complianceData.keyDates.map(kd => `
-            <div class="fhq-key-date-row">
-              <div class="fhq-key-date-left">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>${kd.label}</span>
-              </div>
-              <div class="fhq-key-date-right">
-                <span class="fhq-key-date-val">${kd.date}</span>
-                <span class="fhq-pill ${kd.tone}">${kd.days}</span>
-              </div>
+        <div style="display:flex;flex-direction:column;gap:5px;font-size:11.5px;">
+          ${[
+            { label: 'MOT Expiry', date: '12 Sep 2025', days: '115 days', tone: 'green', color: '#16a34a' },
+            { label: 'Tax Expiry', date: '31 May 2026', days: '381 days', tone: 'green', color: '#16a34a' },
+            { label: 'Insurance Expiry', date: '30 Jun 2025', days: '30 days', tone: 'orange', color: '#1d4ed8' },
+            { label: 'Tachograph Calibration', date: '15 Sep 2025', days: '118 days', tone: 'green', color: '#16a34a' },
+            { label: 'Next PMI (avg)', date: '05 Jun 2025', days: '9 days', tone: 'orange', color: '#1e3a8a' },
+            { label: 'Sponsor Licence Review', date: '10 Nov 2025', days: '174 days', tone: 'green', color: '#1d4ed8' },
+            { label: 'CoS Expiring', date: '3 Jul 2025', days: '43 days', tone: 'orange', color: '#eab308' },
+            { label: 'Right to Work Checks', date: '8 Jun 2025', days: '22 days', tone: 'orange', color: '#16a34a' },
+          ].map(kd => `
+            <div style="display:grid;grid-template-columns:1fr auto 64px;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f8fafc;">
+              <span style="display:inline-flex;align-items:center;gap:7px;font-weight:500;color:#1e3a8a;">
+                <span style="width:14px;height:14px;border-radius:50%;background:${kd.color}20;color:${kd.color};display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;">●</span>
+                ${kd.label}
+              </span>
+              <span style="color:#1d4ed8;font-size:11px;font-weight:500;">${kd.date}</span>
+              <span class="fhq-pill ${kd.tone}" style="text-align:center;">${kd.days}</span>
             </div>
           `).join('')}
         </div>
       </div>
 
-      <!-- Bottom Right: Split Activity & Alerts -->
-      <div class="fhq-split-subgrid">
-        <!-- Recent Activity -->
-        <div class="fhq-card">
-          <div class="fhq-card-head">
-            <div class="fhq-card-head-title" style="font-size:13px;">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Recent Activity
-            </div>
-            <a href="/audit-evidence" class="fhq-card-link">View All</a>
+      <!-- Recent Activity -->
+      <div class="fhq-card" style="padding:12px 14px;flex:1;">
+        <div class="fhq-card-head" style="margin-bottom:8px;">
+          <div class="fhq-card-head-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-3.5 14L7 12.5l1.4-1.4 2.1 2.1 4.6-4.6L16.5 10l-6 6z"/></svg>
+            Recent Activity
           </div>
-          <div class="fhq-activity-list">
-            ${complianceData.recentActivity.map(act => `
-              <div class="fhq-activity-item">
-                <span class="fhq-act-icon ${act.tone}">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                </span>
-                <div class="fhq-act-text">
-                  <div>${act.title}</div>
-                  <span class="fhq-act-time">${act.time}</span>
-                </div>
-              </div>
-            `).join('')}
+          <a href="/audit-evidence" class="fhq-card-link">View All</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;">
+          ${[
+            { text: 'Right to Work check completed - Pardeep Brar', time: 'Today 07:45', bg: '#16a34a', sym: '✓' },
+            { text: 'PMI Scheduled - BW18 DXL', time: 'Today 08:10', bg: '#1d4ed8', sym: '📅' },
+            { text: 'Defect Logged - NU66 XVB (Near side headlight)', time: 'Today 10:25', bg: '#f59e0b', sym: '!' },
+            { text: 'Home Office report submitted (SMS)', time: 'Today 11:02', bg: '#2563eb', sym: '✓' },
+            { text: 'CoS Assigned - Prince Kumar', time: 'Today 12:15', bg: '#16a34a', sym: '📄' },
+            { text: 'Document Uploaded - Driver Licence', time: 'Today 14:22', bg: '#1e3a8a', sym: '📄' },
+          ].map(act => `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:2px 0;">
+              <span style="display:inline-flex;align-items:center;gap:7px;color:#1d4ed8;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                <span style="width:15px;height:15px;border-radius:50%;background:${act.bg};color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;">${act.sym === '!' || act.sym === '✓' ? act.sym : '•'}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;">${act.text}</span>
+              </span>
+              <span style="color:#64748b;font-size:10.5px;white-space:nowrap;">${act.time}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Col 3: Alerts & Outstanding Actions + Fleet Availability -->
+    <div class="fhq-stack-col">
+
+      <!-- Alerts & Outstanding Actions -->
+      <div class="fhq-card" style="padding:12px 14px;">
+        <div class="fhq-card-head" style="margin-bottom:8px;">
+          <div class="fhq-card-head-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#dc2626"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            Alerts &amp; Outstanding Actions
+          </div>
+          <a href="/alerts" class="fhq-card-link">View All</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4.5px;font-size:11.5px;">
+          ${[
+            { count: 2, label: 'Vehicles overdue PMI', bg: '#fee2e2', color: '#dc2626', href: '/fleet/pmi-planner' },
+            { count: 1, label: 'Employee licence check missing', bg: '#fee2e2', color: '#dc2626', href: '/drivers' },
+            { count: 3, label: 'Documents expiring (next 30 days)', bg: '#fef3c7', color: '#d97706', href: '/training?tab=expiry' },
+            { count: 2, label: 'Right to Work check due', bg: '#fef3c7', color: '#d97706', href: '/sponsored-workers' },
+            { count: 1, label: 'CoS nearing expiry', bg: '#fef3c7', color: '#d97706', href: '/sponsored-workers' },
+            { count: 2, label: 'Unexplained employee absence', bg: '#fef3c7', color: '#d97706', href: '/leave' },
+            { count: 1, label: 'Defects awaiting rectification', bg: '#fef3c7', color: '#d97706', href: '/defects' },
+            { count: 1, label: 'Home Office report due', bg: '#fef3c7', color: '#d97706', href: '/sponsored-workers' },
+            { count: 5, label: 'General actions', bg: '#dbeafe', color: '#1d4ed8', href: '/alerts' },
+          ].map(al => `
+            <a href="${al.href}" style="display:flex;align-items:center;gap:10px;text-decoration:none;padding:2px 0;">
+              <span style="min-width:34px;height:19px;border-radius:4px;background:${al.bg};color:${al.color};font-weight:800;font-size:11px;display:inline-flex;align-items:center;justify-content:center;">${al.count}</span>
+              <span style="color:#1d4ed8;font-weight:500;">${al.label}</span>
+            </a>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Fleet Availability -->
+      <div class="fhq-card" style="padding:12px 14px;flex:1;">
+        <div class="fhq-card-head" style="margin-bottom:6px;">
+          <div class="fhq-card-head-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+            Fleet Availability
           </div>
         </div>
-
-        <!-- Alerts & Outstanding Actions -->
-        <div class="fhq-card">
-          <div class="fhq-card-head">
-            <div class="fhq-card-head-title" style="font-size:13px;">
-              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-              Alerts &amp; Actions
+        <div class="fhq-gauge-card-body">
+          <div class="fhq-gauge-wrap" style="width:106px;height:106px;">
+            <svg width="106" height="106" viewBox="0 0 36 36">
+              <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#cbd5e1" stroke-width="4.2" />
+              <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#16a34a" stroke-width="4.2" stroke-dasharray="88 12" stroke-dashoffset="18" stroke-linecap="round" />
+            </svg>
+            <div class="fhq-gauge-text">
+              <span class="fhq-gauge-val" style="font-size:22px;">90%</span>
+              <span class="fhq-gauge-sub">Available</span>
             </div>
-            <a href="/alerts" class="fhq-card-link">View All</a>
           </div>
-          <div class="fhq-actions-list">
-            ${complianceData.alertsAndActions.map(act => `
-              <a href="${act.href}" class="fhq-action-item">
-                <span class="fhq-count-badge ${act.tone}">${act.count}</span>
-                <span style="flex:1;">${act.label}</span>
-                <svg width="12" height="12" fill="none" stroke="#94a3b8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              </a>
-            `).join('')}
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;height:100%;">
+            <div class="fhq-legend-list">
+              <div class="fhq-legend-item">
+                <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+                <span class="fhq-legend-val" style="color:#15803d;">9</span>
+              </div>
+              <div class="fhq-legend-item">
+                <span class="fhq-legend-label"><i class="fhq-dot slate"></i> Off Road</span>
+                <span class="fhq-legend-val" style="color:#dc2626;">1</span>
+              </div>
+              <div class="fhq-legend-item">
+                <span class="fhq-legend-label"><i class="fhq-dot blue"></i> In Service</span>
+                <span class="fhq-legend-val" style="color:#1e3a8a;">0</span>
+              </div>
+            </div>
+            <div style="text-align:right;margin-top:8px;">
+              <a href="/fleet" class="fhq-card-link">View Fleet Status →</a>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
+
   </div>
 
-  <!-- ── ROW 3: DETAILED STATUS TABLES ──────────────────────────────── -->
-  <div class="fhq-row3-grid">
-    <!-- Col 1: Vehicle Status Table -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 3: VEHICLE STATUS | EMPLOYEE AVAILABILITY | SPONSORED WORKERS  -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div class="fhq-row3-3col">
+
+    <!-- Col 1: Vehicle Status -->
     <div class="fhq-card">
       <div class="fhq-card-head">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>
           Vehicle Status
         </div>
         <a href="/fleet" class="fhq-card-link">View All</a>
       </div>
       <div class="fhq-tabs">
-        <button type="button" class="fhq-tab-btn active" onclick="filterVehicleTable('all', this)">All</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('In Use', this)">In Use (${complianceData.fleetVehicles.inUse})</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('Off Road', this)">Off Road (${complianceData.fleetVehicles.offRoad})</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('In Service', this)">In Service (${complianceData.fleetVehicles.inService})</button>
+        <button type="button" class="fhq-tab-btn active-blue">In Use (9)</button>
+        <button type="button" class="fhq-tab-btn">Off Road (1)</button>
+        <button type="button" class="fhq-tab-btn">In Service (0)</button>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="fhq-table" id="vehicleStatusTable">
-          <thead>
+      <table class="fhq-table">
+        <thead>
+          <tr>
+            <th>Reg</th>
+            <th>Fleet ID</th>
+            <th>Driver</th>
+            <th>Status</th>
+            <th>Location</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[
+            { reg: 'FN16 EVK', fleetId: '256-T01', driver: 'Mulindwa Denis', empId: 'local-emp-driver-001', status: 'In Use', location: 'A14, Cambridge' },
+            { reg: 'NU66 XVB', fleetId: '256-T02', driver: 'Pardeep Brar', empId: 'local-emp-driver-002', status: 'In Use', location: 'M1, Nottingham' },
+            { reg: 'WX18 NEO', fleetId: '256-T03', driver: 'Nirmal Singh', empId: 'local-emp-nirmal-004', status: 'In Use', location: 'A1, Leeds' },
+            { reg: 'BW18 DXL', fleetId: '256-T04', driver: 'Jashanjot Singh', empId: 'local-emp-driver-003', status: 'In Use', location: 'M62, Manchester' },
+            { reg: 'WX67 VKA', fleetId: '256-T05', driver: 'Prince Kumar', empId: 'local-emp-prince-005', status: 'In Use', location: 'M5, Birmingham' },
+          ].map(v => `
             <tr>
-              <th>Reg</th>
-              <th>Fleet ID</th>
-              <th>Driver</th>
-              <th>Status</th>
-              <th>Location</th>
+              <td>
+                <div style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#1e3a8a;">
+                  <img src="/img/truck-mini.png?v=5" alt="" style="width:22px;height:18px;object-fit:contain;">
+                  ${v.reg}
+                </div>
+              </td>
+              <td style="color:#1d4ed8;font-weight:500;">${v.fleetId}</td>
+              <td><a href="/employees/${v.empId}" style="color:#1d4ed8;text-decoration:none;font-weight:500;">${v.driver}</a></td>
+              <td><span class="fhq-pill green">${v.status}</span></td>
+              <td style="color:#1d4ed8;">${v.location}</td>
+              <td style="text-align:right;"><button style="background:#fff;border:1px solid #cbd5e1;border-radius:4px;color:#1e3a8a;font-size:10px;padding:1px 5px;cursor:pointer;">•••</button></td>
             </tr>
-          </thead>
-          <tbody>
-            ${complianceData.vehicleStatusList.map(v => `
-              <tr data-status="${v.status}">
-                <td><span class="fhq-reg-badge">${v.reg}</span></td>
-                <td><span style="color:#64748b; font-size:11px; font-weight:600;">${v.fleetId}</span></td>
-                <td>${v.driver}</td>
-                <td><span class="fhq-pill ${v.statusTone === 'green' ? 'green' : v.statusTone === 'red' ? 'red' : 'blue'}">${v.status}</span></td>
-                <td><span style="font-size:11px; color:#475569;">${v.location}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
 
-    <!-- Col 2: Employee Availability Table -->
+    <!-- Col 2: Employee Availability -->
     <div class="fhq-card">
       <div class="fhq-card-head">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
           Employee Availability
         </div>
         <a href="/employees" class="fhq-card-link">View All</a>
       </div>
       <div class="fhq-tabs">
-        <button type="button" class="fhq-tab-btn active" onclick="filterEmpTable('all', this)">All</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Available', this)">Available</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('On Holiday', this)">On Holiday</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Sick / Absent', this)">Sick / Absent</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Pending RTW', this)">Pending RTW</button>
+        <button type="button" class="fhq-tab-btn active-green">Available (8)</button>
+        <button type="button" class="fhq-tab-btn">On Holiday (2)</button>
+        <button type="button" class="fhq-tab-btn">Sick / Absent (1)</button>
+        <button type="button" class="fhq-tab-btn">Pending RTW (1)</button>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="fhq-table" id="employeeStatusTable">
-          <thead>
+      <table class="fhq-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Next Shift</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[
+            { name: 'Jashanjot Singh', id: 'local-emp-driver-003', avatar: '/img/avatars/jaswant.png?v=3', role: 'HGV', status: 'Available', tone: 'green', nextShift: 'Today 14:00' },
+            { name: 'Pardeep Brar', id: 'local-emp-driver-002', avatar: '/img/avatars/pardeep.png?v=3', role: 'HGV', status: 'Available', tone: 'green', nextShift: 'Today 10:00' },
+            { name: 'Mulindwa Denis', id: 'local-emp-driver-001', avatar: '/img/avatars/mulindwa.png?v=3', role: 'HGV', status: 'Available', tone: 'green', nextShift: 'Today 08:00' },
+            { name: 'Nirmal Singh', id: 'local-emp-nirmal-004', avatar: '/img/avatars/nirmal.png?v=3', role: 'HGV', status: 'On Holiday', tone: 'red', nextShift: '-' },
+            { name: 'Prince Kumar', id: 'local-emp-prince-005', avatar: '/img/avatars/prince.png?v=3', role: 'HGV', status: 'Available', tone: 'green', nextShift: 'Today 15:00' },
+          ].map(emp => `
             <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Next Shift</th>
+              <td>
+                <a href="/employees/${emp.id}" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:#1d4ed8;font-weight:500;">
+                  <img src="${emp.avatar}" class="fhq-avatar-img" alt="${emp.name}">
+                  ${emp.name}
+                </a>
+              </td>
+              <td>${emp.role}</td>
+              <td><span class="fhq-pill ${emp.tone}">${emp.status}</span></td>
+              <td style="color:#1d4ed8;">${emp.nextShift}</td>
             </tr>
-          </thead>
-          <tbody>
-            ${complianceData.employeeAvailabilityList.map(e => `
-              <tr data-status="${e.status}">
-                <td>
-                  <div class="fhq-user-cell">
-                    <span class="fhq-avatar-sm">${e.name ? e.name.charAt(0) : 'E'}</span>
-                    <span style="font-weight:600;">${e.name}</span>
-                  </div>
-                </td>
-                <td><span style="color:#64748b; font-size:11px;">${e.role}</span></td>
-                <td><span class="fhq-pill ${e.statusTone === 'green' ? 'green' : e.statusTone === 'orange' ? 'orange' : 'amber'}">${e.status}</span></td>
-                <td><span style="font-size:11px; font-weight:600; color:#334155;">${e.nextShift}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
 
-    <!-- Col 3: Fleet Availability Gauge -->
-    <div class="fhq-card" style="align-items:center; text-align:center;">
-      <div class="fhq-card-head" style="width:100%;">
-        <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-          Fleet Availability
-        </div>
-      </div>
-      <div class="fhq-gauge-wrap" style="width:120px; height:120px; margin:16px 0;">
-        <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3" />
-          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.fleetAvailability.percent}, 100" stroke-linecap="round" />
-        </svg>
-        <div class="fhq-gauge-text">
-          <span class="fhq-gauge-val" style="font-size:22px;">${complianceData.fleetAvailability.percent}%</span>
-          <span class="fhq-gauge-sub">Available</span>
-        </div>
-      </div>
-      <div class="fhq-legend-list" style="width:100%; max-width:180px; margin-bottom:12px;">
-        <div class="fhq-legend-item">
-          <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
-          <span class="fhq-legend-val">${complianceData.fleetAvailability.inUse}</span>
-        </div>
-        <div class="fhq-legend-item">
-          <span class="fhq-legend-label"><i class="fhq-dot slate"></i> Off Road</span>
-          <span class="fhq-legend-val">${complianceData.fleetAvailability.offRoad}</span>
-        </div>
-        <div class="fhq-legend-item">
-          <span class="fhq-legend-label"><i class="fhq-dot blue"></i> In Service</span>
-          <span class="fhq-legend-val">${complianceData.fleetAvailability.inService}</span>
-        </div>
-      </div>
-      <a href="/fleet" class="fhq-card-foot-link" style="width:100%; justify-content:center;">View Fleet Status <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
-    </div>
-  </div>
-
-  <!-- ── ROW 4: BOTTOM OPERATIONAL ANALYTICS ────────────────────────── -->
-  <div class="fhq-row4-grid">
-    <!-- Card 1: Fuel & AdBlue -->
+    <!-- Col 3: Home Office Compliance - Sponsored Workers -->
     <div class="fhq-card">
       <div class="fhq-card-head">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          Fuel &amp; AdBlue (Last 30 Days)
-        </div>
-        <a href="/fuel" class="fhq-card-link">View Details</a>
-      </div>
-      <div class="fhq-fuel-stat-row">
-        <div class="fhq-fuel-stat-block">
-          <div class="fhq-fuel-icon">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
-          </div>
-          <div>
-            <div style="font-size:10px; color:#64748b; font-weight:600;">Total Fuel</div>
-            <div class="fhq-fuel-val">${complianceData.fuelAdBlue.fuelLitres.toLocaleString()} L</div>
-          </div>
-        </div>
-        <span class="fhq-delta ${complianceData.fuelAdBlue.isFuelUp ? 'up-red' : 'up-green'}">${complianceData.fuelAdBlue.fuelDeltaPct}</span>
-      </div>
-      <div class="fhq-fuel-stat-row">
-        <div class="fhq-fuel-stat-block">
-          <div class="fhq-fuel-icon" style="background:#ecfdf5; color:#10b981;">
-            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-          </div>
-          <div>
-            <div style="font-size:10px; color:#64748b; font-weight:600;">Total AdBlue</div>
-            <div class="fhq-fuel-val">${complianceData.fuelAdBlue.adBlueLitres.toLocaleString()} L</div>
-          </div>
-        </div>
-        <span class="fhq-delta ${complianceData.fuelAdBlue.isAdBlueUp ? 'up-green' : 'up-red'}">${complianceData.fuelAdBlue.adBlueDeltaPct}</span>
-      </div>
-      <div class="fhq-fuel-chart-wrap">
-        <canvas id="fuelAdBlueChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Card 2: Finance (This Month) -->
-    <div class="fhq-card">
-      <div class="fhq-card-head">
-        <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          Finance (This Month)
-        </div>
-        <a href="/finance" class="fhq-card-link">View Finance</a>
-      </div>
-      <div class="fhq-finance-kpi-row">
-        <div class="fhq-finance-kpi-item">
-          <span class="fhq-fin-sub">Total Income</span>
-          <span class="fhq-fin-val" style="color:#15803d;">£${complianceData.finance.totalIncome}</span>
-        </div>
-        <div class="fhq-finance-kpi-item">
-          <span class="fhq-fin-sub">Total Expenses</span>
-          <span class="fhq-fin-val" style="color:#b91c1c;">£${complianceData.finance.totalExpenses}</span>
-        </div>
-        <div class="fhq-finance-kpi-item">
-          <span class="fhq-fin-sub">Gross Profit</span>
-          <span class="fhq-fin-val" style="color:#1e40af;">£${complianceData.finance.grossProfit}</span>
-        </div>
-      </div>
-      <div style="font-size:11px; font-weight:700; color:#475569; margin-bottom:6px;">Top Expenses</div>
-      <div>
-        ${complianceData.finance.topExpenses.map(exp => `
-          <div class="fhq-expense-item">
-            <span><i class="fhq-dot" style="background:${exp.color}; display:inline-block; vertical-align:middle; margin-right:6px;"></i>${exp.label}</span>
-            <span style="font-weight:700; color:#1e293b;">£${exp.amountFormatted}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-
-    <!-- Card 3: Home Office Compliance - Sponsored Workers -->
-    <div class="fhq-card">
-      <div class="fhq-card-head">
-        <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
           Home Office Compliance - Sponsored Workers
         </div>
         <a href="/sponsored-workers" class="fhq-card-link">View All</a>
       </div>
       <div class="fhq-tabs">
-        <button type="button" class="fhq-tab-btn active" onclick="filterSponsoredTable('all', this)">All (${complianceData.sponsoredWorkersCompliance.length})</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterSponsoredTable('Expiring', this)">CoS Expiring</button>
-        <button type="button" class="fhq-tab-btn" onclick="filterSponsoredTable('Expiring', this)">RTW Expiring</button>
+        <button type="button" class="fhq-tab-btn active-blue">All (12)</button>
+        <button type="button" class="fhq-tab-btn">CoS Expiring (1)</button>
+        <button type="button" class="fhq-tab-btn">RTW Expiring (2)</button>
+        <button type="button" class="fhq-tab-btn">Reports Due (1)</button>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="fhq-table" id="sponsoredTable">
-          <thead>
+      <table class="fhq-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Visa Expiry</th>
+            <th>RTW Expiry</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[
+            { name: 'Jashanjot Singh', id: 'local-emp-driver-003', avatar: '/img/avatars/jaswant.png?v=3', role: 'HGV', visa: '10 Apr 2027', rtw: '10 Apr 2027', exp: false, status: 'OK', tone: 'green' },
+            { name: 'Pardeep Brar', id: 'local-emp-driver-002', avatar: '/img/avatars/pardeep.png?v=3', role: 'HGV', visa: '05 Jun 2025', rtw: '05 Jun 2025', exp: true, status: 'Expiring', tone: 'orange' },
+            { name: 'Mulindwa Denis', id: 'local-emp-driver-001', avatar: '/img/avatars/mulindwa.png?v=3', role: 'HGV', visa: '15 Mar 2027', rtw: '15 Mar 2027', exp: false, status: 'OK', tone: 'green' },
+            { name: 'Nirmal Singh', id: 'local-emp-nirmal-004', avatar: '/img/avatars/nirmal.png?v=3', role: 'HGV', visa: '22 Aug 2025', rtw: '22 Aug 2025', exp: true, status: 'Expiring', tone: 'orange' },
+            { name: 'Prince Kumar', id: 'local-emp-prince-005', avatar: '/img/avatars/prince.png?v=3', role: 'HGV', visa: '18 Jan 2027', rtw: '18 Jan 2027', exp: false, status: 'OK', tone: 'green' },
+          ].map(sw => `
             <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Visa Expiry</th>
-              <th>RTW Expiry</th>
-              <th>Status</th>
+              <td>
+                <a href="/employees/${sw.id}" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:#1d4ed8;font-weight:500;">
+                  <img src="${sw.avatar}" class="fhq-avatar-img" alt="${sw.name}">
+                  ${sw.name}
+                </a>
+              </td>
+              <td>${sw.role}</td>
+              <td style="color:${sw.exp ? '#dc2626' : '#1d4ed8'};font-weight:${sw.exp ? '600' : '500'};">${sw.visa}</td>
+              <td style="color:${sw.exp ? '#dc2626' : '#1d4ed8'};font-weight:${sw.exp ? '600' : '500'};">${sw.rtw}</td>
+              <td><span class="fhq-pill ${sw.tone}">● ${sw.status}</span></td>
             </tr>
-          </thead>
-          <tbody>
-            ${complianceData.sponsoredWorkersCompliance.map(sw => `
-              <tr data-status="${sw.status}">
-                <td>
-                  <div class="fhq-user-cell">
-                    <span class="fhq-avatar-sm">${sw.name.charAt(0)}</span>
-                    <span style="font-weight:600;">${sw.name}</span>
-                  </div>
-                </td>
-                <td><span style="font-size:11px; color:#64748b;">${sw.role}</span></td>
-                <td><span style="font-size:11px;">${sw.visaExpiry}</span></td>
-                <td><span style="font-size:11px;">${sw.rtwExpiry}</span></td>
-                <td><span class="fhq-pill ${sw.statusTone === 'green' ? 'green' : sw.statusTone === 'orange' ? 'orange' : 'red'}">${sw.status}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
 
-    <!-- Card 4: Maintenance & PMI (Next 14 Days) -->
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <!-- ROW 4: FUEL & ADBLUE | FINANCE (THIS MONTH) | MAINTENANCE & PMI    -->
+  <!-- ══════════════════════════════════════════════════════════════════ -->
+  <div class="fhq-row4-3col">
+
+    <!-- Col 1: Fuel & AdBlue (Last 30 Days) -->
     <div class="fhq-card">
       <div class="fhq-card-head">
         <div class="fhq-card-head-title">
-          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Maintenance &amp; PMI (Next 14 Days)
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM12 10H6V5h6v5z"/></svg>
+          Fuel &amp; AdBlue <span style="font-weight:400;color:#1d4ed8;">(Last 30 Days)</span>
+        </div>
+        <a href="/fuel" class="fhq-card-link">View Details</a>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;flex:1;">
+        <!-- Left Sub-Chart: Total Fuel -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="fhq-kpi-icon-box blue" style="width:26px;height:26px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77z"/></svg>
+              </span>
+              <div>
+                <div style="font-size:10px;color:#1d4ed8;font-weight:600;">Total Fuel</div>
+                <div style="font-size:14.5px;font-weight:800;color:#1e3a8a;">18,420 L</div>
+              </div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#dc2626;">↑ 6%</span>
+          </div>
+          <div style="display:flex;gap:5px;height:86px;align-items:stretch;">
+            <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#1d4ed8;text-align:right;padding-bottom:14px;">
+              <span>2,000</span><span>1,500</span><span>1,000</span><span>500</span><span>0</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+              <div style="flex:1;border-bottom:1px solid #cbd5e1;display:flex;align-items:flex-end;justify-content:space-around;padding:0 4px;">
+                <div style="width:18px;height:40px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+                <div style="width:18px;height:36px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+                <div style="width:18px;height:52px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-around;font-size:9.5px;color:#1e3a8a;font-weight:600;padding-top:3px;">
+                <span>Apr</span><span>May</span><span>Jun</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Sub-Chart: Total AdBlue -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:7px;">
+              <span class="fhq-kpi-icon-box blue" style="width:26px;height:26px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+              </span>
+              <div>
+                <div style="font-size:10px;color:#1d4ed8;font-weight:600;">Total AdBlue</div>
+                <div style="font-size:14.5px;font-weight:800;color:#1e3a8a;">1,260 L</div>
+              </div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#16a34a;">↓ 12%</span>
+          </div>
+          <div style="display:flex;gap:5px;height:86px;align-items:stretch;">
+            <div style="display:flex;flex-direction:column;justify-content:space-between;font-size:9px;color:#1d4ed8;text-align:right;padding-bottom:14px;">
+              <span>200</span><span>150</span><span>100</span><span>50</span><span>0</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;">
+              <div style="flex:1;border-bottom:1px solid #cbd5e1;display:flex;align-items:flex-end;justify-content:space-around;padding:0 4px;">
+                <div style="width:18px;height:30px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+                <div style="width:18px;height:33px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+                <div style="width:18px;height:46px;background:#2563eb;border-radius:2px 2px 0 0;"></div>
+              </div>
+              <div style="display:flex;justify-content:space-around;font-size:9.5px;color:#1e3a8a;font-weight:600;padding-top:3px;">
+                <span>Apr</span><span>May</span><span>Jun</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Col 2: Finance (This Month) -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <span style="font-size:16px;font-weight:800;color:#1d4ed8;">£</span>
+          Finance <span style="font-weight:400;color:#1d4ed8;">(This Month)</span>
+        </div>
+        <a href="/finance" class="fhq-card-link">View Finance</a>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #f1f5f9;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:24px;height:24px;border-radius:5px;background:#dcfce7;color:#16a34a;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">↑</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#1e3a8a;">£185,420</div>
+            <div style="font-size:10px;color:#1d4ed8;">Total Income</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:24px;height:24px;border-radius:5px;background:#fee2e2;color:#dc2626;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">↓</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#1e3a8a;">£72,310</div>
+            <div style="font-size:10px;color:#1d4ed8;">Total Expenses</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:24px;height:24px;border-radius:5px;background:#dbeafe;color:#1d4ed8;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">=</span>
+          <div>
+            <div style="font-size:13px;font-weight:800;color:#1e3a8a;">£113,110</div>
+            <div style="font-size:10px;color:#1d4ed8;">Gross Profit</div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:#1e3a8a;margin-bottom:4px;">Top Expenses</div>
+      <div style="display:flex;flex-direction:column;gap:3px;font-size:11.5px;">
+        ${[
+          { label: 'Fuel', amount: '£23,450', color: '#ef4444' },
+          { label: 'Driver Wages', amount: '£24,600', color: '#ef4444' },
+          { label: 'Maintenance & Repairs', amount: '£12,800', color: '#f59e0b' },
+          { label: 'Insurance', amount: '£6,250', color: '#f59e0b' },
+          { label: 'Other', amount: '£4,770', color: '#2563eb' },
+        ].map(exp => `
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="display:inline-flex;align-items:center;gap:8px;color:#1d4ed8;font-weight:500;">
+              <span style="width:7px;height:7px;border-radius:50%;border:2px solid ${exp.color};display:inline-block;"></span>
+              ${exp.label}
+            </span>
+            <strong style="color:#1e3a8a;">${exp.amount}</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Col 3: Maintenance & PMI (Next 14 Days) -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#1d4ed8"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10z"/></svg>
+          Maintenance &amp; PMI <span style="font-weight:400;color:#1d4ed8;">(Next 14 Days)</span>
         </div>
         <a href="/fleet/pmi-planner" class="fhq-card-link">View All</a>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="fhq-table">
-          <thead>
+      <table class="fhq-table">
+        <thead>
+          <tr>
+            <th>Fleet ID</th>
+            <th>Registration</th>
+            <th>Last PMI</th>
+            <th>Next PMI</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${[
+            { fleetId: '256-T01', reg: 'FN16 EVK', lastPmi: '03 Apr 2025', nextPmi: '29 May 2025', nextTone: 'red', status: 'Overdue', statusTone: 'red' },
+            { fleetId: '256-T02', reg: 'NU66 XVB', lastPmi: '10 Apr 2025', nextPmi: '05 Jun 2025', nextTone: 'orange', status: 'OK', statusTone: 'green' },
+            { fleetId: '256-T03', reg: 'WX18 NEO', lastPmi: '12 Apr 2025', nextPmi: '07 Jun 2025', nextTone: 'orange', status: 'OK', statusTone: 'green' },
+            { fleetId: '256-T04', reg: 'BW18 DXL', lastPmi: '08 Apr 2025', nextPmi: '05 Jun 2025', nextTone: 'orange', status: 'OK', statusTone: 'green' },
+            { fleetId: '256-T05', reg: 'WX67 VKA', lastPmi: '14 Apr 2025', nextPmi: '11 Jun 2025', nextTone: 'orange', status: 'OK', statusTone: 'green' },
+          ].map(pmi => `
             <tr>
-              <th>Fleet ID</th>
-              <th>Registration</th>
-              <th>Last PMI</th>
-              <th>Next PMI</th>
-              <th>Status</th>
+              <td style="color:#1d4ed8;font-weight:500;">${pmi.fleetId}</td>
+              <td style="font-weight:600;color:#1d4ed8;">${pmi.reg}</td>
+              <td style="color:#1d4ed8;">${pmi.lastPmi}</td>
+              <td><span class="fhq-pill ${pmi.nextTone}" style="font-weight:600;">${pmi.nextPmi}</span></td>
+              <td><span class="fhq-pill ${pmi.statusTone}">● ${pmi.status}</span></td>
             </tr>
-          </thead>
-          <tbody>
-            ${complianceData.maintenancePmiList.map(item => `
-              <tr>
-                <td><span style="font-weight:700; color:#334155; font-size:11px;">${item.fleetId}</span></td>
-                <td><span class="fhq-reg-badge">${item.registration}</span></td>
-                <td><span style="font-size:11px; color:#64748b;">${item.lastPmi}</span></td>
-                <td><span style="font-size:11px; font-weight:600; color:#1e293b;">${item.nextPmi}</span></td>
-                <td><span class="fhq-pill ${item.statusTone === 'red' ? 'red' : item.statusTone === 'orange' ? 'orange' : 'green'}">${item.status}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
+          `).join('')}
+        </tbody>
+      </table>
     </div>
+
   </div>
+
 </div>
 
 <script>
-// Toggle Quick Actions
 function toggleQuickActions() {
   var menu = document.getElementById('quickActionsMenu');
   if (!menu) return;
@@ -566,158 +965,6 @@ document.addEventListener('click', function(e) {
   if (trigger && menu && !trigger.contains(e.target) && !menu.contains(e.target)) {
     menu.style.display = 'none';
   }
-});
-
-// Interactive Filter for Vehicle Status Table
-function filterVehicleTable(status, btn) {
-  var parent = btn.parentElement;
-  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var rows = document.querySelectorAll('#vehicleStatusTable tbody tr');
-  rows.forEach(function(r) {
-    if (status === 'all' || r.getAttribute('data-status') === status) {
-      r.style.display = '';
-    } else {
-      r.style.display = 'none';
-    }
-  });
-}
-
-// Interactive Filter for Employee Availability Table
-function filterEmpTable(status, btn) {
-  var parent = btn.parentElement;
-  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var rows = document.querySelectorAll('#employeeStatusTable tbody tr');
-  rows.forEach(function(r) {
-    if (status === 'all' || r.getAttribute('data-status') === status) {
-      r.style.display = '';
-    } else {
-      r.style.display = 'none';
-    }
-  });
-}
-
-// Interactive Filter for Sponsored Workers Table
-function filterSponsoredTable(status, btn) {
-  var parent = btn.parentElement;
-  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  var rows = document.querySelectorAll('#sponsoredTable tbody tr');
-  rows.forEach(function(r) {
-    if (status === 'all' || r.getAttribute('data-status') === status) {
-      r.style.display = '';
-    } else {
-      r.style.display = 'none';
-    }
-  });
-}
-
-// Map initialization
-var trackingData = ${JSON.stringify(complianceData.trackingVehicles)};
-var mapMarkers = [];
-var trackingMap;
-
-function initLeafletMap() {
-  if (typeof L === 'undefined') return;
-  var container = document.getElementById('liveTrackingMap');
-  if (!container) return;
-
-  trackingMap = L.map('liveTrackingMap', {
-    center: [53.2, -1.5],
-    zoom: 6.5,
-    zoomControl: true,
-  });
-
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(trackingMap);
-
-  renderMapMarkers('all');
-}
-
-function renderMapMarkers(filter) {
-  if (!trackingMap) return;
-  mapMarkers.forEach(function(m) { trackingMap.removeLayer(m); });
-  mapMarkers = [];
-
-  trackingData.forEach(function(v) {
-    if (filter === 'in_use' && v.status !== 'In Use') return;
-    if (filter === 'off_road' && v.status !== 'Off Road') return;
-    if (filter === 'in_service' && v.status !== 'In Service') return;
-
-    var iconHtml = '<div class="fhq-map-pin ' + v.tone + '">' +
-      '<svg class="fhq-map-pin-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>' +
-      '<div><div>' + v.registration + '</div><div class="fhq-map-pin-sub">' + v.speed + ' &bull; ' + v.location + '</div></div>' +
-    '</div>';
-
-    var customIcon = L.divIcon({
-      html: iconHtml,
-      className: '',
-      iconSize: [120, 36],
-      iconAnchor: [60, 18],
-    });
-
-    var marker = L.marker([v.lat, v.lng], { icon: customIcon }).addTo(trackingMap);
-    marker.bindPopup('<b>' + v.registration + '</b> (' + v.fleetId + ')<br>Driver: ' + v.driver + '<br>Status: ' + v.status + '<br>Location: ' + v.location);
-    mapMarkers.push(marker);
-  });
-}
-
-function filterMapMarkers(val) {
-  renderMapMarkers(val);
-}
-
-// Chart.js Fuel & AdBlue Bar Chart
-function initFuelAdBlueChart() {
-  if (typeof Chart === 'undefined') return;
-  var canvas = document.getElementById('fuelAdBlueChart');
-  if (!canvas) return;
-
-  var months = ${JSON.stringify(complianceData.fuelAdBlue.months)};
-  var fuel = ${JSON.stringify(complianceData.fuelAdBlue.fuelChartData)};
-  var adblue = ${JSON.stringify(complianceData.fuelAdBlue.adBlueChartData)};
-
-  new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels: months,
-      datasets: [
-        {
-          label: 'Fuel (L)',
-          data: fuel,
-          backgroundColor: '#3b82f6',
-          borderRadius: 4,
-          barPercentage: 0.6,
-        },
-        {
-          label: 'AdBlue (L)',
-          data: adblue,
-          backgroundColor: '#10b981',
-          borderRadius: 4,
-          barPercentage: 0.6,
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false }
-      },
-      scales: {
-        x: { grid: { display: false } },
-        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
-      }
-    }
-  });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  initLeafletMap();
-  initFuelAdBlueChart();
 });
 </script>
 `}) %>
