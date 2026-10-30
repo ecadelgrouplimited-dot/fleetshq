@@ -135,7 +135,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 3000;
 
 if (require.main === module) {
-  app.listen(PORT, () => {
+  app.listen(PORT, process.env.HOST || '127.0.0.1', () => {
     logger.info(`FLEETSHQ running on http://localhost:${PORT}`);
     if (process.env.NODE_ENV !== 'test') scheduleJobs();
   });

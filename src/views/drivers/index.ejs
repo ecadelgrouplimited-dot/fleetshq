@@ -1,0 +1,415 @@
+<%- include('../layouts/main', { body: `
+<link rel="stylesheet" href="/css/driver-hub.css">
+
+<div class="dh-container">
+  <!-- Page Header -->
+  <div class="dh-header">
+    <div>
+      <div class="dh-breadcrumbs">
+        <span>People</span>
+        <span class="sep">&gt;</span>
+        <span style="color:#0f172a;">Drivers</span>
+      </div>
+      <div class="dh-subtitle">Manage driver records, licences, training, medicals and compliance</div>
+    </div>
+    <div class="dh-header-actions">
+      <div class="btn-dh-white" style="cursor:pointer;">
+        <svg style="width:14px; height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        <span>Export</span>
+        <svg style="width:12px; height:12px; color:#94a3b8;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </div>
+      <a href="/employees/new" class="btn-dh-primary">
+        <svg style="width:15px; height:15px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span>Add New Driver</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="dh-kpi-grid">
+    <div class="dh-kpi-card">
+      <div class="dh-kpi-icon blue">
+        <svg style="width:22px; height:22px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <div>
+        <div class="dh-kpi-val">${totalDrivers}</div>
+        <div class="dh-kpi-label">Total Drivers</div>
+      </div>
+    </div>
+    <div class="dh-kpi-card">
+      <div class="dh-kpi-icon green">
+        <span style="width:14px; height:14px; border-radius:50%; background:#10b981;"></span>
+      </div>
+      <div>
+        <div class="dh-kpi-val">${available}</div>
+        <div class="dh-kpi-label">Available</div>
+      </div>
+    </div>
+    <div class="dh-kpi-card">
+      <div class="dh-kpi-icon amber">
+        <span style="width:14px; height:14px; border-radius:50%; background:#f59e0b;"></span>
+      </div>
+      <div>
+        <div class="dh-kpi-val">${onHoliday}</div>
+        <div class="dh-kpi-label">On Holiday</div>
+      </div>
+    </div>
+    <div class="dh-kpi-card">
+      <div class="dh-kpi-icon red">
+        <span style="width:14px; height:14px; border-radius:50%; background:#ef4444;"></span>
+      </div>
+      <div>
+        <div class="dh-kpi-val">${sickAbsent}</div>
+        <div class="dh-kpi-label">Sick / Absent</div>
+      </div>
+    </div>
+    <div class="dh-kpi-card">
+      <div class="dh-kpi-icon slate">
+        <span style="width:14px; height:14px; border-radius:50%; background:#94a3b8;"></span>
+      </div>
+      <div>
+        <div class="dh-kpi-val">${pendingRtw}</div>
+        <div class="dh-kpi-label">Pending RTW</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <form method="GET" action="/drivers" class="dh-filter-bar">
+    <div class="dh-search-box">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 110-15 7.5 7.5 0 010 15z"/></svg>
+      <input type="text" name="search" value="${filters.search || ''}" placeholder="Search by name, licence number, NI number...">
+    </div>
+    <select name="status" class="dh-select" onchange="this.form.submit()">
+      <option value="">All Statuses</option>
+      <option value="Available" ${filters.status === 'Available' ? 'selected' : ''}>Available</option>
+      <option value="On Holiday" ${filters.status === 'On Holiday' ? 'selected' : ''}>On Holiday</option>
+      <option value="Sick" ${filters.status === 'Sick' ? 'selected' : ''}>Sick / Absent</option>
+      <option value="Pending" ${filters.status === 'Pending' ? 'selected' : ''}>Pending RTW</option>
+    </select>
+    <select class="dh-select">
+      <option value="">All Licence Types</option>
+      <option value="HGV">HGV (Category C+E)</option>
+      <option value="Rigid">Rigid (Category C)</option>
+    </select>
+    <select class="dh-select">
+      <option value="">All CPC Statuses</option>
+      <option value="valid">Valid</option>
+      <option value="due">Expiring Soon</option>
+    </select>
+    <select class="dh-select">
+      <option value="">All Operating Centres</option>
+      <option value="Sheffield">Sheffield (Head Office)</option>
+      <option value="Birmingham">Birmingham Hub</option>
+    </select>
+    <a href="/drivers" style="font-size:12.5px; font-weight:700; color:#3b82f6; text-decoration:none; margin-left:auto;">Clear Filters</a>
+    <button type="button" class="btn-dh-white" style="padding:6px 12px; font-size:12px;">
+      <svg style="width:14px; height:14px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      <span>More Filters</span>
+    </button>
+  </form>
+
+  <!-- Master-Detail 2-Column Split -->
+  <div class="dh-split-grid">
+    <!-- Left Column: Drivers List Table -->
+    <div class="dh-card">
+      <div class="dh-card-head">
+        <div class="dh-card-title">
+          <svg style="width:16px; height:16px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span>Drivers (${drivers.length})</span>
+        </div>
+      </div>
+      <div class="dh-table-wrap">
+        <table class="dh-table">
+          <thead>
+            <tr>
+              <th style="width:30px;"><input type="checkbox"></th>
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Employee ID</th>
+              <th>Licence No.</th>
+              <th>Licence Type</th>
+              <th style="text-align:center;">CPC</th>
+              <th style="text-align:center;">Medical</th>
+              <th>Status</th>
+              <th>Next Expiry</th>
+              <th style="text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${drivers.map(d => {
+              const isSel = selectedDriver && selectedDriver.id === d.id;
+              const badgeClass = d.status === 'Available' ? 'dh-badge-green' : d.status === 'On Holiday' ? 'dh-badge-amber' : d.status === 'Sick / Absent' ? 'dh-badge-red' : 'dh-badge-slate';
+              const expiryChipClass = d.nextExpiryUrgent ? 'dh-badge-amber' : 'dh-badge-slate';
+              return `
+              <tr class="${isSel ? 'selected' : ''}" onclick="window.location='/drivers?selectedId=${d.id}'">
+                <td onclick="event.stopPropagation()"><input type="checkbox" ${isSel ? 'checked' : ''}></td>
+                <td>
+                  <img src="${d.avatarUrl}" alt="${d.name}" style="width:30px; height:30px; border-radius:6px; object-fit:cover; display:block;" onerror="this.src='/img/driver-jashanjot.png'">
+                </td>
+                <td style="font-weight:700; color:#0f172a;">${d.name}</td>
+                <td style="font-family:monospace; font-size:11.5px; color:#64748b;">${d.employeeCode}</td>
+                <td style="font-family:monospace; font-size:11.5px; color:#475569;">${d.licenceNo}</td>
+                <td style="font-size:11.5px; color:#64748b;">HGV</td>
+                <td style="text-align:center;">
+                  <span class="dot-check">✓</span>
+                </td>
+                <td style="text-align:center;">
+                  ${d.medicalDaysLeft <= 60 ? '<span class="dot-alert">!</span>' : '<span class="dot-check">✓</span>'}
+                </td>
+                <td>
+                  <span class="dh-badge ${badgeClass}">${d.status}</span>
+                </td>
+                <td>
+                  <span class="dh-badge ${expiryChipClass}" style="font-size:10.5px;">${d.nextExpiryDate}</span>
+                </td>
+                <td style="text-align:center;" onclick="event.stopPropagation()">
+                  <button type="button" class="btn-dh-white" style="padding:2px 8px; font-size:11px; border:none; background:transparent;">•••</button>
+                </td>
+              </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:12px 18px; border-top:1px solid #f1f5f9; display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#64748b;">
+        <span>Showing 1 to ${drivers.length} of ${totalDrivers} drivers</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button type="button" class="btn-dh-white" style="padding:4px 8px; font-size:11px;">&lt;</button>
+          <span style="padding:4px 10px; background:#2563eb; color:#fff; border-radius:6px; font-weight:700; font-size:11px;">1</span>
+          <button type="button" class="btn-dh-white" style="padding:4px 8px; font-size:11px;">&gt;</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Detail Panel for Selected Driver -->
+    ${selectedDriver ? `
+    <div class="dh-card" style="position:sticky; top:20px;">
+      <!-- Selected Driver Header -->
+      <div style="padding:18px 20px; border-bottom:1px solid #e2e8f0; display:flex; align-items:flex-start; gap:16px;">
+        <img src="${selectedDriver.avatarUrl}" alt="${selectedDriver.name}" style="width:72px; height:72px; border-radius:10px; object-fit:cover; border:2px solid #e2e8f0; display:block;" onerror="this.src='/img/driver-jashanjot.png'">
+        <div style="flex:1;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h2 style="font-size:18px; font-weight:800; color:#0f172a; margin:0;">${selectedDriver.name}</h2>
+              <span class="dh-badge dh-badge-green">${selectedDriver.status}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <a href="/employees/${selectedDriver.id}/edit" class="btn-dh-white" style="padding:4px 8px; font-size:11px;" title="Edit">
+                <svg style="width:12px; height:12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <span>Edit</span>
+              </a>
+              <button type="button" class="btn-dh-white" style="padding:4px 8px; font-size:11px;" title="Message">
+                <svg style="width:12px; height:12px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              </button>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px; margin-top:8px; font-size:12px; color:#64748b;">
+            <div>Employee ID: <b style="color:#1e293b; font-family:monospace;">${selectedDriver.employeeCode}</b></div>
+            <div>NI Number: <b style="color:#1e293b;">${selectedDriver.niNumber}</b></div>
+            <div>Licence No: <b style="color:#1e293b; font-family:monospace;">${selectedDriver.licenceNo}</b></div>
+            <div>Date of Birth: <b style="color:#1e293b;">14 Mar 1988 (${selectedDriver.age} years)</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Nav Tabs -->
+      <div style="display:flex; align-items:center; gap:2px; padding:6px 14px; border-bottom:1px solid #e2e8f0; background:#f8fafc; overflow-x:auto;">
+        <span style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:700; color:#2563eb; background:#eff6ff;">Overview</span>
+        <a href="/employees/${selectedDriver.id}?tab=personal" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">Personal</a>
+        <a href="/employees/${selectedDriver.id}?tab=licence" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">Licence</a>
+        <a href="/employees/${selectedDriver.id}?tab=training" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">CPC &amp; Training</a>
+        <a href="/employees/${selectedDriver.id}?tab=medical" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">Medical</a>
+        <a href="/employees/${selectedDriver.id}?tab=compliance" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">Compliance</a>
+        <a href="/employees/${selectedDriver.id}?tab=documents" style="padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; color:#475569; text-decoration:none;">Documents</a>
+      </div>
+
+      <div style="padding:18px 20px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <!-- Key Information Card -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+            <div style="font-size:12.5px; font-weight:700; color:#0f172a; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <svg style="width:14px; height:14px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <span>Key Information</span>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px; font-size:11.5px;">
+              <div><span style="color:#64748b;">Address:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">${selectedDriver.address}</div></div>
+              <div><span style="color:#64748b;">Phone:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">${selectedDriver.phone}</div></div>
+              <div><span style="color:#64748b;">Email:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">${selectedDriver.email}</div></div>
+              <div><span style="color:#64748b;">Emergency Contact:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">${selectedDriver.emergencyContact}</div></div>
+              <div><span style="color:#64748b;">Date Joined:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">01 Sep 2024</div></div>
+              <div><span style="color:#64748b;">Operating Centre:</span> <div style="font-weight:600; color:#1e293b; margin-top:2px;">Sheffield (Head Office)</div></div>
+            </div>
+          </div>
+
+          <!-- Licence & Compliance Card -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="font-size:12.5px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                <svg style="width:14px; height:14px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span>Licence &amp; Compliance</span>
+              </div>
+              <a href="/employees/${selectedDriver.id}?tab=licence" style="font-size:11px; font-weight:700; color:#2563eb; text-decoration:none;">View All</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px; font-size:11.5px;">
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Licence Type</span>
+                <span style="font-weight:600; color:#0f172a;">HGV (Category C+E)</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Licence Number</span>
+                <span style="font-weight:600; color:#0f172a; font-family:monospace;">${selectedDriver.licenceNo}</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Valid From</span>
+                <span style="font-weight:600; color:#0f172a;">12 Sep 2019</span>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#64748b;">Valid To</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <span style="font-weight:600; color:#0f172a;">12 Sep 2029</span>
+                  <span class="dh-badge dh-badge-green" style="font-size:10px;">4 years</span>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#64748b;">CPC Expiry</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <span style="font-weight:700; color:#d97706;">15 Sep 2025</span>
+                  <span class="dh-badge dh-badge-amber" style="font-size:10px;">118 days</span>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="color:#64748b;">Medical Expiry</span>
+                <div style="display:flex; align-items:center; gap:4px;">
+                  <span style="font-weight:600; color:#0f172a;">31 Jan 2026</span>
+                  <span class="dh-badge dh-badge-green" style="font-size:10px;">256 days</span>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Right to Work</span>
+                <span class="dh-badge dh-badge-green" style="font-size:10px;">✓ Valid</span>
+              </div>
+              <div style="display:flex; justify-content:space-between;">
+                <span style="color:#64748b;">Driver Status</span>
+                <span class="dh-badge dh-badge-green" style="font-size:10px;">✓ Available</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upcoming Expiry Dates & Recent Activity -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px;">
+          <!-- Upcoming Expiries -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="font-size:12.5px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                <svg style="width:14px; height:14px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Upcoming Expiry Dates</span>
+              </div>
+              <a href="/employees/${selectedDriver.id}?tab=compliance" style="font-size:11px; font-weight:700; color:#2563eb; text-decoration:none;">View All</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:6px; font-size:11.5px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0;">
+                <span style="color:#334155;">CPC</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="color:#64748b;">15 Sep 2025</span>
+                  <span class="dh-badge dh-badge-amber" style="font-size:10px;">118 days</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0;">
+                <span style="color:#334155;">Medical</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="color:#64748b;">31 Jan 2026</span>
+                  <span class="dh-badge dh-badge-green" style="font-size:10px;">256 days</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0;">
+                <span style="color:#334155;">ADR Certificate</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="color:#ef4444; font-weight:600;">Not Held</span>
+                  <span style="color:#94a3b8;">—</span>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 0;">
+                <span style="color:#334155;">Digital Tachograph Card</span>
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="color:#64748b;">12 Sep 2029</span>
+                  <span class="dh-badge dh-badge-green" style="font-size:10px;">4 years</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <div style="font-size:12.5px; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:6px;">
+                <svg style="width:14px; height:14px; color:#2563eb;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Recent Activity</span>
+              </div>
+              <a href="/employees/${selectedDriver.id}?tab=notes" style="font-size:11px; font-weight:700; color:#2563eb; text-decoration:none;">View All</a>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:7px; font-size:11.5px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#ef4444;"></span>
+                  <span style="color:#334155;">Daily Walkaround Submitted</span>
+                </div>
+                <span style="color:#64748b; font-size:10.5px;">08:15</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#f59e0b;"></span>
+                  <span style="color:#334155;">Completed Delivery - Manchester</span>
+                </div>
+                <span style="color:#64748b; font-size:10.5px;">13:45</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#3b82f6;"></span>
+                  <span style="color:#334155;">Fuel Purchase - 412 L</span>
+                </div>
+                <span style="color:#64748b; font-size:10.5px;">10:22</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+                  <span style="color:#334155;">PMI Completed</span>
+                </div>
+                <span style="color:#64748b; font-size:10.5px;">09:10</span>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:#10b981;"></span>
+                  <span style="color:#334155;">CPC Training Module Completed</span>
+                </div>
+                <span style="color:#64748b; font-size:10.5px;">—</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons Footer -->
+        <div style="display:flex; align-items:center; gap:8px; margin-top:20px; flex-wrap:wrap;">
+          <a href="/employees/${selectedDriver.id}" class="btn-dh-primary" style="flex:1; justify-content:center;">
+            View Full Driver Profile
+          </a>
+          <a href="/employees/${selectedDriver.id}?tab=documents" class="btn-dh-white">
+            <svg style="width:13px; height:13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            View Documents
+          </a>
+          <a href="/employees/${selectedDriver.id}?tab=training" class="btn-dh-white">
+            <svg style="width:13px; height:13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            View Training Record
+          </a>
+          <a href="/employees/${selectedDriver.id}?tab=medical" class="btn-dh-white">
+            <svg style="width:13px; height:13px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            View Medical Record
+          </a>
+        </div>
+      </div>
+    </div>
+    ` : ''}
+  </div>
+</div>
+`}) %>

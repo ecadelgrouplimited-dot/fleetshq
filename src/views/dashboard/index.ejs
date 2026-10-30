@@ -1,604 +1,723 @@
-<%
-// ── Transport Manager dashboard ───────────────────────────────────────────────
-// Layout follows public/new_designs/68703.jpg:
-//   row 1  compliance gauge + 4 KPI cards
-//   row 2  Compliance Overview (12 tiles) | Recent Alerts rail
-//   row 3  Compliance Trend + Top Risk Drivers | Upcoming Tasks rail
-//   row 4  Fuel / AdBlue / Finance / Fleet Availability
-//
-// Icon markup for the compliance tiles. Each entry is the inner SVG of a
-// 24×24 outline icon; the tile paints it with its own tone colour.
-const ICONS = {
-  pmi: '<path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>',
-  mot: '<path d="M3 16v-3.2a2 2 0 01.4-1.2l2.2-3A2 2 0 017.2 8h9.6a2 2 0 011.6.8l2.2 3a2 2 0 01.4 1.2V16M5 16h14"/><circle cx="7" cy="16.5" r="1.6"/><circle cx="17" cy="16.5" r="1.6"/>',
-  brake: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3"/>',
-  defects: '<path d="M12 9.5v4m0 3.5h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z"/>',
-  vor: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>',
-  insurance: '<path d="M12 3l7.5 3v5.2c0 4.6-3.1 8.5-7.5 10.3C7.6 19.7 4.5 15.8 4.5 11.2V6L12 3z"/><path d="M9 12l2.2 2.2L15.2 10"/>',
-  roadtax: '<path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
-  licence: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.8-2.3 3-2.3s2.4.7 3 2.3M14.5 10.5h4M14.5 13.5h3"/>',
-  cpc: '<path d="M12 4l9.5 4.6L12 13.2 2.5 8.6 12 4z"/><path d="M6.5 11v4.4c0 1.7 2.5 3 5.5 3s5.5-1.3 5.5-3V11"/>',
-  infringements: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.4V12l3 2"/>',
-  tachocard: '<path d="M12 3.5v11m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/>',
-  training: '<path d="M12 6.4v13m0-13C10.8 5.6 9.2 5.1 7.5 5.1S4.2 5.6 3 6.4v13c1.2-.8 2.8-1.3 4.5-1.3s3.3.5 4.5 1.3m0-13c1.2-.8 2.8-1.3 4.5-1.3s3.3.5 4.5 1.3v13c-1.2-.8-2.8-1.3-4.5-1.3s-3.3.5-4.5 1.3"/>',
-};
-// Icon per compliance-task category, for the Upcoming Tasks rail.
-const TASK_ICONS = {
-  vehicle_compliance: ICONS.mot, driver_compliance: ICONS.licence, tachograph: ICONS.infringements,
-  insurance: ICONS.insurance, health_safety: ICONS.defects, training: ICONS.training,
-  licensing: ICONS.cpc, other: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12.2l2.3 2.3 4.7-4.7"/>',
-};
-const TASK_TONES = {
-  vehicle_compliance: 'green', driver_compliance: 'green', tachograph: 'red', insurance: 'blue',
-  health_safety: 'amber', training: 'blue', licensing: 'orange', other: 'blue',
-};
-const band = score.overall >= 85 ? 'Good' : score.overall >= 70 ? 'Fair' : 'At Risk';
-const gaugeColor = score.overall >= 85 ? '#16a34a' : score.overall >= 70 ? '#f59e0b' : '#ef4444';
-// Alerts carry `daysUntil`, not a date — turn that back into the due date the
-// design shows on the right of each row.
-const alertDate = (a) => {
-  if (a.daysUntil === null || a.daysUntil === undefined) return '';
-  const d = new Date();
-  d.setDate(d.getDate() + a.daysUntil);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-const taskDate = (t) => {
-  if (!t.dueDate) return '';
-  const due = new Date(t.dueDate); due.setHours(0, 0, 0, 0);
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  const diff = Math.round((due - now) / 86400000);
-  if (diff < 0) return 'Overdue';
-  if (diff === 0) return 'Today';
-  if (diff === 1) return 'Tomorrow';
-  return due.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-};
-const trendPoints = complianceTrend.filter((p) => p.value !== null);
-const svgIcon = (inner, cls) => `<span class="fhq-t-icon ${cls}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg></span>`;
-%>
 <%- include('../layouts/main', { body: `
-<div class="fhq-dashboard">
-  ${typeof platformQueue !== 'undefined' && platformQueue ? `
-  <a href="/platform" class="fhq-banner">
-    <span class="fhq-banner-icon">!</span>
-    <span><strong>${platformQueue.pendingActivation} awaiting activation</strong>${platformQueue.inFlight > 0 ? ` · ${platformQueue.inFlight} registrations in progress` : ''}</span>
-    <span>Review queue →</span>
-  </a>` : ''}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="/css/compliance-dashboard.css?v=${typeof assetVersion !== 'undefined' ? assetVersion : '1.0.0'}" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  ${typeof setup !== 'undefined' && setup ? `
-  <div class="fhq-setup">
-    <div>
-      <strong>Let's get your fleet set up</strong>
-      <span>${setup.doneCount}/${setup.steps.length} essentials ready</span>
+<div class="fhq-dashboard-wrap">
+  <!-- ── Dashboard Header ────────────────────────────────────────────── -->
+  <div class="fhq-dash-header">
+    <div class="fhq-dash-title">
+      <h1>Dashboard</h1>
+      <p>Welcome back, ${typeof user !== 'undefined' && user.name ? user.name : 'Transport Manager'}</p>
     </div>
-    <div class="fhq-setup-steps">
-      ${setup.steps.map(s => `<a href="${s.href}" class="${s.done ? 'done' : ''}">${s.done ? 'Done' : 'Open'} · ${s.label}</a>`).join('')}
+    <div class="fhq-dash-actions">
+      <div class="dropdown" style="position:relative; display:inline-block;">
+        <button type="button" class="fhq-quick-actions-btn" id="quickActionsTrigger" onclick="toggleQuickActions()">
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          Quick Actions
+          <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div id="quickActionsMenu" class="dropdown-menu" style="display:none; position:absolute; right:0; top:110%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.1); min-width:180px; z-index:1000; padding:6px 0;">
+          <a href="/fleet/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg> Add Vehicle</a>
+          <a href="/employees/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg> Add Employee</a>
+          <a href="/checks/new" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Submit Check</a>
+          <a href="/defects" style="display:flex; align-items:center; gap:8px; padding:8px 14px; font-size:12px; color:#1e293b; text-decoration:none;"><svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg> Log Defect</a>
+        </div>
+      </div>
     </div>
-  </div>` : ''}
-
-  <!-- ── Row 1: compliance score + headline KPIs ─────────────────────── -->
-  <div class="fhq-kpis">
-    <a href="/compliance" class="fhq-card fhq-score-card">
-      <div class="fhq-card-title">Overall Compliance Score</div>
-      <div class="fhq-score-wrap">
-        <canvas id="fhqScoreGauge" width="128" height="128"></canvas>
-        <div class="fhq-score-value"><b>${score.overall.toFixed(0)}<span>%</span></b><small>${band}</small></div>
-      </div>
-      <div class="fhq-score-foot">
-        ${scoreDelta === null
-          ? '<span class="muted">No prior score</span>'
-          : `<span class="fhq-delta ${scoreDelta >= 0 ? 'good' : 'bad'}">
-               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${scoreDelta >= 0 ? 'M12 19V5m0 0l-6 6m6-6l6 6' : 'M12 5v14m0 0l6-6m-6 6l-6-6'}"/></svg>
-               ${Math.abs(scoreDelta).toFixed(0)}%
-             </span><span class="muted">from last month</span>`}
-      </div>
-      <span class="fhq-link">View Score Breakdown <i>→</i></span>
-    </a>
-
-    ${[
-      { label: 'Drivers', value: stats.driverCount, sub: 'Total Drivers', actions: stats.driverActions, actionTone: 'red',
-        href: '/employees?type=drivers', linkLabel: 'View Drivers', tone: 'blue',
-        icon: '<circle cx="9" cy="8" r="3.3"/><path d="M3.5 19.5c0-3.1 2.5-5.4 5.5-5.4s5.5 2.3 5.5 5.4"/><circle cx="17" cy="9.5" r="2.4"/><path d="M15.5 14.4c2.9-.5 5 1.6 5 4.4"/>' },
-      { label: 'Vehicles', value: stats.totalVehicles, sub: 'Total Vehicles', actions: stats.vehicleActions, actionTone: 'red',
-        href: '/fleet', linkLabel: 'View Vehicles', tone: 'purple',
-        icon: '<rect x="2.5" y="6.5" width="11" height="9" rx="1.5"/><path d="M13.5 9.5h3.6l3.4 3.4v2.6h-7z"/><circle cx="7" cy="17.6" r="1.9"/><circle cx="17.5" cy="17.6" r="1.9"/>' },
-      { label: 'Trailers', value: stats.totalTrailers, sub: 'Total Trailers', actions: stats.trailerActions, actionTone: 'amber',
-        href: '/trailers', linkLabel: 'View Trailers', tone: 'teal',
-        icon: '<rect x="2.5" y="7" width="15" height="9" rx="1.6"/><path d="M17.5 13h4v2.4h-4z"/><circle cx="7.5" cy="18" r="1.7"/><circle cx="13.5" cy="18" r="1.7"/>' },
-      { label: 'Compliance Alerts', value: alerts.length, sub: 'Open Alerts', actions: null, actionTone: 'red',
-        href: '#fhqAlerts', linkLabel: 'View All Alerts', tone: 'red',
-        icon: '<path d="M12 9.2v4.3m0 3.4h.01M10.3 4.3L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 4.3a2 2 0 00-3.4 0z"/>' },
-    ].map(k => `
-    <a href="${k.href}" class="fhq-card fhq-kpi ${k.tone}">
-      <div class="fhq-kpi-top">
-        <span class="fhq-kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${k.icon}</svg></span>
-        <span class="fhq-kpi-meta">
-          <span class="fhq-kpi-label">${k.label}</span>
-          <span class="fhq-kpi-value">${k.value}</span>
-          <span class="fhq-kpi-sub">${k.sub}</span>
-        </span>
-      </div>
-      ${k.actions === null ? '' : `<div class="fhq-kpi-actions"><strong class="${k.actionTone}">${k.actions}</strong><span>Actions Required</span></div>`}
-      <span class="fhq-link">${k.linkLabel} <i>→</i></span>
-    </a>`).join('')}
   </div>
 
-  <!-- ── Rows 2–3: compliance detail (left) + alert/task rail (right) ── -->
-  <div class="fhq-main-grid">
-    <div class="fhq-main-col">
+  <!-- ── ROW 1: 4 Top KPI Cards ──────────────────────────────────────── -->
+  <div class="fhq-kpi-grid">
+    <!-- Card 1: DVSA Compliance -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          DVSA Compliance
+        </div>
+      </div>
+      <div class="fhq-gauge-card-body">
+        <div class="fhq-gauge-wrap">
+          <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3.5" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.dvsaCompliance.percent}, 100" stroke-linecap="round" />
+          </svg>
+          <div class="fhq-gauge-text">
+            <span class="fhq-gauge-val">${complianceData.dvsaCompliance.percent}%</span>
+            <span class="fhq-gauge-sub">Compliant</span>
+          </div>
+        </div>
+        <div class="fhq-legend-list">
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
+            <span class="fhq-legend-val">${complianceData.dvsaCompliance.compliant}</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
+            <span class="fhq-legend-val">${complianceData.dvsaCompliance.expiringSoon}</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot red"></i> Overdue</span>
+            <span class="fhq-legend-val">${complianceData.dvsaCompliance.overdue}</span>
+          </div>
+        </div>
+      </div>
+      <a href="/fleet" class="fhq-card-foot-link">View DVSA Compliance <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+    </div>
 
-      <section class="fhq-card fhq-overview">
-        <div class="fhq-section-head"><h3>Compliance Overview</h3></div>
-        <div class="fhq-tiles">
-          ${complianceTiles.map(t => `
-          <a href="${t.href}" class="fhq-tile ${t.tone}">
-            <div class="fhq-tile-head">
-              ${svgIcon(ICONS[t.key] || ICONS.training, t.tone)}
-              <span class="fhq-tile-label">${esc(t.label)}</span>
+    <!-- Card 2: Home Office Compliance -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Home Office Compliance
+        </div>
+      </div>
+      <div class="fhq-gauge-card-body">
+        <div class="fhq-gauge-wrap">
+          <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3.5" />
+            <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.homeOfficeCompliance.percent}, 100" stroke-linecap="round" />
+          </svg>
+          <div class="fhq-gauge-text">
+            <span class="fhq-gauge-val">${complianceData.homeOfficeCompliance.percent}%</span>
+            <span class="fhq-gauge-sub">Compliant</span>
+          </div>
+        </div>
+        <div class="fhq-legend-list">
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot green"></i> Compliant</span>
+            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.compliant}</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot orange"></i> Expiring Soon</span>
+            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.expiringSoon}</span>
+          </div>
+          <div class="fhq-legend-item">
+            <span class="fhq-legend-label"><i class="fhq-dot blue"></i> Overdue</span>
+            <span class="fhq-legend-val">${complianceData.homeOfficeCompliance.overdue}</span>
+          </div>
+        </div>
+      </div>
+      <a href="/sponsored-workers" class="fhq-card-foot-link">View Home Office Compliance <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+    </div>
+
+    <!-- Card 3: Fleet Vehicles -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+          Fleet Vehicles
+        </div>
+      </div>
+      <div class="fhq-vehicle-kpi-body">
+        <div class="fhq-vehicle-kpi-left">
+          <div>
+            <div class="fhq-vehicle-big-count">${complianceData.fleetVehicles.total}</div>
+            <div class="fhq-vehicle-sublabel">Total Trucks</div>
+          </div>
+          <div class="fhq-legend-list" style="margin-top:4px;">
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+              <span class="fhq-legend-val">${complianceData.fleetVehicles.inUse}</span>
             </div>
-            <div class="fhq-tile-count">${t.count}</div>
-            <div class="fhq-tile-unit">${esc(t.unit)}</div>
-            <div class="fhq-tile-bar"><i style="width:${t.denom > 0 ? Math.max(6, Math.min(100, Math.round((t.count / t.denom) * 100))) : 0}%"></i></div>
-          </a>`).join('')}
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
+              <span class="fhq-legend-val">${complianceData.fleetVehicles.offRoad}</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
+              <span class="fhq-legend-val">${complianceData.fleetVehicles.inService}</span>
+            </div>
+          </div>
         </div>
-      </section>
+        <img class="fhq-vehicle-visual" src="/img/card-truck.png" alt="Truck" onerror="this.style.display='none'">
+      </div>
+      <a href="/fleet" class="fhq-card-foot-link">View Fleet <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+    </div>
 
-      <div class="fhq-split">
-        <section class="fhq-card fhq-trend">
-          <div class="fhq-section-head"><h3>Compliance Trend <small>(Last 6 Months)</small></h3></div>
-          <div class="fhq-trend-chart">
-            ${trendPoints.length < 2
-              ? '<div class="empty-state"><p>Not enough history yet — the trend appears once a second monthly score is stored.</p></div>'
-              : '<canvas id="fhqTrendChart"></canvas>'}
+    <!-- Card 4: Trailers -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          Trailers
+        </div>
+      </div>
+      <div class="fhq-vehicle-kpi-body">
+        <div class="fhq-vehicle-kpi-left">
+          <div>
+            <div class="fhq-vehicle-big-count">${complianceData.trailers.total}</div>
+            <div class="fhq-vehicle-sublabel">Total Trailers</div>
           </div>
-          <div class="fhq-trend-chips">
-            ${complianceTrend.map(p => `
-            <span class="fhq-chip ${p.isCurrent ? 'is-current' : ''}">
-              <small>${esc(p.label)}</small>
-              <strong>${p.value === null ? '—' : Math.round(p.value) + '%'}</strong>
-            </span>`).join('')}
+          <div class="fhq-legend-list" style="margin-top:4px;">
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+              <span class="fhq-legend-val">${complianceData.trailers.inUse}</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot red"></i> Off Road</span>
+              <span class="fhq-legend-val">${complianceData.trailers.offRoad}</span>
+            </div>
+            <div class="fhq-legend-item">
+              <span class="fhq-legend-label"><i class="fhq-dot slate"></i> In Service</span>
+              <span class="fhq-legend-val">${complianceData.trailers.inService}</span>
+            </div>
           </div>
-        </section>
+        </div>
+        <img class="fhq-vehicle-visual" src="/img/card-trailer.png" alt="Trailer" onerror="this.style.display='none'">
+      </div>
+      <a href="/trailers" class="fhq-card-foot-link">View Trailers <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+    </div>
+  </div>
 
-        <section class="fhq-card fhq-risk">
-          <div class="fhq-section-head compact"><h3>Top Risk Drivers</h3><a href="/driver-risk">View All</a></div>
-          <div class="fhq-risk-list">
-            ${topRiskDrivers.length === 0
-              ? '<div class="empty-state"><p>No infringements or licence points on record</p></div>'
-              : topRiskDrivers.map(d => `
-            <a href="/driver-risk/${d.id}" class="fhq-risk-row">
-              ${avatar(d, { size: 34 })}
-              <span class="fhq-risk-who">
-                <strong>${esc(d.fullName)}</strong>
-                <small>${d.infringements > 0
-                  ? d.infringements + ' Infringement' + (d.infringements === 1 ? '' : 's')
-                  : d.licencePoints + ' Licence point' + (d.licencePoints === 1 ? '' : 's')}</small>
-              </span>
-              <span class="fhq-risk-bar ${d.band}"><i style="width:${d.riskPct}%"></i></span>
-              <span class="fhq-risk-band ${d.band}">${d.band === 'high' ? 'High Risk' : d.band === 'medium' ? 'Medium Risk' : 'Low Risk'}</span>
-            </a>`).join('')}
-          </div>
-          <a href="/driver-risk" class="fhq-foot-link">Go to Driver Risk <i>→</i></a>
-        </section>
+  <!-- ── ROW 2: LIVE MAP & KEY DATES / ACTIVITIES ────────────────────── -->
+  <div class="fhq-row2-grid">
+    <!-- Left: Live Vehicle Tracking Map -->
+    <div class="fhq-card fhq-map-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Live Vehicle Tracking
+        </div>
+        <select id="mapFilterSelect" onchange="filterMapMarkers(this.value)" style="font-size:12px; font-weight:600; padding:4px 8px; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; cursor:pointer;">
+          <option value="all">All Vehicles (${complianceData.trackingVehicles.length})</option>
+          <option value="in_use">In Use</option>
+          <option value="off_road">Off Road</option>
+          <option value="in_service">In Service</option>
+        </select>
+      </div>
+
+      <div id="liveTrackingMap" class="fhq-map-container"></div>
+
+      <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+        <a href="/fleet" class="fhq-card-link">View All Tracking <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+        <span style="font-size:11px; color:#64748b;">Live telematics feed updated just now</span>
       </div>
     </div>
 
-    <aside class="fhq-rail">
-      <section class="fhq-card" id="fhqAlerts">
-        <div class="fhq-section-head compact"><h3>Recent Alerts</h3><a href="/reports">View All</a></div>
-        <div class="fhq-rail-list">
-          ${alerts.length === 0 ? '<div class="empty-state"><p>No open alerts</p></div>' : alerts.slice(0, 5).map(a => `
-          <a href="${a.href}" class="fhq-rail-item ${a.severity}">
-            <span class="fhq-rail-icon">
-              ${a.severity === 'critical'
-                ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.9 3.6a1 1 0 00-1.8 0L2.4 19.5a1 1 0 00.9 1.5h17.4a1 1 0 00.9-1.5L12.9 3.6zM11 9.4h2v5.2h-2V9.4zm0 6.6h2v2h-2v-2z"/></svg>'
-                : '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8a9.2 9.2 0 100 18.4 9.2 9.2 0 000-18.4zM11 7h2v6h-2V7zm0 8h2v2h-2v-2z"/></svg>'}
-            </span>
-            <span class="fhq-rail-body">
-              <strong>${esc(a.message)}</strong>
-              <small>${esc(a.entityType === 'vehicle' ? 'Vehicle ' + (a.entityName || '') : (a.entityName || a.typeLabel))}</small>
-            </span>
-            <em>${esc(alertDate(a))}</em>
-          </a>`).join('')}
+    <!-- Right Column: Key Dates + Split Activity/Alerts -->
+    <div class="fhq-right-col">
+      <!-- Top Right: Key Dates -->
+      <div class="fhq-card" style="flex:1;">
+        <div class="fhq-card-head">
+          <div class="fhq-card-head-title">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            Key Dates (Next 30 Days)
+          </div>
+          <a href="/fleet" class="fhq-card-link">View All</a>
         </div>
-        <a href="/reports" class="fhq-foot-link">View All Alerts <i>→</i></a>
-      </section>
+        <div class="fhq-key-dates-list">
+          ${complianceData.keyDates.map(kd => `
+            <div class="fhq-key-date-row">
+              <div class="fhq-key-date-left">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>${kd.label}</span>
+              </div>
+              <div class="fhq-key-date-right">
+                <span class="fhq-key-date-val">${kd.date}</span>
+                <span class="fhq-pill ${kd.tone}">${kd.days}</span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
 
-      <section class="fhq-card">
-        <div class="fhq-section-head compact"><h3>Upcoming Tasks</h3><a href="/compliance-tasks">View All</a></div>
-        <div class="fhq-rail-list">
-          ${upcomingTasks.length === 0 ? '<div class="empty-state"><p>No upcoming tasks</p></div>' : upcomingTasks.slice(0, 5).map(t => `
-          <a href="/compliance-tasks?task=${t.id}" class="fhq-rail-item task ${t.isOverdue ? 'critical' : t.priority}">
-            ${svgIcon(TASK_ICONS[t.category] || TASK_ICONS.other, TASK_TONES[t.category] || 'blue')}
-            <span class="fhq-rail-body">
-              <strong>${esc(t.title)}</strong>
-              ${t.relatedTo ? `<small>${esc(t.relatedTo)}</small>` : ''}
-            </span>
-            <em class="${t.isOverdue || taskDate(t) === 'Today' ? 'urgent' : ''}">${esc(taskDate(t))}</em>
-          </a>`).join('')}
+      <!-- Bottom Right: Split Activity & Alerts -->
+      <div class="fhq-split-subgrid">
+        <!-- Recent Activity -->
+        <div class="fhq-card">
+          <div class="fhq-card-head">
+            <div class="fhq-card-head-title" style="font-size:13px;">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Recent Activity
+            </div>
+            <a href="/audit-evidence" class="fhq-card-link">View All</a>
+          </div>
+          <div class="fhq-activity-list">
+            ${complianceData.recentActivity.map(act => `
+              <div class="fhq-activity-item">
+                <span class="fhq-act-icon ${act.tone}">
+                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                </span>
+                <div class="fhq-act-text">
+                  <div>${act.title}</div>
+                  <span class="fhq-act-time">${act.time}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        <a href="/compliance-tasks" class="fhq-foot-link">View All Tasks <i>→</i></a>
-      </section>
-    </aside>
+
+        <!-- Alerts & Outstanding Actions -->
+        <div class="fhq-card">
+          <div class="fhq-card-head">
+            <div class="fhq-card-head-title" style="font-size:13px;">
+              <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+              Alerts &amp; Actions
+            </div>
+            <a href="/alerts" class="fhq-card-link">View All</a>
+          </div>
+          <div class="fhq-actions-list">
+            ${complianceData.alertsAndActions.map(act => `
+              <a href="${act.href}" class="fhq-action-item">
+                <span class="fhq-count-badge ${act.tone}">${act.count}</span>
+                <span style="flex:1;">${act.label}</span>
+                <svg width="12" height="12" fill="none" stroke="#94a3b8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </a>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ── Row 4: fuel / adblue / finance / availability ───────────────── -->
-  <div class="fhq-bottom-grid">
-    <section class="fhq-card fhq-mini-card">
-      <div class="fhq-section-head compact"><h3>Fuel Overview <small>(This Month)</small></h3><a href="/fleet/fuel">View Details</a></div>
-      <div class="fhq-mini-main">
-        <span class="fhq-mini-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V6a2 2 0 012-2h5a2 2 0 012 2v14M3 20h11M6.5 9h4M15 11h2.5a1.5 1.5 0 011.5 1.5V17a1.5 1.5 0 003 0V9l-3-3"/></svg></span>
-        <div>
-          <small>Total Fuel (L)</small>
-          <strong>${dashboardOps.fuel.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong>
-          ${dashboardOps.fuel.deltaPct === null ? '' : `<em class="${dashboardOps.fuel.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.fuel.deltaPct <= 0 ? '↓' : '↑'} ${Math.abs(dashboardOps.fuel.deltaPct)}% <span>vs last month</span></em>`}
+  <!-- ── ROW 3: DETAILED STATUS TABLES ──────────────────────────────── -->
+  <div class="fhq-row3-grid">
+    <!-- Col 1: Vehicle Status Table -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a2 2 0 11-4 0 2 2 0 014 0zM20 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>
+          Vehicle Status
         </div>
+        <a href="/fleet" class="fhq-card-link">View All</a>
       </div>
-      <div class="fhq-mini-split">
-        <div class="fhq-bars">${dashboardOps.fuel.bars.slice(-16).map(v => `<i style="height:${Math.max(4, Math.min(46, v / Math.max(...dashboardOps.fuel.bars, 1) * 46))}px"></i>`).join('')}</div>
-        <div class="fhq-top-list">
-          <span class="fhq-top-title">Top Consumers</span>
-          <ol>${dashboardOps.fuel.topConsumers.length
-            ? dashboardOps.fuel.topConsumers.map((c, i) => `<li><span>${i + 1}. ${esc(c.label)}</span><strong>${c.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong></li>`).join('')
-            : '<li><span>No fuel logged</span><strong>0 L</strong></li>'}</ol>
-        </div>
+      <div class="fhq-tabs">
+        <button type="button" class="fhq-tab-btn active" onclick="filterVehicleTable('all', this)">All</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('In Use', this)">In Use (${complianceData.fleetVehicles.inUse})</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('Off Road', this)">Off Road (${complianceData.fleetVehicles.offRoad})</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterVehicleTable('In Service', this)">In Service (${complianceData.fleetVehicles.inService})</button>
       </div>
-    </section>
+      <div style="overflow-x:auto;">
+        <table class="fhq-table" id="vehicleStatusTable">
+          <thead>
+            <tr>
+              <th>Reg</th>
+              <th>Fleet ID</th>
+              <th>Driver</th>
+              <th>Status</th>
+              <th>Location</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${complianceData.vehicleStatusList.map(v => `
+              <tr data-status="${v.status}">
+                <td><span class="fhq-reg-badge">${v.reg}</span></td>
+                <td><span style="color:#64748b; font-size:11px; font-weight:600;">${v.fleetId}</span></td>
+                <td>${v.driver}</td>
+                <td><span class="fhq-pill ${v.statusTone === 'green' ? 'green' : v.statusTone === 'red' ? 'red' : 'blue'}">${v.status}</span></td>
+                <td><span style="font-size:11px; color:#475569;">${v.location}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-    <section class="fhq-card fhq-mini-card">
-      <div class="fhq-section-head compact"><h3>AdBlue Overview <small>(This Month)</small></h3><a href="/fleet/adblue">View Details</a></div>
-      <div class="fhq-mini-main">
-        <span class="fhq-mini-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2s6 6.3 6 10.6a6 6 0 11-12 0c0-4.3 6-10.6 6-10.6z"/></svg></span>
-        <div>
-          <small>Total AdBlue (L)</small>
-          <strong>${dashboardOps.adBlue.litres.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong>
-          ${dashboardOps.adBlue.deltaPct === null ? '' : `<em class="${dashboardOps.adBlue.deltaPct <= 0 ? 'good' : 'bad'}">${dashboardOps.adBlue.deltaPct <= 0 ? '↓' : '↑'} ${Math.abs(dashboardOps.adBlue.deltaPct)}% <span>vs last month</span></em>`}
+    <!-- Col 2: Employee Availability Table -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Employee Availability
         </div>
+        <a href="/employees" class="fhq-card-link">View All</a>
       </div>
-      <div class="fhq-mini-split">
-        <div class="fhq-bars blue">${dashboardOps.adBlue.bars.slice(-16).map(v => `<i style="height:${Math.max(4, Math.min(46, v / Math.max(...dashboardOps.adBlue.bars, 1) * 46))}px"></i>`).join('')}</div>
-        <div class="fhq-top-list">
-          <span class="fhq-top-title">Top Consumers</span>
-          <ol>${dashboardOps.adBlue.topConsumers.length
-            ? dashboardOps.adBlue.topConsumers.map((c, i) => `<li><span>${i + 1}. ${esc(c.label)}</span><strong>${c.value.toLocaleString(undefined, { maximumFractionDigits: 0 })} L</strong></li>`).join('')
-            : '<li><span>No AdBlue logged</span><strong>0 L</strong></li>'}</ol>
-        </div>
+      <div class="fhq-tabs">
+        <button type="button" class="fhq-tab-btn active" onclick="filterEmpTable('all', this)">All</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Available', this)">Available</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('On Holiday', this)">On Holiday</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Sick / Absent', this)">Sick / Absent</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterEmpTable('Pending RTW', this)">Pending RTW</button>
       </div>
-    </section>
+      <div style="overflow-x:auto;">
+        <table class="fhq-table" id="employeeStatusTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Next Shift</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${complianceData.employeeAvailabilityList.map(e => `
+              <tr data-status="${e.status}">
+                <td>
+                  <div class="fhq-user-cell">
+                    <span class="fhq-avatar-sm">${e.name ? e.name.charAt(0) : 'E'}</span>
+                    <span style="font-weight:600;">${e.name}</span>
+                  </div>
+                </td>
+                <td><span style="color:#64748b; font-size:11px;">${e.role}</span></td>
+                <td><span class="fhq-pill ${e.statusTone === 'green' ? 'green' : e.statusTone === 'orange' ? 'orange' : 'amber'}">${e.status}</span></td>
+                <td><span style="font-size:11px; font-weight:600; color:#334155;">${e.nextShift}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-    <section class="fhq-card fhq-mini-card finance">
-      <div class="fhq-section-head compact"><h3>Finance Overview <small>(This Month)</small></h3><a href="/finance">View Details</a></div>
-      <div class="fhq-finance-values">
-        <div>
-          <span class="fhq-fin-head"><i class="fhq-mini-icon green sm">£</i><small>Total Income</small></span>
-          <strong>£${dashboardOps.finance.income.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
-        </div>
-        <div>
-          <small>Total Expenses</small>
-          <strong>£${dashboardOps.finance.expenses.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
-        </div>
-        <div>
-          <small>Net Profit</small>
-          <strong>£${dashboardOps.finance.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+    <!-- Col 3: Fleet Availability Gauge -->
+    <div class="fhq-card" style="align-items:center; text-align:center;">
+      <div class="fhq-card-head" style="width:100%;">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Fleet Availability
         </div>
       </div>
-      <div class="fhq-finance-body">
-        <div class="fhq-finance-chart"><canvas id="fhqFinanceChart"></canvas></div>
-        <ul class="fhq-finance-legend" id="fhqFinanceLegend"></ul>
+      <div class="fhq-gauge-wrap" style="width:120px; height:120px; margin:16px 0;">
+        <svg class="fhq-gauge-svg" viewBox="0 0 36 36">
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3" />
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#10b981" stroke-width="3.5" stroke-dasharray="${complianceData.fleetAvailability.percent}, 100" stroke-linecap="round" />
+        </svg>
+        <div class="fhq-gauge-text">
+          <span class="fhq-gauge-val" style="font-size:22px;">${complianceData.fleetAvailability.percent}%</span>
+          <span class="fhq-gauge-sub">Available</span>
+        </div>
       </div>
-    </section>
+      <div class="fhq-legend-list" style="width:100%; max-width:180px; margin-bottom:12px;">
+        <div class="fhq-legend-item">
+          <span class="fhq-legend-label"><i class="fhq-dot green"></i> In Use</span>
+          <span class="fhq-legend-val">${complianceData.fleetAvailability.inUse}</span>
+        </div>
+        <div class="fhq-legend-item">
+          <span class="fhq-legend-label"><i class="fhq-dot slate"></i> Off Road</span>
+          <span class="fhq-legend-val">${complianceData.fleetAvailability.offRoad}</span>
+        </div>
+        <div class="fhq-legend-item">
+          <span class="fhq-legend-label"><i class="fhq-dot blue"></i> In Service</span>
+          <span class="fhq-legend-val">${complianceData.fleetAvailability.inService}</span>
+        </div>
+      </div>
+      <a href="/fleet" class="fhq-card-foot-link" style="width:100%; justify-content:center;">View Fleet Status <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+    </div>
+  </div>
 
-    <section class="fhq-card fhq-mini-card availability">
-      <div class="fhq-section-head compact"><h3>Fleet Availability</h3><a href="/fleet/overview">View Details</a></div>
-      <div class="fhq-availability-body">
-        <div class="fhq-fleet-gauge">
-          <canvas id="fhqFleetGauge" width="112" height="112"></canvas>
-          <span>${dashboardOps.fleet.pct}%<small>Available</small></span>
+  <!-- ── ROW 4: BOTTOM OPERATIONAL ANALYTICS ────────────────────────── -->
+  <div class="fhq-row4-grid">
+    <!-- Card 1: Fuel & AdBlue -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Fuel &amp; AdBlue (Last 30 Days)
         </div>
-        <dl>
-          <dt>Total Fleet</dt><dd>${dashboardOps.fleet.total}</dd>
-          <dt class="good">Available</dt><dd class="good">${dashboardOps.fleet.available}</dd>
-          <dt class="info">In Use</dt><dd class="info">${dashboardOps.fleet.inUse}</dd>
-          <dt class="warn">In Workshop</dt><dd class="warn">${dashboardOps.fleet.inWorkshop}</dd>
-          <dt>Out of Service</dt><dd class="${dashboardOps.fleet.outOfService > 0 ? 'bad' : ''}">${dashboardOps.fleet.outOfService}</dd>
-        </dl>
+        <a href="/fuel" class="fhq-card-link">View Details</a>
       </div>
-    </section>
+      <div class="fhq-fuel-stat-row">
+        <div class="fhq-fuel-stat-block">
+          <div class="fhq-fuel-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px; color:#64748b; font-weight:600;">Total Fuel</div>
+            <div class="fhq-fuel-val">${complianceData.fuelAdBlue.fuelLitres.toLocaleString()} L</div>
+          </div>
+        </div>
+        <span class="fhq-delta ${complianceData.fuelAdBlue.isFuelUp ? 'up-red' : 'up-green'}">${complianceData.fuelAdBlue.fuelDeltaPct}</span>
+      </div>
+      <div class="fhq-fuel-stat-row">
+        <div class="fhq-fuel-stat-block">
+          <div class="fhq-fuel-icon" style="background:#ecfdf5; color:#10b981;">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+          </div>
+          <div>
+            <div style="font-size:10px; color:#64748b; font-weight:600;">Total AdBlue</div>
+            <div class="fhq-fuel-val">${complianceData.fuelAdBlue.adBlueLitres.toLocaleString()} L</div>
+          </div>
+        </div>
+        <span class="fhq-delta ${complianceData.fuelAdBlue.isAdBlueUp ? 'up-green' : 'up-red'}">${complianceData.fuelAdBlue.adBlueDeltaPct}</span>
+      </div>
+      <div class="fhq-fuel-chart-wrap">
+        <canvas id="fuelAdBlueChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Card 2: Finance (This Month) -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Finance (This Month)
+        </div>
+        <a href="/finance" class="fhq-card-link">View Finance</a>
+      </div>
+      <div class="fhq-finance-kpi-row">
+        <div class="fhq-finance-kpi-item">
+          <span class="fhq-fin-sub">Total Income</span>
+          <span class="fhq-fin-val" style="color:#15803d;">£${complianceData.finance.totalIncome}</span>
+        </div>
+        <div class="fhq-finance-kpi-item">
+          <span class="fhq-fin-sub">Total Expenses</span>
+          <span class="fhq-fin-val" style="color:#b91c1c;">£${complianceData.finance.totalExpenses}</span>
+        </div>
+        <div class="fhq-finance-kpi-item">
+          <span class="fhq-fin-sub">Gross Profit</span>
+          <span class="fhq-fin-val" style="color:#1e40af;">£${complianceData.finance.grossProfit}</span>
+        </div>
+      </div>
+      <div style="font-size:11px; font-weight:700; color:#475569; margin-bottom:6px;">Top Expenses</div>
+      <div>
+        ${complianceData.finance.topExpenses.map(exp => `
+          <div class="fhq-expense-item">
+            <span><i class="fhq-dot" style="background:${exp.color}; display:inline-block; vertical-align:middle; margin-right:6px;"></i>${exp.label}</span>
+            <span style="font-weight:700; color:#1e293b;">£${exp.amountFormatted}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <!-- Card 3: Home Office Compliance - Sponsored Workers -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          Home Office Compliance - Sponsored Workers
+        </div>
+        <a href="/sponsored-workers" class="fhq-card-link">View All</a>
+      </div>
+      <div class="fhq-tabs">
+        <button type="button" class="fhq-tab-btn active" onclick="filterSponsoredTable('all', this)">All (${complianceData.sponsoredWorkersCompliance.length})</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterSponsoredTable('Expiring', this)">CoS Expiring</button>
+        <button type="button" class="fhq-tab-btn" onclick="filterSponsoredTable('Expiring', this)">RTW Expiring</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="fhq-table" id="sponsoredTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Visa Expiry</th>
+              <th>RTW Expiry</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${complianceData.sponsoredWorkersCompliance.map(sw => `
+              <tr data-status="${sw.status}">
+                <td>
+                  <div class="fhq-user-cell">
+                    <span class="fhq-avatar-sm">${sw.name.charAt(0)}</span>
+                    <span style="font-weight:600;">${sw.name}</span>
+                  </div>
+                </td>
+                <td><span style="font-size:11px; color:#64748b;">${sw.role}</span></td>
+                <td><span style="font-size:11px;">${sw.visaExpiry}</span></td>
+                <td><span style="font-size:11px;">${sw.rtwExpiry}</span></td>
+                <td><span class="fhq-pill ${sw.statusTone === 'green' ? 'green' : sw.statusTone === 'orange' ? 'orange' : 'red'}">${sw.status}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Card 4: Maintenance & PMI (Next 14 Days) -->
+    <div class="fhq-card">
+      <div class="fhq-card-head">
+        <div class="fhq-card-head-title">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Maintenance &amp; PMI (Next 14 Days)
+        </div>
+        <a href="/fleet/pmi-planner" class="fhq-card-link">View All</a>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="fhq-table">
+          <thead>
+            <tr>
+              <th>Fleet ID</th>
+              <th>Registration</th>
+              <th>Last PMI</th>
+              <th>Next PMI</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${complianceData.maintenancePmiList.map(item => `
+              <tr>
+                <td><span style="font-weight:700; color:#334155; font-size:11px;">${item.fleetId}</span></td>
+                <td><span class="fhq-reg-badge">${item.registration}</span></td>
+                <td><span style="font-size:11px; color:#64748b;">${item.lastPmi}</span></td>
+                <td><span style="font-size:11px; font-weight:600; color:#1e293b;">${item.nextPmi}</span></td>
+                <td><span class="fhq-pill ${item.statusTone === 'red' ? 'red' : item.statusTone === 'orange' ? 'orange' : 'green'}">${item.status}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
-<style>
-  /* ── shell ─────────────────────────────────────────────────────────── */
-  .fhq-dashboard { display:flex; flex-direction:column; gap:14px; color:#0f172a; }
-  .fhq-card { background:#fff; border:1px solid #e9eef5; border-radius:10px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
-  .good { color:#16a34a; } .bad { color:#dc2626; } .muted { color:#64748b; }
-  .fhq-banner, .fhq-setup { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border-radius:10px; background:#fff7ed; color:#9a3412; border:1px solid #fed7aa; text-decoration:none; }
-  .fhq-banner-icon { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#f97316; color:#fff; font-weight:900; }
-  .fhq-setup { background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe; align-items:flex-start; }
-  .fhq-setup > div:first-child { display:flex; flex-direction:column; gap:2px; }
-  .fhq-setup-steps { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
-  .fhq-setup-steps a { color:inherit; text-decoration:none; font-size:12px; font-weight:700; padding:5px 8px; border-radius:6px; background:rgba(255,255,255,.65); }
-  .fhq-setup-steps a.done { color:#047857; }
-
-  /* Shared blue "View X →" affordance at the foot of a card. */
-  .fhq-link { margin-top:auto; padding-top:12px; color:#2563eb; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; }
-  .fhq-link i { font-style:normal; }
-  .fhq-foot-link { display:flex; align-items:center; gap:7px; padding:11px 16px 13px; color:#2563eb; font-size:12px; font-weight:700; text-decoration:none; }
-  .fhq-foot-link i { font-style:normal; }
-
-  /* ── row 1: score + KPIs ───────────────────────────────────────────── */
-  .fhq-kpis { display:grid; grid-template-columns:1.06fr repeat(4, 1fr); gap:13px; }
-  .fhq-score-card, .fhq-kpi { display:flex; flex-direction:column; text-decoration:none; color:#0f172a; padding:15px 17px 14px; }
-  .fhq-card-title { text-align:center; font-size:12.5px; font-weight:700; color:#334155; }
-  .fhq-score-wrap { position:relative; width:128px; height:128px; margin:8px auto 0; }
-  .fhq-score-value { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:29px; font-weight:800; letter-spacing:-.5px; }
-  .fhq-score-value b { font-weight:inherit; line-height:1; }
-  .fhq-score-value span { font-size:17px; }
-  .fhq-score-value small { display:block; font-size:11.5px; font-weight:600; color:#475569; letter-spacing:0; margin-top:1px; }
-  .fhq-score-foot { display:flex; align-items:center; justify-content:center; gap:7px; font-size:11.5px; margin-top:11px; }
-  .fhq-delta { display:inline-flex; align-items:center; gap:3px; font-weight:700; }
-  .fhq-delta svg { width:11px; height:11px; }
-  .fhq-score-card .fhq-link { justify-content:center; padding-top:7px; }
-
-  .fhq-kpi-top { display:flex; align-items:flex-start; gap:13px; }
-  .fhq-kpi-icon { flex:none; width:42px; height:42px; border-radius:50%; display:grid; place-items:center; }
-  .fhq-kpi-icon svg { width:23px; height:23px; }
-  .fhq-kpi.blue   .fhq-kpi-icon { color:#2563eb; background:#eff6ff; }
-  .fhq-kpi.purple .fhq-kpi-icon { color:#7c3aed; background:#f5f3ff; }
-  .fhq-kpi.teal   .fhq-kpi-icon { color:#0d9488; background:#effefb; }
-  .fhq-kpi.red    .fhq-kpi-icon { color:#dc2626; background:#fef2f2; }
-  .fhq-kpi-meta { display:flex; flex-direction:column; min-width:0; }
-  .fhq-kpi-label { font-size:12.5px; font-weight:600; color:#334155; }
-  .fhq-kpi-value { font-size:30px; line-height:1.15; font-weight:800; letter-spacing:-.8px; margin-top:3px; }
-  .fhq-kpi-sub { color:#64748b; font-size:11.5px; margin-top:2px; }
-  .fhq-kpi-actions { display:flex; align-items:baseline; gap:14px; margin-top:16px; }
-  .fhq-kpi-actions strong { font-size:21px; font-weight:800; }
-  .fhq-kpi-actions strong.red { color:#dc2626; } .fhq-kpi-actions strong.amber { color:#f59e0b; }
-  .fhq-kpi-actions span { color:#475569; font-size:12px; }
-
-  /* ── main grid ─────────────────────────────────────────────────────── */
-  .fhq-main-grid { display:grid; grid-template-columns:minmax(0, 1fr) 292px; gap:13px; align-items:start; }
-  .fhq-main-col { display:flex; flex-direction:column; gap:13px; min-width:0; }
-  .fhq-split { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:13px; align-items:start; }
-  .fhq-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 17px 10px; }
-  .fhq-section-head h3 { font-size:15px; margin:0; font-weight:700; letter-spacing:-.2px; }
-  .fhq-section-head small { color:#64748b; font-size:12px; font-weight:500; }
-  .fhq-section-head.compact { padding:13px 15px 9px; }
-  .fhq-section-head.compact h3 { font-size:14px; }
-  .fhq-section-head a { font-size:11.5px; font-weight:600; text-decoration:none; color:#2563eb; }
-
-  /* ── compliance overview tiles ─────────────────────────────────────── */
-  .fhq-tiles { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:10px; padding:4px 15px 16px; }
-  .fhq-tile { display:flex; flex-direction:column; padding:11px 11px 10px; border-radius:9px; border:1px solid #eef2f7; background:#fff; text-decoration:none; color:#0f172a; transition:border-color .15s, box-shadow .15s, transform .15s; }
-  .fhq-tile:hover { border-color:#dbe3ee; box-shadow:0 4px 12px rgba(15,23,42,.06); transform:translateY(-1px); }
-  .fhq-tile-head { display:flex; align-items:center; gap:8px; min-height:30px; }
-  .fhq-t-icon { flex:none; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; }
-  .fhq-t-icon svg { width:17px; height:17px; }
-  .fhq-tile-label { font-size:11px; font-weight:600; color:#334155; line-height:1.25; }
-  .fhq-tile-count { font-size:24px; font-weight:800; letter-spacing:-.6px; margin-top:9px; }
-  .fhq-tile-unit { font-size:10.5px; color:#64748b; margin-top:2px; }
-  .fhq-tile-bar { height:3px; border-radius:2px; margin-top:12px; background:#eef2f7; overflow:hidden; }
-  .fhq-tile-bar i { display:block; height:100%; border-radius:2px; }
-  /* Tone palette shared by tile icons and their progress bars. */
-  .fhq-t-icon.amber  { color:#f59e0b; background:#fef6e7; } .fhq-tile.amber  .fhq-tile-bar i { background:#f59e0b; } .fhq-tile.amber  .fhq-tile-bar { background:#fdf0d5; }
-  .fhq-t-icon.green  { color:#16a34a; background:#eafaf0; } .fhq-tile.green  .fhq-tile-bar i { background:#16a34a; } .fhq-tile.green  .fhq-tile-bar { background:#daf4e4; }
-  .fhq-t-icon.red    { color:#dc2626; background:#fdeeee; } .fhq-tile.red    .fhq-tile-bar i { background:#dc2626; } .fhq-tile.red    .fhq-tile-bar { background:#f8dada; }
-  .fhq-t-icon.purple { color:#7c3aed; background:#f3efff; } .fhq-tile.purple .fhq-tile-bar i { background:#7c3aed; } .fhq-tile.purple .fhq-tile-bar { background:#e7dffc; }
-  .fhq-t-icon.blue   { color:#2563eb; background:#eaf1fe; } .fhq-tile.blue   .fhq-tile-bar i { background:#2563eb; } .fhq-tile.blue   .fhq-tile-bar { background:#d8e5fd; }
-  .fhq-t-icon.orange { color:#ea580c; background:#fef0e7; } .fhq-tile.orange .fhq-tile-bar i { background:#ea580c; } .fhq-tile.orange .fhq-tile-bar { background:#fbdfcd; }
-
-  /* ── compliance trend ──────────────────────────────────────────────── */
-  .fhq-trend-chart { height:132px; padding:2px 15px 0; }
-  .fhq-trend-chips { display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:7px; padding:12px 15px 15px; }
-  .fhq-chip { display:flex; flex-direction:column; align-items:center; gap:3px; padding:7px 3px 8px; border:1px solid #eef2f7; border-radius:8px; }
-  .fhq-chip small { font-size:8.5px; color:#94a3b8; font-weight:600; white-space:nowrap; }
-  .fhq-chip strong { font-size:16px; font-weight:800; letter-spacing:-.4px; }
-  .fhq-chip.is-current { background:#2563eb; border-color:#2563eb; }
-  .fhq-chip.is-current small { color:rgba(255,255,255,.8); }
-  .fhq-chip.is-current strong { color:#fff; }
-
-  /* ── top risk drivers ──────────────────────────────────────────────── */
-  .fhq-risk-list { display:flex; flex-direction:column; padding:2px 15px 0; }
-  .fhq-risk-row { display:grid; grid-template-columns:34px minmax(0, 1fr) minmax(52px, .95fr) auto; align-items:center; gap:10px; padding:8px 0; text-decoration:none; color:#0f172a; }
-  .fhq-risk-who strong { display:block; font-size:12.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fhq-risk-who small { display:block; font-size:11px; color:#64748b; margin-top:1px; }
-  .fhq-risk-bar { height:5px; border-radius:3px; background:#eef2f7; overflow:hidden; }
-  .fhq-risk-bar i { display:block; height:100%; border-radius:3px; }
-  .fhq-risk-bar.high i { background:#dc2626; } .fhq-risk-bar.medium i { background:#f59e0b; } .fhq-risk-bar.low i { background:#16a34a; }
-  .fhq-risk-band { font-size:11px; font-weight:700; white-space:nowrap; text-align:right; }
-  .fhq-risk-band.high { color:#dc2626; } .fhq-risk-band.medium { color:#f59e0b; } .fhq-risk-band.low { color:#16a34a; }
-
-  /* ── alert / task rail ─────────────────────────────────────────────── */
-  .fhq-rail { display:flex; flex-direction:column; gap:13px; }
-  .fhq-rail-list { display:flex; flex-direction:column; padding:0 15px; }
-  .fhq-rail-item { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; align-items:center; column-gap:10px; padding:10px 0; text-decoration:none; color:#0f172a; border-bottom:1px solid #f1f5f9; }
-  .fhq-rail-item:last-child { border-bottom:0; }
-  .fhq-rail-icon { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; background:#fef2f2; color:#dc2626; }
-  .fhq-rail-icon svg { width:17px; height:17px; }
-  .fhq-rail-item.warning .fhq-rail-icon { background:#fff8ec; color:#f59e0b; }
-  .fhq-rail-item.notice  .fhq-rail-icon { background:#fffaeb; color:#eab308; }
-  .fhq-rail-item .fhq-t-icon { width:26px; height:26px; }
-  .fhq-rail-item .fhq-t-icon svg { width:16px; height:16px; }
-  .fhq-rail-body strong { display:block; font-size:12.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fhq-rail-body small { display:block; color:#64748b; font-size:11.5px; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .fhq-rail-item em { font-style:normal; font-size:11px; font-weight:700; color:#f59e0b; white-space:nowrap; }
-  .fhq-rail-item.critical em, .fhq-rail-item em.urgent { color:#dc2626; }
-
-  /* ── bottom row ────────────────────────────────────────────────────── */
-  .fhq-bottom-grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:13px; }
-  .fhq-mini-card { display:flex; flex-direction:column; min-height:190px; overflow:hidden; }
-  .fhq-mini-main { display:flex; align-items:flex-start; gap:11px; padding:4px 15px 0; }
-  .fhq-mini-main small { display:block; font-size:10.5px; color:#64748b; }
-  .fhq-mini-main strong { display:block; font-size:21px; font-weight:800; letter-spacing:-.5px; margin-top:2px; }
-  .fhq-mini-main em { display:block; margin-top:3px; font-size:10.5px; font-style:normal; font-weight:700; }
-  .fhq-mini-main em span { color:#64748b; font-weight:500; }
-  .fhq-mini-icon { flex:none; width:32px; height:32px; border-radius:9px; display:grid; place-items:center; }
-  .fhq-mini-icon svg { width:18px; height:18px; }
-  .fhq-mini-icon.green { background:#eafaf0; color:#16a34a; }
-  .fhq-mini-icon.blue  { background:#eaf1fe; color:#2563eb; }
-  .fhq-mini-icon.sm { width:18px; height:18px; border-radius:50%; font-size:10px; font-weight:800; font-style:normal; }
-  .fhq-mini-split { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.05fr); gap:10px; align-items:end; padding:12px 15px 14px; margin-top:auto; }
-  .fhq-bars { height:48px; display:flex; align-items:flex-end; gap:2.5px; }
-  .fhq-bars i { flex:1; border-radius:2px 2px 0 0; background:#22c55e; min-height:4px; }
-  .fhq-bars.blue i { background:#60a5fa; }
-  .fhq-top-title { display:block; font-size:10.5px; font-weight:700; color:#334155; margin-bottom:4px; }
-  .fhq-top-list ol { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:3px; }
-  .fhq-top-list li { display:flex; justify-content:space-between; gap:8px; font-size:10.5px; color:#64748b; }
-  .fhq-top-list li span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .fhq-top-list li strong { color:#0f172a; font-weight:600; white-space:nowrap; }
-
-  .fhq-finance-values { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; padding:4px 15px 0; }
-  .fhq-finance-values small { display:block; font-size:9.5px; color:#64748b; }
-  .fhq-finance-values strong { display:block; font-size:16px; font-weight:800; letter-spacing:-.4px; margin-top:3px; }
-  .fhq-fin-head { display:flex; align-items:center; gap:5px; }
-  .fhq-finance-body { display:grid; grid-template-columns:86px minmax(0, 1fr); gap:10px; align-items:center; padding:10px 15px 14px; margin-top:auto; }
-  .fhq-finance-chart { height:86px; }
-  .fhq-finance-legend { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:4px 8px; }
-  .fhq-finance-legend li { display:flex; align-items:center; gap:5px; font-size:9.5px; color:#475569; min-width:0; }
-  .fhq-finance-legend i { flex:none; width:7px; height:7px; border-radius:50%; }
-  .fhq-finance-legend span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-
-  .fhq-availability-body { display:grid; grid-template-columns:112px minmax(0, 1fr); gap:14px; padding:6px 15px 14px; align-items:center; margin-top:auto; }
-  .fhq-fleet-gauge { position:relative; width:112px; height:112px; }
-  .fhq-fleet-gauge > span { position:absolute; inset:0; display:grid; place-items:center; align-content:center; font-size:23px; font-weight:800; letter-spacing:-.5px; }
-  .fhq-fleet-gauge small { display:block; font-size:10px; font-weight:500; color:#64748b; letter-spacing:0; }
-  .fhq-availability-body dl { display:grid; grid-template-columns:1fr auto; gap:9px 10px; font-size:11.5px; margin:0; }
-  .fhq-availability-body dt { color:#334155; }
-  .fhq-availability-body dd { margin:0; font-weight:700; text-align:right; }
-  .fhq-availability-body .good { color:#16a34a; } .fhq-availability-body .info { color:#2563eb; }
-  .fhq-availability-body .warn { color:#ea580c; } .fhq-availability-body .bad { color:#dc2626; }
-
-  /* ── dark theme ────────────────────────────────────────────────────── */
-  [data-theme="dark"] .fhq-dashboard { color:var(--text); }
-  [data-theme="dark"] .fhq-card { background:var(--card); border-color:var(--border); }
-  [data-theme="dark"] .fhq-score-card, [data-theme="dark"] .fhq-kpi,
-  [data-theme="dark"] .fhq-rail-item, [data-theme="dark"] .fhq-risk-row, [data-theme="dark"] .fhq-tile { color:var(--text); }
-  [data-theme="dark"] .fhq-tile { background:var(--surface-2); border-color:var(--border); }
-  [data-theme="dark"] .fhq-tile:hover { border-color:var(--border-md); }
-  [data-theme="dark"] .fhq-chip { border-color:var(--border); }
-  [data-theme="dark"] .fhq-rail-item { border-bottom-color:var(--border); }
-  [data-theme="dark"] .fhq-tile-bar, [data-theme="dark"] .fhq-risk-bar { background:rgba(148,163,184,.18); }
-  [data-theme="dark"] .fhq-card-title, [data-theme="dark"] .fhq-kpi-label,
-  [data-theme="dark"] .fhq-tile-label, [data-theme="dark"] .fhq-top-title,
-  [data-theme="dark"] .fhq-availability-body dt, [data-theme="dark"] .fhq-kpi-actions span { color:var(--text-2); }
-  [data-theme="dark"] .fhq-score-value small, [data-theme="dark"] .fhq-kpi-sub,
-  [data-theme="dark"] .fhq-tile-unit, [data-theme="dark"] .fhq-rail-body small,
-  [data-theme="dark"] .fhq-risk-who small, [data-theme="dark"] .fhq-mini-main small,
-  [data-theme="dark"] .fhq-finance-values small, [data-theme="dark"] .fhq-top-list li,
-  [data-theme="dark"] .fhq-finance-legend li, [data-theme="dark"] .fhq-fleet-gauge small { color:var(--text-muted); }
-  [data-theme="dark"] .fhq-top-list li strong { color:var(--text); }
-
-  /* ── responsive ────────────────────────────────────────────────────── */
-  @media (max-width:1500px) {
-    .fhq-kpis { grid-template-columns:repeat(3, minmax(0, 1fr)); }
-    .fhq-score-card { grid-column:span 3; }
-    .fhq-score-card .fhq-score-wrap { margin-top:6px; }
-  }
-  @media (max-width:1360px) {
-    .fhq-tiles { grid-template-columns:repeat(4, minmax(0, 1fr)); }
-    .fhq-bottom-grid { grid-template-columns:repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width:1180px) {
-    .fhq-main-grid { grid-template-columns:1fr; }
-    .fhq-rail { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); align-items:start; }
-  }
-  @media (max-width:860px) {
-    .fhq-kpis { grid-template-columns:repeat(2, minmax(0, 1fr)); }
-    .fhq-score-card { grid-column:span 2; }
-    .fhq-split, .fhq-rail, .fhq-bottom-grid { grid-template-columns:1fr; }
-    .fhq-tiles { grid-template-columns:repeat(3, minmax(0, 1fr)); }
-    .fhq-trend-chips { grid-template-columns:repeat(3, minmax(0, 1fr)); }
-  }
-  @media (max-width:560px) {
-    .fhq-kpis { grid-template-columns:1fr; }
-    .fhq-score-card { grid-column:span 1; }
-    .fhq-tiles { grid-template-columns:repeat(2, minmax(0, 1fr)); }
-    .fhq-mini-split, .fhq-finance-body, .fhq-availability-body { grid-template-columns:1fr; }
-    .fhq-finance-values { grid-template-columns:1fr; }
-    .fhq-availability-body { justify-items:center; }
-    .fhq-risk-row { grid-template-columns:34px minmax(0, 1fr) auto; }
-    .fhq-risk-bar { grid-column:2 / -1; }
-  }
-</style>
-
 <script>
-(function() {
-  var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  var track = isDark ? 'rgba(148,163,184,.18)' : '#eef2f7';
-
-  function gauge(id, value, color) {
-    var canvas = document.getElementById(id);
-    if (!canvas || !window.Chart) return;
-    new Chart(canvas.getContext('2d'), {
-      type: 'doughnut',
-      data: { datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, track], borderWidth: 0, borderRadius: 8 }] },
-      options: { cutout: '78%', responsive: false, events: [], plugins: { legend: { display: false }, tooltip: { enabled: false } } }
-    });
+// Toggle Quick Actions
+function toggleQuickActions() {
+  var menu = document.getElementById('quickActionsMenu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+  var trigger = document.getElementById('quickActionsTrigger');
+  var menu = document.getElementById('quickActionsMenu');
+  if (trigger && menu && !trigger.contains(e.target) && !menu.contains(e.target)) {
+    menu.style.display = 'none';
   }
-  gauge('fhqScoreGauge', ${score.overall.toFixed(0)}, '${gaugeColor}');
-  gauge('fhqFleetGauge', ${dashboardOps.fleet.pct}, '#16a34a');
+});
 
-  // Compliance trend — filled blue line, one point per month.
-  var trendEl = document.getElementById('fhqTrendChart');
-  if (trendEl && window.Chart) {
-    var trend = ${JSON.stringify(complianceTrend)};
-    var ctx = trendEl.getContext('2d');
-    var fill = ctx.createLinearGradient(0, 0, 0, 130);
-    fill.addColorStop(0, 'rgba(37,99,235,.20)');
-    fill.addColorStop(1, 'rgba(37,99,235,0)');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: trend.map(function(p) { return p.label; }),
-        datasets: [{
-          data: trend.map(function(p) { return p.value; }),
-          borderColor: '#2563eb', backgroundColor: fill, borderWidth: 2,
-          pointBackgroundColor: '#2563eb', pointBorderColor: '#fff', pointBorderWidth: 2,
-          pointRadius: 4, pointHoverRadius: 5, fill: true, tension: .35, spanGaps: true,
-        }]
-      },
-      options: {
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: function(c) { return c.parsed.y + '% compliant'; } } }
-        },
-        scales: {
-          y: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 9 }, callback: function(v) { return v + '%'; } },
-               grid: { color: isDark ? 'rgba(148,163,184,.14)' : '#f1f5f9', drawTicks: false }, border: { display: false } },
-          x: { ticks: { font: { size: 9 } }, grid: { display: false }, border: { display: false } }
-        }
-      }
-    });
-  }
-
-  // Finance expense split — doughnut plus a value/percentage legend.
-  var finEl = document.getElementById('fhqFinanceChart');
-  if (finEl && window.Chart) {
-    var slices = ${JSON.stringify(dashboardOps.finance.slices)};
-    var palette = ['#2563eb', '#16a34a', '#f59e0b', '#dc2626', '#7c3aed', '#0891b2', '#64748b'];
-    var empty = !slices.length;
-    if (empty) slices = [{ label: 'No expenses', value: 1 }];
-    var total = slices.reduce(function(sum, s) { return sum + s.value; }, 0) || 1;
-    new Chart(finEl.getContext('2d'), {
-      type: 'doughnut',
-      data: {
-        labels: slices.map(function(s) { return String(s.label).replace(/_/g, ' '); }),
-        datasets: [{ data: slices.map(function(s) { return s.value; }),
-          backgroundColor: empty ? [track] : palette, borderWidth: 0 }]
-      },
-      options: { cutout: '64%', maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-    var legend = document.getElementById('fhqFinanceLegend');
-    if (legend && !empty) {
-      legend.innerHTML = slices.slice(0, 6).map(function(s, i) {
-        var label = String(s.label).replace(/_/g, ' ');
-        var pct = Math.round((s.value / total) * 100);
-        var amount = '£' + Math.round(s.value).toLocaleString();
-        return '<li><i style="background:' + palette[i % palette.length] + '"></i>'
-          + '<span>' + label + ' · ' + amount + ' (' + pct + '%)</span></li>';
-      }).join('');
+// Interactive Filter for Vehicle Status Table
+function filterVehicleTable(status, btn) {
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var rows = document.querySelectorAll('#vehicleStatusTable tbody tr');
+  rows.forEach(function(r) {
+    if (status === 'all' || r.getAttribute('data-status') === status) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
     }
-  }
-})();
+  });
+}
+
+// Interactive Filter for Employee Availability Table
+function filterEmpTable(status, btn) {
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var rows = document.querySelectorAll('#employeeStatusTable tbody tr');
+  rows.forEach(function(r) {
+    if (status === 'all' || r.getAttribute('data-status') === status) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
+}
+
+// Interactive Filter for Sponsored Workers Table
+function filterSponsoredTable(status, btn) {
+  var parent = btn.parentElement;
+  parent.querySelectorAll('.fhq-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  var rows = document.querySelectorAll('#sponsoredTable tbody tr');
+  rows.forEach(function(r) {
+    if (status === 'all' || r.getAttribute('data-status') === status) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
+}
+
+// Map initialization
+var trackingData = ${JSON.stringify(complianceData.trackingVehicles)};
+var mapMarkers = [];
+var trackingMap;
+
+function initLeafletMap() {
+  if (typeof L === 'undefined') return;
+  var container = document.getElementById('liveTrackingMap');
+  if (!container) return;
+
+  trackingMap = L.map('liveTrackingMap', {
+    center: [53.2, -1.5],
+    zoom: 6.5,
+    zoomControl: true,
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(trackingMap);
+
+  renderMapMarkers('all');
+}
+
+function renderMapMarkers(filter) {
+  if (!trackingMap) return;
+  mapMarkers.forEach(function(m) { trackingMap.removeLayer(m); });
+  mapMarkers = [];
+
+  trackingData.forEach(function(v) {
+    if (filter === 'in_use' && v.status !== 'In Use') return;
+    if (filter === 'off_road' && v.status !== 'Off Road') return;
+    if (filter === 'in_service' && v.status !== 'In Service') return;
+
+    var iconHtml = '<div class="fhq-map-pin ' + v.tone + '">' +
+      '<svg class="fhq-map-pin-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H9m4 0h3m0 0V9h3l3 4v3"/></svg>' +
+      '<div><div>' + v.registration + '</div><div class="fhq-map-pin-sub">' + v.speed + ' &bull; ' + v.location + '</div></div>' +
+    '</div>';
+
+    var customIcon = L.divIcon({
+      html: iconHtml,
+      className: '',
+      iconSize: [120, 36],
+      iconAnchor: [60, 18],
+    });
+
+    var marker = L.marker([v.lat, v.lng], { icon: customIcon }).addTo(trackingMap);
+    marker.bindPopup('<b>' + v.registration + '</b> (' + v.fleetId + ')<br>Driver: ' + v.driver + '<br>Status: ' + v.status + '<br>Location: ' + v.location);
+    mapMarkers.push(marker);
+  });
+}
+
+function filterMapMarkers(val) {
+  renderMapMarkers(val);
+}
+
+// Chart.js Fuel & AdBlue Bar Chart
+function initFuelAdBlueChart() {
+  if (typeof Chart === 'undefined') return;
+  var canvas = document.getElementById('fuelAdBlueChart');
+  if (!canvas) return;
+
+  var months = ${JSON.stringify(complianceData.fuelAdBlue.months)};
+  var fuel = ${JSON.stringify(complianceData.fuelAdBlue.fuelChartData)};
+  var adblue = ${JSON.stringify(complianceData.fuelAdBlue.adBlueChartData)};
+
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: [
+        {
+          label: 'Fuel (L)',
+          data: fuel,
+          backgroundColor: '#3b82f6',
+          borderRadius: 4,
+          barPercentage: 0.6,
+        },
+        {
+          label: 'AdBlue (L)',
+          data: adblue,
+          backgroundColor: '#10b981',
+          borderRadius: 4,
+          barPercentage: 0.6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  initLeafletMap();
+  initFuelAdBlueChart();
+});
 </script>
-` }) %>
+`}) %>

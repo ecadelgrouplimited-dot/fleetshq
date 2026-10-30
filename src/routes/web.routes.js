@@ -19,6 +19,7 @@ const { checkPassword } = require('../utils/passwordPolicy');
 const { sendMail, opsRecipients } = require('../services/mail.service');
 const emailTemplates = require('../services/emailTemplates');
 const { ROLE_LABELS, getUserRoles, hasAnyRole, getUserPanels, roleLabel } = require('../utils/rbac');
+const driverService = require('../services/driver.service');
 
 router.use(cookieParser());
 
@@ -1746,9 +1747,13 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       if (pendingActivation + inFlight > 0) platformQueue = { pendingActivation, inFlight };
     }
 
+    const { getComplianceDashboardData } = require('../services/dashboard.service');
+    const complianceData = await getComplianceDashboardData(req.user.tenantId, req.user);
+
     res.render('dashboard/index', {
       title: 'Dashboard',
       subtitle: `Welcome back, ${(req.user.name || '').split(' ')[0] || 'there'}`,
+      complianceData,
       stats: { totalEmp, sponsoredCount, totalVehicles, activeVehicles, vorVehicles, openDefects, missedChecks, pendingToolbox,
         driverCount, driverActions, vehicleActions, totalTrailers, trailerActions },
       score: { people: Number(score.peopleScore ?? score.people), fleet: Number(score.fleetScore ?? score.fleet),
@@ -1758,6 +1763,20 @@ router.get('/', landingGate, webAuth, async (req, res) => {
       dashboardOps, platformQueue, setup,
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
+});
+
+// ── Drivers Master-Detail Directory ────────────────────
+router.get('/drivers', webAuth, requireRoles(...peopleRoles), async (req, res) => {
+  try {
+    const data = await driverService.getDriversDirectory(req.user.tenantId, req.query);
+    res.render('drivers/index', {
+      title: 'Drivers',
+      ...data,
+      path: '/drivers',
+    });
+  } catch (e) {
+    res.render('error', { title: 'Error', message: e.message, code: 500 });
+  }
 });
 
 // ── Employees ──────────────────────────────────────────
@@ -1836,31 +1855,17 @@ router.get('/employees/:id', webAuth, async (req, res) => {
       });
     }
 
-    const emp = await prisma.employee.findUnique({
-      where: { id: req.params.id },
-      include: {
-        documents: { orderBy: { createdAt: 'desc' } },
-        trainingRecords: { orderBy: { trainingType: 'asc' } },
-        acknowledgements: { orderBy: { signedAt: 'desc' } },
-        drivingVehicle: true,
-        lineManager: { select: { id: true, fullName: true } },
-        sponsoredWorker: { include: { changes: { orderBy: { createdAt: 'desc' } } } },
-      },
-    });
-    if (!emp) return res.redirect('/employees');
+    const activeTab = req.query.tab || 'overview';
+    const hubData = await driverService.getDriverDetailHub(req.params.id, activeTab);
+    if (hubData) {
+      return res.render('employees/show', {
+        title: hubData.profile.name,
+        ...hubData,
+        path: '/drivers',
+      });
+    }
 
-    const { TRAINING_TYPES } = require('../utils/constants');
-    const existingTraining = Object.fromEntries(emp.trainingRecords.map(r => [r.trainingType, r]));
-    const trainingMatrix = TRAINING_TYPES.map(type => ({
-      trainingType: type, label: TRAINING_LABELS[type],
-      ...(existingTraining[type] || { status: 'not_started', completedDate: null, expiryDate: null }),
-    }));
-    const completionPercent = Math.round(
-      (trainingMatrix.filter(t => t.status === 'completed').length / TRAINING_TYPES.length) * 100
-    );
-
-    res.render('employees/show', { title: emp.fullName, emp, trainingMatrix, completionPercent,
-      daysUntil, formatDate });
+    return res.redirect('/employees');
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
 
@@ -4597,5 +4602,22 @@ router.get('/executive', webAuth, requireRoles(...executiveRoles), async (req, r
     });
   } catch (e) { res.render('error', { title: 'Error', message: e.message, code: 500 }); }
 });
+
+// ── Aliases for modernized Fleet HQ Navigation ───────────────────────────
+router.get('/tracking', webAuth, (req, res) => res.redirect('/#liveTrackingMap'));
+router.get('/fuel', webAuth, (req, res) => res.redirect('/fleet/fuel'));
+router.get('/servicing', webAuth, (req, res) => res.redirect('/fleet/pmi-planner'));
+router.get('/tyres', webAuth, (req, res) => res.redirect('/defects'));
+router.get('/route-planning', webAuth, (req, res) => res.redirect('/dispatch'));
+router.get('/cpc', webAuth, (req, res) => res.redirect('/training'));
+router.get('/sponsor-licence', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/cos', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/right-to-work', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/visa-immigration', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/home-office-reporting', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/audit-inspection', webAuth, (req, res) => res.redirect('/audit-evidence'));
+router.get('/immigration-docs', webAuth, (req, res) => res.redirect('/sponsored-workers'));
+router.get('/compliance-breaches', webAuth, (req, res) => res.redirect('/defects'));
+router.get('/medical', webAuth, (req, res) => res.redirect('/employees?type=medical'));
 
 module.exports = router;
